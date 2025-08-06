@@ -1,0 +1,16 @@
+[package]
+name = "rusteng"
+version = "0.1.0"
+edition = "2021"
+build = "src/ui/build.rs"
+
+[workspace]
+members = [
+    "ui",
+]
+
+[dependencies]
+slint = "1.12.1"
+
+[build-dependencies]
+slint-build = "1.12.1"

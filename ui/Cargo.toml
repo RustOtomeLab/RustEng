@@ -1,0 +1,11 @@
+[package]
+name = "ui"
+version = "0.1.0"
+edition = "2024"
+build = "src/build.rs"
+
+[dependencies]
+slint = "1.12.1"
+
+[build-dependencies]
+slint-build = "1.12.1"
