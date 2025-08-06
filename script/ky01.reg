@@ -1,0 +1,14 @@
+%version 1
+
+@bg school_day.jpg
+@bgm peaceful.mp3
+
+咲夜「欢迎回来，主人。」
+
+@voice reimu_01.ogg
+灵梦「你终于来了呢。」
+
+@bg school_night.jpg
+
+@voice reimu_02.ogg
+灵梦「今天天气真好呀。」
