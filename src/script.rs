@@ -15,3 +15,4 @@ impl Script {
         self.commands.pop_front()
     }
 }
+

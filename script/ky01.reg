@@ -1,14 +1,17 @@
 %version 1
 
-@bg school_day.jpg
-@bgm peaceful.mp3
+@bg bg022a.png
+@bgm bgm36.ogg
+旁白“壬戌之秋，七月既望”
 
-咲夜「欢迎回来，主人。」
+@voice fem_rir_50520.ogg
+莉々子“はじめまして、聖です。智宏さんがご兄妹の話をよくされるので、私もお噂はかねがね……とても仲の良いご様子で”
 
-@voice reimu_01.ogg
-灵梦「你终于来了呢。」
+@voice fem_rir_50521.ogg
+莉々子“え、ええ、喜んでいただけたのなら何よりです。祖母の畑で採れたものですが、私もほんの少し収穫の手伝いをしたもので”
 
-@bg school_night.jpg
+@bg bg024c.png
+@bgm bgm37.ogg
 
-@voice reimu_02.ogg
-灵梦「今天天气真好呀。」
+@voice fem_rir_50522.ogg
+莉々子“千玉学園生徒会の皆さんに改めてご挨拶申しあげます。百合ヶ峰学園生徒会長の聖です”

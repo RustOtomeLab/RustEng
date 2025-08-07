@@ -107,8 +107,8 @@ fn parse_block(lines: &[(usize, String)]) -> Result<Commands, ParserError> {
                 });
             }
         }
-        else if let Some((speaker, text)) = line.split_once("「") {
-            if let Some(text) = text.strip_suffix("」") {
+        else if let Some((speaker, text)) = line.split_once("“") {
+            if let Some(text) = text.strip_suffix("”") {
                 commands.push(Dialogue {
                     speaker: speaker.trim().to_string(),
                     text: text.trim().to_string(),

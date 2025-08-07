@@ -4,13 +4,10 @@ version = "0.1.0"
 edition = "2021"
 build = "src/ui/build.rs"
 
-[workspace]
-members = [
-    "ui",
-]
-
 [dependencies]
 slint = "1.12.1"
+rodio = "0.17"
+tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros"] }
 
 [build-dependencies]
 slint-build = "1.12.1"
