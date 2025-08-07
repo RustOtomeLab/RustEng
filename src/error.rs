@@ -1,12 +1,12 @@
-use std::io::Error;
 use crate::parser::script_parser::ParserError;
 use slint::PlatformError;
+use std::io::Error;
 
 #[derive(Debug)]
 pub enum EngineError {
     FileError(Error),
     ParseError(ParserError),
-    UiError(PlatformError)
+    UiError(PlatformError),
 }
 
 impl From<ParserError> for EngineError {
