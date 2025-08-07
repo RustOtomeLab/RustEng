@@ -22,4 +22,8 @@
 
 播放及切换立绘、表情
 
+## 文档
+
+ · [场景脚本（script）文档](doc/how_to_use_script.md)
+
 #### **给颗star支持一下吧！**
