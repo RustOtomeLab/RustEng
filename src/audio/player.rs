@@ -1,4 +1,3 @@
-use std::thread::spawn;
 use rodio::{Decoder, OutputStream, Sink, Source};
 use std::{
     fs::File,
@@ -6,13 +5,13 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub struct BgmPlayer {
+pub struct Player {
     sink: Arc<Mutex<Option<Sink>>>,
     _stream: OutputStream,
     stream_handle: rodio::OutputStreamHandle,
 }
 
-impl BgmPlayer {
+impl Player {
     pub fn new() -> Self {
         let (_stream, handle) = OutputStream::try_default().expect("Failed to open audio output");
         Self {
@@ -44,19 +43,18 @@ impl BgmPlayer {
             s.stop();
         }
     }
-}
 
+    pub fn play_voice(&self, path: &str) {
+        if let Some(s) = self.sink.lock().unwrap().take() {
+            s.stop();
+        }
+        let file = File::open(path).expect("Failed to open Voice file");
+        let source = Decoder::new(BufReader::new(file)).expect("Failed to decode Voice file");
 
-pub async fn play_voice(path: &str) {
-    let path = path.to_string();
-    tokio::spawn(async move {
-        let (_stream, handle) = OutputStream::try_default().unwrap();
-        let sink = Sink::try_new(&handle).unwrap();
-
-        let file = File::open(path).unwrap();
-        let source = Decoder::new(BufReader::new(file)).unwrap();
-
+        let sink = Sink::try_new(&self.stream_handle).expect("Failed to create sink");
         sink.append(source);
-        sink.sleep_until_end();
-    });
+        sink.play();
+
+        *self.sink.lock().unwrap() = Some(sink);
+    }
 }

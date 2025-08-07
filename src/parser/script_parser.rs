@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
 use crate::script::Script;
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone)]
 pub enum Commands {
@@ -91,7 +91,7 @@ fn parse_block(lines: &[(usize, String)]) -> Result<Commands, ParserError> {
                         return Err(ParserError::UnSupportedVersion {
                             need: VERSION,
                             indeed: arg.to_string(),
-                        })
+                        });
                     }
                     return Ok(EmptyCommands);
                 } else {
@@ -106,8 +106,9 @@ fn parse_block(lines: &[(usize, String)]) -> Result<Commands, ParserError> {
                     content: line.clone(),
                 });
             }
-        }
-        else if let Some((speaker, text)) = line.split_once("“") {
+        } else if line.starts_with('#') {
+            continue;
+        } else if let Some((speaker, text)) = line.split_once("“") {
             if let Some(text) = text.strip_suffix("”") {
                 commands.push(Dialogue {
                     speaker: speaker.trim().to_string(),
@@ -129,9 +130,7 @@ fn parse_block(lines: &[(usize, String)]) -> Result<Commands, ParserError> {
     }
 
     if commands.is_empty() {
-        return Err(ParserError::EmptyBlock {
-            line: lines[0].0,
-        });
+        return Err(ParserError::EmptyBlock { line: lines[0].0 });
     }
 
     Ok(if commands.len() == 1 {
