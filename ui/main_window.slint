@@ -51,17 +51,18 @@ export component MainWindow inherits Window {
         Image {
             source: fg_body_0;
             width: parent.width * 0.25;
-            height: parent.height;
+            height: parent.width * 0.65;
             x: parent.width * 0.375;
             y: parent.height / 6;
         }
 
         Image {
+            //以下内容不供参考，请不要使用
             source: fg_face_0;
-            width: parent.width * 0.25 * 0.2777175875767;
-            height: parent.height;
-            x: parent.width * 0.375 + parent.width * 0.25 * 0.340239551478;
-            y: parent.height / 6 + parent.height * 0.0526199174782;
+            width: parent.width * 0.25 * 0.2777;
+            height: parent.width * 0.25 * 0.275 * 0.96;
+            x: parent.width * 0.375 + parent.width * 0.25 * 0.335;
+            y: parent.height / 6 + parent.width * 0.042;
         }
 
         // 半透明的对话框背景

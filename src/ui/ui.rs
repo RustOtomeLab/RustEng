@@ -17,7 +17,7 @@ pub struct UiRenderBlock {
     pub background: Option<String>,
     pub bgm: Option<String>,
     pub voice: Option<String>,
-    pub figure: Option<(String, String, String, String)>,
+    pub figure: Option<(String, String, String, String, String)>,
 }
 
 static BACKGROUND_PATH: &str = "./source/background/";
@@ -72,14 +72,14 @@ pub async fn ui(
                             //println!("{:?}", time.elapsed());
                         }
 
-                        if let Some((name, body, face, position)) = block.figure {
+                        if let Some((name, distant, body, face, position)) = block.figure {
                             let body = Image::load_from_path(Path::new(&format!(
-                                "{}{}/z1/{}.png",
-                                FG_PATH, name, body
+                                "{}{}/{}/{}.png",
+                                FG_PATH, name, distant, body
                             ))).unwrap();
                             let face = Image::load_from_path(Path::new(&format!(
-                                "{}{}/z1/{}.png",
-                                FG_PATH, name, face
+                                "{}{}/{}/{}.png",
+                                FG_PATH, name, distant, face
                             ))).unwrap();
                             match &position[..] {
                                 "0" => {

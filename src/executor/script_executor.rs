@@ -31,7 +31,7 @@ fn apply_command(command: &Command, block: &mut UiRenderBlock) {
             block.dialogue = Some((speaker.clone(), text.clone()))
         }
         Command::PlayVoice(v) => block.voice = Some(v.clone()),
-        Command::Figure {name,body, face, position} => block.figure = Some((name.to_string(), body.to_string(), face.to_string(), position.to_string())),
+        Command::Figure {name, distance,body, face, position} => block.figure = Some((name.to_string(), distance.to_string(), body.to_string(), face.to_string(), position.to_string())),
         _ => {}
     }
 }
