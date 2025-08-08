@@ -22,6 +22,6 @@
 
 ## 文档
 
- · [场景脚本（script）文档](doc/how_to_use_script.md)
+ · [场景脚本（script）文档](docs/how_to_use_script.md)
 
 #### *给颗star支持一下吧！*
