@@ -5,6 +5,8 @@ export component MainWindow inherits Window {
     in property<string> dialogue;
     in property<string> speaker;
     in property<image> bg;
+    in property<image> fg_body_0;
+    in property<image> fg_face_0;
     in property<bool> is-fullscreen: false;
     property <bool> has-focus: true;
 
@@ -46,22 +48,49 @@ export component MainWindow inherits Window {
             height: parent.height;
         }
 
+        Image {
+            source: fg_body_0;
+            width: parent.width * 0.25;
+            height: parent.height;
+            x: parent.width * 0.375;
+            y: parent.height / 6;
+        }
+
+        Image {
+            source: fg_face_0;
+            width: parent.width * 0.25 * 0.2777175875767;
+            height: parent.height;
+            x: parent.width * 0.375 + parent.width * 0.25 * 0.340239551478;
+            y: parent.height / 6 + parent.height * 0.0526199174782;
+        }
+
         // 半透明的对话框背景
         Rectangle {
-            y: parent.height * 3 / 4;
+            y: parent.height * 0.75;
             width: parent.width;
-            height: parent.height / 4;
+            height: parent.height * 0.25;
             background: #0008; // 半透明黑色
         }
 
         // 对话文本
         Text {
-            text: root.speaker + ": " + root.dialogue;
+            text: root.speaker;
             x: parent.width / 64;
-            y: parent.height * 3 / 4;
+            y: parent.height * 0.75;
             font-size: parent.height / 30;
             color: white;
             wrap: word-wrap;
+            width: parent.width * 31 / 32;
+        }
+
+        Text {
+            text: root.dialogue;
+            x: parent.width / 64;
+            y: parent.height * 0.80;
+            font-size: parent.height / 30;
+            color: white;
+            wrap: word-wrap;
+            width: parent.width * 31 / 32;
         }
     }
     // 状态绑定属性和事件

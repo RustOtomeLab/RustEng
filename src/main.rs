@@ -20,7 +20,7 @@ struct Args {
 impl Args {
     fn new(args: &str) -> Args {
         Args {
-            path: format!("./script/{}.reg", args),
+            path: format!("./source/script/{}.reg", args),
         }
     }
 }
@@ -28,7 +28,7 @@ impl Args {
 impl Default for Args {
     fn default() -> Self {
         Args {
-            path: "./script/ky01.reg".to_string(),
+            path: "./source/script/ky01.reg".to_string(),
         }
     }
 }

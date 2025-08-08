@@ -14,6 +14,7 @@ pub enum Command {
     PlayBgm(String),
     PlayVoice(String),
     Dialogue { speaker: String, text: String },
+    Figure { name: String, body: String, face: String, position: String },
     Choice(Vec<(String, String)>),
     Jump(String),
     Label(String),
@@ -26,6 +27,7 @@ pub enum ParserError {
     UnknownLine { line: usize, content: String },
     EmptyBlock { line: usize },
     UnSupportedVersion { need: usize, indeed: String },
+    TooShort { need: usize, indeed: usize },
 }
 
 static VERSION: usize = 1;
@@ -68,6 +70,13 @@ fn parse_block(lines: &[(usize, String)]) -> Result<Commands, ParserError> {
                     "bg" => SetBackground(arg.to_string()),
                     "bgm" => PlayBgm(arg.to_string()),
                     "voice" => PlayVoice(arg.to_string()),
+                    "fg" => {
+                        let parts: Vec<&str> = arg.split('|').map(|s| s.trim()).collect();
+                        if parts.len() != 4 {
+                            return Err(ParserError::TooShort {need: 4, indeed: parts.len()});
+                        }
+                        Figure {name: parts[0].to_string(), body: parts[1].to_string(), face: parts[2].to_string(), position: parts[3].to_string()}
+                    }
                     "jump" => Jump(arg.to_string()),
                     "label" => Label(arg.to_string()),
                     _ => {

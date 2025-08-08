@@ -17,11 +17,13 @@ pub struct UiRenderBlock {
     pub background: Option<String>,
     pub bgm: Option<String>,
     pub voice: Option<String>,
+    pub figure: Option<(String, String, String, String)>,
 }
 
-static BACKGROUND_PATH: &str = "./background/";
-static VOICE_PATH: &str = "./voice/";
-static BGM_PATH: &str = "./bgm/";
+static BACKGROUND_PATH: &str = "./source/background/";
+static VOICE_PATH: &str = "./source/voice/";
+static BGM_PATH: &str = "./source/bgm/";
+static FG_PATH: &str = "./source/figure/";
 
 pub async fn ui(
     script: Rc<RefCell<Script>>,
@@ -68,6 +70,24 @@ pub async fn ui(
                             .unwrap();
                             window.set_bg(image);
                             //println!("{:?}", time.elapsed());
+                        }
+
+                        if let Some((name, body, face, position)) = block.figure {
+                            let body = Image::load_from_path(Path::new(&format!(
+                                "{}{}/z1/{}.png",
+                                FG_PATH, name, body
+                            ))).unwrap();
+                            let face = Image::load_from_path(Path::new(&format!(
+                                "{}{}/z1/{}.png",
+                                FG_PATH, name, face
+                            ))).unwrap();
+                            match &position[..] {
+                                "0" => {
+                                    window.set_fg_body_0(body);
+                                    window.set_fg_face_0(face);
+                                }
+                                _ => ()
+                            }
                         }
 
                         if let Some(voice) = block.voice {
