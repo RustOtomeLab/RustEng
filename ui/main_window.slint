@@ -1,17 +1,44 @@
+import { Slider } from "std-widgets.slint";
+import { Switch } from "std-widgets.slint";
+
 export component MainWindow inherits Window {
     min-width: 1280px;
     min-height: 720px;
-    title: "KiteVN";
+    title: "RustEng";
     in property<string> dialogue;
     in property<string> speaker;
+
     in property<image> bg;
+
     in property<image> fg_body_0;
     in property<image> fg_face_0;
+
     in property<bool> is-fullscreen: false;
     property <bool> has-focus: true;
 
+    in-out property<int> current-screen: 0;
+
+    out property <float> main-volume: 100;
+    out property <float> bgm-volume: 100;
+    out property <float> voice-volume: 100;
+
+    FocusScope {
+        width: parent.width;
+        height: parent.height;
+
+        key-pressed(event) => {
+            if (event.text == Key.F11) {
+                root.toggle-fullscreen();
+                accept
+            } else {
+                reject
+            }
+        }
+
+    }
+
     // 内层保持比例的容器
-    Rectangle {
+    if current-screen == 0: Rectangle {
         property <length> container-size: min(parent.width, (parent.height) * 16 / 9);
         width: container-size;
         height: container-size * 9 / 16;
@@ -19,26 +46,11 @@ export component MainWindow inherits Window {
         y: (parent.height - self.height) / 2;
         background: white;
 
-        FocusScope {
+        TouchArea {
             width: parent.width;
             height: parent.height;
-
-            key-pressed(event) => {
-                if (event.text == Key.F11) {
-                    root.toggle-fullscreen();
-                    accept
-                } else {
-                    reject
-                }
-            }
-
-            TouchArea {
-                width: parent.width;
-                height: parent.height;
-                clicked => {
-                    parent.focus();
-                    root.clicked();
-                }
+            clicked => {
+                root.clicked();
             }
         }
 
@@ -56,14 +68,14 @@ export component MainWindow inherits Window {
             y: parent.height / 6;
         }
 
-        Image {
-            //以下内容不供参考，请不要使用
-            source: fg_face_0;
-            width: parent.width * 0.25 * 0.2777;
-            height: parent.width * 0.25 * 0.275 * 0.96;
-            x: parent.width * 0.375 + parent.width * 0.25 * 0.335;
-            y: parent.height / 6 + parent.width * 0.042;
-        }
+//        Image {
+//            //以下内容不供参考，请不要使用
+//            source: fg_face_0;
+//            width: parent.width * 0.25 * 0.2777;
+//            height: parent.width * 0.25 * 0.275 * 0.96;
+//            x: parent.width * 0.375 + parent.width * 0.25 * 0.335;
+//            y: parent.height / 6 + parent.width * 0.042;
+//        }
 
         // 半透明的对话框背景
         Rectangle {
@@ -93,8 +105,198 @@ export component MainWindow inherits Window {
             wrap: word-wrap;
             width: parent.width * 31 / 32;
         }
+
+        Rectangle {
+            width: parent.width * 0.04;
+            height: parent.width * 0.04;
+            x: parent.width - self.width - parent.width * 0.03;
+            y: parent.height - self.height - parent.height * 0.02;
+            background: #0006;
+            border-radius: self.width / 2;
+            border-width: 2px;
+            border-color: #ccc;
+
+            Text {
+                text: "设置";
+                font-size: parent.height * 0.4;
+                color: white;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            // 设置按钮点击区域
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.current-screen = 1;
+                }
+            }
+        }
     }
+
+    // 设置界面 (current-screen == 1)
+    if current-screen == 1: Rectangle {
+        property <length> container-size: min(parent.width, (parent.height) * 16 / 9);
+        width: container-size;
+        height: container-size * 9 / 16;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        background: #000a; // 半透明黑色背景
+
+        Rectangle {
+            x: parent.width * 0.02;
+            y: parent.height * 0.02;
+            width: parent.width * 0.10;
+            height: parent.height * 0.06;
+            background: #6c757d;
+            border-radius: parent.width / 144;
+
+            Text {
+                text: "返回游戏";
+                color: white;
+                font-size: parent.height * 0.4;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.current-screen = 0;
+                }
+            }
+        }
+
+        Rectangle {
+            height: parent.height * 0.6;
+            width: parent.width * 0.4;
+            x: parent.width * 0.02;
+            y: parent.height * 0.05;
+
+            //全屏调节
+            Text {
+                x: parent.x;
+                y: parent.y;
+                text: "全屏开关";
+                font-size: parent.height * 0.04;
+                color: #333;
+                vertical-alignment: center;
+                width: parent.width * 0.3;
+            }
+
+            Rectangle {
+                x: parent.x + parent.width * 0.20;
+                y: parent.y;
+                width: parent.width * 0.08;
+                height: parent.height * 0.05;
+                background: #ddd;
+
+                Switch {
+                    checked: is-fullscreen;
+                    width: parent.width;
+                    height: parent.height;
+
+                    toggled => {
+                        root.toggle-fullscreen();
+                    }
+                }
+            }
+
+            //主音量调节
+            Text {
+                x: parent.x;
+                y: parent.y + parent.height * 0.1;
+                text: "主音量";
+                font-size: parent.height * 0.04;
+                color: #333;
+                vertical-alignment: center;
+                width: parent.width * 0.3;
+            }
+
+            Rectangle {
+                x: parent.x + parent.width * 0.20;
+                y: parent.y + parent.height * 0.1;
+                width: parent.width * 0.80;
+                height: parent.height * 0.05;
+                background: #ddd;
+
+                Slider {
+                    width: parent.width;
+                    height: parent.height;
+                    value: root.main-volume;
+                    changed value => {
+                        main-volume = self.value;
+                        root.volume_changed();
+                    }
+                }
+            }
+
+            //bgm音量调节
+            Text {
+                x: parent.x;
+                y: parent.y + parent.height * 0.2;
+                text: "BGM音量";
+                font-size: parent.height * 0.04;
+                color: #333;
+                vertical-alignment: center;
+                width: parent.width * 0.3;
+            }
+
+            Rectangle {
+                x: parent.x + parent.width * 0.20;
+                y: parent.y + parent.height * 0.2;
+                width: parent.width * 0.80;
+                height: parent.height * 0.05;
+                background: #ddd;
+
+                Slider {
+                    width: parent.width;
+                    height: parent.height;
+                    value: root.bgm-volume;
+                    changed value => {
+                        bgm-volume = self.value;
+                        root.volume_changed();
+                    }
+                }
+            }
+
+            //voice音量调节
+            Text {
+                x: parent.x;
+                y: parent.y + parent.height * 0.3;
+                text: "语音音量";
+                font-size: parent.height * 0.04;
+                color: #333;
+                vertical-alignment: center;
+                width: parent.width * 0.3;
+            }
+
+            Rectangle {
+                x: parent.x + parent.width * 0.20;
+                y: parent.y + parent.height * 0.3;
+                width: parent.width * 0.80;
+                height: parent.height * 0.05;
+                background: #ddd;
+
+                Slider {
+                    width: parent.width;
+                    height: parent.height;
+                    value: root.voice-volume;
+                    changed value => {
+                        voice-volume = self.value;
+                        root.voice_volume_changed();
+                    }
+                }
+            }
+        }
+    }
+
     // 状态绑定属性和事件
     callback clicked();
     callback toggle_fullscreen();
+    callback volume_changed();
+    callback bgm_volume_changed();
+    callback voice_volume_changed();
 }
