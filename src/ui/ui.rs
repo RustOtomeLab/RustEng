@@ -59,10 +59,45 @@ pub async fn ui(
                 slint::spawn_local(async move {
                     let mut bgm_player = bgm_player.borrow_mut();
                     let mut voice_player = voice_player.borrow_mut();
-                    let volume = window.get_volume() as f32 / 100.0;
-                    println!("Volume: {}", volume);
-                    bgm_player.change_volume(volume);
-                    voice_player.change_volume(volume);
+                    let volume = window.get_main_volume() / 100.0;
+                    let bgm_volume = window.get_bgm_volume() / 100.0;
+                    let voice_volume = window.get_voice_volume() / 100.0;
+                    bgm_player.change_volume(volume * bgm_volume);
+                    voice_player.change_volume(volume * voice_volume);
+                })
+                    .expect("TODO: panic message");
+            }
+        }
+    });
+
+    let weak_for_bgm_volume = weak.clone();
+    window.on_bgm_volume_changed({
+        let bgm_player = bgm_player.clone();
+        move || {
+            let bgm_player = bgm_player.clone();
+            if let Some(window) = weak_for_bgm_volume.upgrade() {
+                slint::spawn_local(async move {
+                    let mut bgm_player = bgm_player.borrow_mut();
+                    let volume = window.get_main_volume() / 100.0;
+                    let bgm_volume = window.get_bgm_volume() / 100.0;
+                    bgm_player.change_volume(volume * bgm_volume);
+                })
+                    .expect("TODO: panic message");
+            }
+        }
+    });
+
+    let weak_for_voice_volume = weak.clone();
+    window.on_voice_volume_changed({
+        let voice_player = voice_player.clone();
+        move || {
+            let voice_player = voice_player.clone();
+            if let Some(window) = weak_for_voice_volume.upgrade() {
+                slint::spawn_local(async move {
+                    let mut voice_player = voice_player.borrow_mut();
+                    let volume = window.get_main_volume() / 100.0;
+                    let voice_volume = window.get_voice_volume() / 100.0;
+                    voice_player.change_volume(volume * voice_volume);
                 })
                     .expect("TODO: panic message");
             }
@@ -111,8 +146,9 @@ pub async fn ui(
                         }
 
                         if let Some(voice) = block.voice {
-                            let volume = window.get_volume() as f32 / 100.0;
-                            voice_player.play_voice(&format!("{}{}", VOICE_PATH, voice), volume);
+                            let volume = window.get_main_volume() / 100.0;
+                            let voice_volume = window.get_voice_volume() / 100.0;
+                            voice_player.play_voice(&format!("{}{}", VOICE_PATH, voice), volume * voice_volume);
                             //println!("{:?}", time.elapsed());
                         }
 
@@ -123,8 +159,9 @@ pub async fn ui(
                         }
 
                         if let Some(bgm) = block.bgm {
-                            let volume = window.get_volume() as f32 / 100.0;
-                            bgm_player.play_loop(&format!("{}{}", BGM_PATH, bgm), volume);
+                            let volume = window.get_main_volume() / 100.0;
+                            let bgm_volume = window.get_bgm_volume() / 100.0;
+                            bgm_player.play_loop(&format!("{}{}", BGM_PATH, bgm), volume * bgm_volume);
                             //println!("{:?}", time.elapsed());
                         }
                     }
