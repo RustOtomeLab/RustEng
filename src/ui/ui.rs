@@ -35,7 +35,6 @@ pub async fn ui(
 
     let weak_for_fullscreen = weak.clone();
     let mut is_fullscreen = false;
-
     window.on_toggle_fullscreen(move || {
         if let Some(window) = weak_for_fullscreen.upgrade() {
             is_fullscreen = !is_fullscreen;
@@ -45,6 +44,27 @@ pub async fn ui(
             } else {
                 window.window().set_fullscreen(false);
                 window.set_is_fullscreen(false);
+            }
+        }
+    });
+
+    let weak_for_volume = weak.clone();
+    window.on_volume_changed({
+        let bgm_player = bgm_player.clone();
+        let voice_player = voice_player.clone();
+        move || {
+            let bgm_player = bgm_player.clone();
+            let voice_player = voice_player.clone();
+            if let Some(window) = weak_for_volume.upgrade() {
+                slint::spawn_local(async move {
+                    let mut bgm_player = bgm_player.borrow_mut();
+                    let mut voice_player = voice_player.borrow_mut();
+                    let volume = window.get_volume() as f32 / 100.0;
+                    println!("Volume: {}", volume);
+                    bgm_player.change_volume(volume);
+                    voice_player.change_volume(volume);
+                })
+                    .expect("TODO: panic message");
             }
         }
     });
@@ -91,7 +111,8 @@ pub async fn ui(
                         }
 
                         if let Some(voice) = block.voice {
-                            voice_player.play_voice(&format!("{}{}", VOICE_PATH, voice));
+                            let volume = window.get_volume() as f32 / 100.0;
+                            voice_player.play_voice(&format!("{}{}", VOICE_PATH, voice), volume);
                             //println!("{:?}", time.elapsed());
                         }
 
@@ -102,7 +123,8 @@ pub async fn ui(
                         }
 
                         if let Some(bgm) = block.bgm {
-                            bgm_player.play_loop(&format!("{}{}", BGM_PATH, bgm));
+                            let volume = window.get_volume() as f32 / 100.0;
+                            bgm_player.play_loop(&format!("{}{}", BGM_PATH, bgm), volume);
                             //println!("{:?}", time.elapsed());
                         }
                     }

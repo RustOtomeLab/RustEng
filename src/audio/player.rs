@@ -21,7 +21,7 @@ impl Player {
         }
     }
 
-    pub fn play_loop(&self, path: &str) {
+    pub fn play_loop(&self, path: &str, volume: f32) {
         if let Some(s) = self.sink.lock().unwrap().take() {
             s.stop();
         }
@@ -33,6 +33,7 @@ impl Player {
 
         let sink = Sink::try_new(&self.stream_handle).expect("Failed to create sink");
         sink.append(source);
+        sink.set_volume(volume);
         sink.play();
 
         *self.sink.lock().unwrap() = Some(sink);
@@ -44,7 +45,14 @@ impl Player {
         }
     }
 
-    pub fn play_voice(&self, path: &str) {
+    pub fn change_volume(&self, volume: f32) {
+        let mut sink = self.sink.lock().unwrap();
+        if let Some(sink) = sink.as_mut() {
+            sink.set_volume(volume);
+        }
+    }
+
+    pub fn play_voice(&self, path: &str, volume: f32) {
         if let Some(s) = self.sink.lock().unwrap().take() {
             s.stop();
         }
@@ -53,6 +61,7 @@ impl Player {
 
         let sink = Sink::try_new(&self.stream_handle).expect("Failed to create sink");
         sink.append(source);
+        sink.set_volume(volume);
         sink.play();
 
         *self.sink.lock().unwrap() = Some(sink);

@@ -1,11 +1,11 @@
 %version 1
 
 @bg bg022a.png
-#@bgm bgm36.ogg
+@bgm bgm36.ogg
 旁白“壬戌之秋，七月既望”
 
 #@voice fem_rir_50520.ogg
-@fg rir|z1|rir_z1b0200|b0050|0
+#@fg rir|z1|rir_z1b0200|b0050|0
 莉々子“はじめまして、聖です。智宏さんがご兄妹の話をよくされるので、私もお噂はかねがね……とても仲の良いご様子で”
 
 #@voice fem_rir_50521.ogg
