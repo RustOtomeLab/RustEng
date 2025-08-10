@@ -17,6 +17,7 @@ export component MainWindow inherits Window {
     property <bool> has-focus: true;
 
     in-out property<int> current-screen: 0;
+    in-out property <int> last-screen: 0;
 
     out property <float> main-volume: 100;
     out property <float> bgm-volume: 100;
@@ -37,7 +38,7 @@ export component MainWindow inherits Window {
 
     }
 
-    // 内层保持比例的容器
+    // 主标题菜单 (current-screen == 0)
     if current-screen == 0: Rectangle {
         property <length> container-size: min(parent.width, (parent.height) * 16 / 9);
         width: container-size;
@@ -46,93 +47,140 @@ export component MainWindow inherits Window {
         y: (parent.height - self.height) / 2;
         background: white;
 
-        TouchArea {
-            width: parent.width;
-            height: parent.height;
-            clicked => {
-                root.clicked();
-            }
-        }
-
-        Image {
-            source: bg;
-            width: parent.width;
-            height: parent.height;
-        }
-
-        Image {
-            source: fg_body_0;
-            width: parent.width * 0.25;
-            height: parent.width * 0.65;
-            x: parent.width * 0.375;
-            y: parent.height / 6;
-        }
-
-//        Image {
-//            //以下内容不供参考，请不要使用
-//            source: fg_face_0;
-//            width: parent.width * 0.25 * 0.2777;
-//            height: parent.width * 0.25 * 0.275 * 0.96;
-//            x: parent.width * 0.375 + parent.width * 0.25 * 0.335;
-//            y: parent.height / 6 + parent.width * 0.042;
-//        }
-
-        // 半透明的对话框背景
+        // 新游戏 按钮
         Rectangle {
-            y: parent.height * 0.75;
-            width: parent.width;
-            height: parent.height * 0.25;
-            background: #0008; // 半透明黑色
-        }
-
-        // 对话文本
-        Text {
-            text: root.speaker;
-            x: parent.width / 64;
-            y: parent.height * 0.75;
-            font-size: parent.height / 30;
-            color: white;
-            wrap: word-wrap;
-            width: parent.width * 31 / 32;
-        }
-
-        Text {
-            text: root.dialogue;
-            x: parent.width / 64;
-            y: parent.height * 0.80;
-            font-size: parent.height / 30;
-            color: white;
-            wrap: word-wrap;
-            width: parent.width * 31 / 32;
-        }
-
-        Rectangle {
-            width: parent.width * 0.04;
-            height: parent.width * 0.04;
-            x: parent.width - self.width - parent.width * 0.03;
-            y: parent.height - self.height - parent.height * 0.02;
-            background: #0006;
-            border-radius: self.width / 2;
-            border-width: 2px;
-            border-color: #ccc;
+            x: parent.width * 0.02;
+            y: parent.height * 0.92;
+            width: parent.width * 0.176;
+            height: parent.height * 0.06;
+            background: #6c757d;
+            border-radius: parent.width / 144;
 
             Text {
-                text: "设置";
-                font-size: parent.height * 0.4;
+                text: "新游戏";
                 color: white;
+                font-size: parent.height * 0.4;
                 horizontal-alignment: center;
                 vertical-alignment: center;
             }
 
-            // 设置按钮点击区域
             TouchArea {
                 width: parent.width;
                 height: parent.height;
                 clicked => {
+                    root.new_game();
+                    root.current-screen = 2;
+                }
+            }
+        }
+
+        // 加载游戏 按钮
+        Rectangle {
+            x: parent.width * 0.216;
+            y: parent.height * 0.92;
+            width: parent.width * 0.176;
+            height: parent.height * 0.06;
+            background: #6c757d;
+            border-radius: parent.width / 144;
+
+            Text {
+                text: "加载游戏";
+                color: white;
+                font-size: parent.height * 0.4;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.load_game();
+                    root.current-screen = 3;
+                }
+            }
+        }
+
+        // 画廊 按钮
+        Rectangle {
+            x: parent.width * 0.412;
+            y: parent.height * 0.92;
+            width: parent.width * 0.176;
+            height: parent.height * 0.06;
+            background: #6c757d;
+            border-radius: parent.width / 144;
+
+            Text {
+                text: "画廊";
+                color: white;
+                font-size: parent.height * 0.4;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.current-screen = 3;
+                }
+            }
+        }
+
+        // 设置 按钮
+        Rectangle {
+            x: parent.width * 0.608;
+            y: parent.height * 0.92;
+            width: parent.width * 0.176;
+            height: parent.height * 0.06;
+            background: #6c757d;
+            border-radius: parent.width / 144;
+
+            Text {
+                text: "设置";
+                color: white;
+                font-size: parent.height * 0.4;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.last-screen = 0;
                     root.current-screen = 1;
                 }
             }
         }
+
+        // 退出 按钮
+        Rectangle {
+            x: parent.width * 0.804;
+            y: parent.height * 0.92;
+            width: parent.width * 0.176;
+            height: parent.height * 0.06;
+            background: #6c757d;
+            border-radius: parent.width / 144;
+
+            Text {
+                text: "退出";
+                color: white;
+                font-size: parent.height * 0.4;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.exit();
+                }
+            }
+        }
+
+
     }
 
     // 设置界面 (current-screen == 1)
@@ -164,7 +212,7 @@ export component MainWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 clicked => {
-                    root.current-screen = 0;
+                    root.current-screen = root.last-screen;
                 }
             }
         }
@@ -293,10 +341,112 @@ export component MainWindow inherits Window {
         }
     }
 
+    // 剧情界面 (current-screen == 2)
+    if current-screen == 2: Rectangle {
+        property <length> container-size: min(parent.width, (parent.height) * 16 / 9);
+        width: container-size;
+        height: container-size * 9 / 16;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        background: white;
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => {
+                root.clicked();
+            }
+        }
+
+        Image {
+            source: bg;
+            width: parent.width;
+            height: parent.height;
+        }
+
+        Image {
+            source: fg_body_0;
+            width: parent.width * 0.25;
+            height: parent.width * 0.65;
+            x: parent.width * 0.375;
+            y: parent.height / 6;
+        }
+
+//        Image {
+//            //以下内容不供参考，请不要使用
+//            source: fg_face_0;
+//            width: parent.width * 0.25 * 0.2777;
+//            height: parent.width * 0.25 * 0.275 * 0.96;
+//            x: parent.width * 0.375 + parent.width * 0.25 * 0.335;
+//            y: parent.height / 6 + parent.width * 0.042;
+//        }
+
+        // 半透明的对话框背景
+        Rectangle {
+            y: parent.height * 0.75;
+            width: parent.width;
+            height: parent.height * 0.25;
+            background: #0008; // 半透明黑色
+        }
+
+        // 对话文本
+        Text {
+            text: root.speaker;
+            x: parent.width / 64;
+            y: parent.height * 0.75;
+            font-size: parent.height / 30;
+            color: white;
+            wrap: word-wrap;
+            width: parent.width * 31 / 32;
+        }
+
+        Text {
+            text: root.dialogue;
+            x: parent.width / 64;
+            y: parent.height * 0.80;
+            font-size: parent.height / 30;
+            color: white;
+            wrap: word-wrap;
+            width: parent.width * 31 / 32;
+        }
+
+        Rectangle {
+            width: parent.width * 0.04;
+            height: parent.width * 0.04;
+            x: parent.width - self.width - parent.width * 0.03;
+            y: parent.height - self.height - parent.height * 0.02;
+            background: #0006;
+            border-radius: self.width / 2;
+            border-width: 2px;
+            border-color: #ccc;
+
+            Text {
+                text: "设置";
+                font-size: parent.height * 0.4;
+                color: white;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            // 设置按钮点击区域
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.last-screen = 2;
+                    root.current-screen = 1;
+                }
+            }
+        }
+    }
+
     // 状态绑定属性和事件
     callback clicked();
     callback toggle_fullscreen();
     callback volume_changed();
     callback bgm_volume_changed();
     callback voice_volume_changed();
+    callback new_game();
+    callback load_game();
+    callback exit();
 }
