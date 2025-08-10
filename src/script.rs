@@ -1,7 +1,9 @@
 use crate::error::EngineError;
 use crate::parser::script_parser::{parse_script, Commands};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
+
+pub type Label = (String, String);
 
 struct Args {
     path: String,
@@ -28,6 +30,9 @@ pub struct Script {
     name: String,
     commands: Vec<Commands>,
     current_block: usize,
+    bgms: BTreeMap<usize, String>,
+    current_bgm: String,
+    choices: HashMap<String, Label>,
     labels: HashMap<String, usize>,
 }
 
@@ -35,11 +40,18 @@ impl Script {
     pub fn from_name(name: String) -> Result<Self, EngineError> {
         let path = Args::new(&name);
         let script = fs::read_to_string(&path.path)?;
-        let (commands, labels) = parse_script(&script, &name)?;
+        let mut commands = Vec::new();
+        let mut labels = HashMap::new();
+        let mut choices = HashMap::new();
+        let mut bgms = BTreeMap::new();
+        parse_script(&script, &name, &mut commands, &mut labels, &mut choices, &mut bgms)?;
         Ok(Script {
             name,
             commands,
-            current_block: 1,
+            current_block: 0,
+            bgms,
+            current_bgm: String::new(),
+            choices,
             labels,
         })
     }
@@ -54,6 +66,10 @@ impl Script {
         self.current_block = index;
     }
 
+    pub fn set_current_bgm(&mut self, bgm: String) {
+        self.current_bgm = bgm;
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -62,7 +78,19 @@ impl Script {
         self.current_block
     }
 
+    pub fn current_bgm(&self) -> &str {
+        &self.current_bgm
+    }
+
     pub fn find_label(&self, name: &str) -> Option<&usize> {
         self.labels.get(name)
+    }
+
+    pub fn get_choice_label(&self, name: &str) -> Option<&Label> {
+        self.choices.get(name)
+    }
+
+    pub fn get_bgm(&self, index: usize) -> Option<(&usize, &String)> {
+        self.bgms.range(..=index).next_back()
     }
 }
