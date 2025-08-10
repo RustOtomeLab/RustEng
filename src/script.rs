@@ -1,7 +1,7 @@
+use crate::error::EngineError;
 use crate::parser::script_parser::{parse_script, Commands};
 use std::collections::HashMap;
 use std::fs;
-use crate::error::EngineError;
 
 struct Args {
     path: String,
@@ -36,7 +36,12 @@ impl Script {
         let path = Args::new(&name);
         let script = fs::read_to_string(&path.path)?;
         let (commands, labels) = parse_script(&script, &name)?;
-        Ok(Script { name, commands, current_block: 1, labels })
+        Ok(Script {
+            name,
+            commands,
+            current_block: 1,
+            labels,
+        })
     }
 
     pub fn next_command(&mut self) -> Option<&Commands> {

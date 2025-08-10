@@ -51,7 +51,7 @@ pub async fn ui(
                     bgm_player.change_volume(volume * bgm_volume);
                     voice_player.change_volume(volume * voice_volume);
                 })
-                    .expect("TODO: panic message");
+                .expect("TODO: panic message");
             }
         }
     });
@@ -68,7 +68,7 @@ pub async fn ui(
                     let bgm_volume = window.get_bgm_volume() / 100.0;
                     bgm_player.change_volume(volume * bgm_volume);
                 })
-                    .expect("TODO: panic message");
+                .expect("TODO: panic message");
             }
         }
     });
@@ -85,7 +85,7 @@ pub async fn ui(
                     let voice_volume = window.get_voice_volume() / 100.0;
                     voice_player.change_volume(volume * voice_volume);
                 })
-                    .expect("TODO: panic message");
+                .expect("TODO: panic message");
             }
         }
     });

@@ -7,10 +7,10 @@ mod ui;
 
 use crate::audio::player::Player;
 use crate::error::EngineError;
+use crate::script::Script;
 use crate::ui::ui::ui;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::script::Script;
 
 #[tokio::main]
 async fn main() -> Result<(), EngineError> {
