@@ -50,6 +50,7 @@ pub fn parse_script(
     labels: &mut HashMap<String, usize>,
     choices: &mut HashMap<String, Label>,
     bgms: &mut BTreeMap<usize, String>,
+    backgrounds: &mut BTreeMap<usize, String>,
 ) -> Result<(), EngineError> {
     let mut block_lines = Vec::new();
     let mut block_index = 0;
@@ -66,6 +67,7 @@ pub fn parse_script(
                     labels,
                     choices,
                     bgms,
+                    backgrounds,
                 )?;
                 block_lines.clear();
             }
@@ -83,6 +85,7 @@ pub fn parse_script(
             labels,
             choices,
             bgms,
+            backgrounds,
         )?;
     }
 
@@ -97,6 +100,7 @@ fn parse_block(
     labels: &mut HashMap<String, usize>,
     choices: &mut HashMap<String, Label>,
     bgms: &mut BTreeMap<usize, String>,
+    backgrounds: &mut BTreeMap<usize, String>,
 ) -> Result<(), EngineError> {
     use Command::*;
     use Commands::*;
@@ -107,7 +111,10 @@ fn parse_block(
         if line.starts_with('@') {
             if let Some((cmd, arg)) = line[1..].split_once(' ') {
                 let cmd = match cmd {
-                    "bg" => SetBackground(arg.to_string()),
+                    "bg" => {
+                        backgrounds.insert(*block_index, arg.to_string());
+                        SetBackground(arg.to_string())
+                    }
                     "bgm" => {
                         bgms.insert(*block_index, arg.to_string());
                         PlayBgm(arg.to_string())
