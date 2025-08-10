@@ -8,12 +8,15 @@ export component MainWindow inherits Window {
     in property<string> dialogue;
     in property<string> speaker;
 
+    in property<[{index:int, text:string}]> choose_branch;
+
     in property<image> bg;
 
-    in property<image> fg_body_0;
-    in property<image> fg_face_0;
+    in property<image> fg-body-0;
+    in property<image> fg-face-0;
 
     in property<bool> is-fullscreen: false;
+    in property<int> current_choose: 0;
     property <bool> has-focus: true;
 
     in-out property<int> current-screen: 0;
@@ -61,7 +64,7 @@ export component MainWindow inherits Window {
         }
 
         Image {
-            source: fg_body_0;
+            source: fg-body-0;
             width: parent.width * 0.25;
             height: parent.width * 0.65;
             x: parent.width * 0.375;
@@ -78,32 +81,53 @@ export component MainWindow inherits Window {
 //        }
 
         // 半透明的对话框背景
-        Rectangle {
+        if current_choose == 0: Rectangle {
             y: parent.height * 0.75;
             width: parent.width;
             height: parent.height * 0.25;
             background: #0008; // 半透明黑色
+
+            Text {
+                text: root.speaker;
+                x: parent.width / 64;
+                y: 0;
+                font-size: parent.height * 2 / 15;
+                color: white;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
+
+            Text {
+                text: root.dialogue;
+                x: parent.width / 64;
+                y: parent.height * 0.2;
+                font-size: parent.height * 2 / 15;
+                color: white;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
         }
 
-        // 对话文本
-        Text {
-            text: root.speaker;
-            x: parent.width / 64;
-            y: parent.height * 0.75;
-            font-size: parent.height / 30;
-            color: white;
-            wrap: word-wrap;
-            width: parent.width * 31 / 32;
-        }
+        if current_choose != 0: Rectangle {
+            height: parent.height * 0.05 * (2 * current_choose - 1);
+            width: parent.width * 0.75;
 
-        Text {
-            text: root.dialogue;
-            x: parent.width / 64;
-            y: parent.height * 0.80;
-            font-size: parent.height / 30;
-            color: white;
-            wrap: word-wrap;
-            width: parent.width * 31 / 32;
+            for choose in choose_branch: Rectangle {
+                height: parent.height / (2 * current_choose - 1);
+                y: 2 * (choose.index - 1) * parent.height / (2 * current_choose - 1);
+                background: #000a;
+                Text {
+                    text: choose.text;
+                    font-size: parent.height;
+                    color: white;
+                }
+
+                TouchArea {
+                    clicked => {
+                        root.choose(choose.text);
+                    }
+                }
+            }
         }
 
         Rectangle {
@@ -299,4 +323,5 @@ export component MainWindow inherits Window {
     callback volume_changed();
     callback bgm_volume_changed();
     callback voice_volume_changed();
+    callback choose(string);
 }

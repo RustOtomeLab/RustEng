@@ -1,6 +1,6 @@
 use crate::error::EngineError;
-use crate::script::Script;
-use std::collections::{HashMap, HashSet};
+use crate::script::{Label, Script};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub enum Commands {
@@ -25,31 +25,32 @@ pub enum Command {
         face: String,
         position: String,
     },
-    Choice(Vec<(String, String)>),
-    Jump((String, String)),
+    Choice(HashMap<String, Label>),
+    Jump(Label),
     Label(String),
 }
 
 #[derive(Debug)]
 pub enum ParserError {
+    ChooseError(String),
     InvalidCommand { line: usize, content: String },
     MalformedDialogue { line: usize, content: String },
     UnknownLine { line: usize, content: String },
     EmptyBlock { line: usize },
     UnSupportedVersion { need: usize, indeed: String },
-    NoLabel,
     TooShort,
 }
 
 static VERSION: usize = 1;
 
-type Commands_and_Labels = (Vec<Commands>, HashMap<String, usize>);
-type Command_and_Label = (Commands, HashSet<String>);
-
-pub fn parse_script(text: &str, script_name: &str) -> Result<Commands_and_Labels, EngineError> {
-    let mut commands = Vec::new();
-    let mut labels = HashMap::new();
-
+pub fn parse_script(
+    text: &str,
+    script_name: &str,
+    commands: &mut Vec<Commands>,
+    labels: &mut HashMap<String, usize>,
+    choices: &mut HashMap<String, Label>,
+    bgms: &mut BTreeMap<usize, String>,
+) -> Result<(), EngineError> {
     let mut block_lines = Vec::new();
     let mut block_index = 0;
 
@@ -57,12 +58,15 @@ pub fn parse_script(text: &str, script_name: &str) -> Result<Commands_and_Labels
         let line = line.trim();
         if line.is_empty() {
             if !block_lines.is_empty() {
-                let (block, label) = parse_block(&block_lines, script_name)?;
-                for la in label {
-                    labels.insert(la.to_string(), block_index);
-                }
-                block_index += 1;
-                commands.push(block);
+                parse_block(
+                    &block_lines,
+                    script_name,
+                    &mut block_index,
+                    commands,
+                    labels,
+                    choices,
+                    bgms,
+                )?;
                 block_lines.clear();
             }
         } else {
@@ -71,32 +75,80 @@ pub fn parse_script(text: &str, script_name: &str) -> Result<Commands_and_Labels
     }
 
     if !block_lines.is_empty() {
-        let (block, label) = parse_block(&block_lines, script_name)?;
-        for la in label {
-            labels.insert(la.to_string(), block_index);
-        }
-        commands.push(block);
+        parse_block(
+            &block_lines,
+            script_name,
+            &mut block_index,
+            commands,
+            labels,
+            choices,
+            bgms,
+        )?;
     }
 
-    Ok((commands, labels))
+    Ok(())
 }
 
 fn parse_block(
     lines: &[(usize, String)],
     script_name: &str,
-) -> Result<Command_and_Label, EngineError> {
+    block_index: &mut usize,
+    commands: &mut Vec<Commands>,
+    labels: &mut HashMap<String, usize>,
+    choices: &mut HashMap<String, Label>,
+    bgms: &mut BTreeMap<usize, String>,
+) -> Result<(), EngineError> {
     use Command::*;
     use Commands::*;
 
-    let mut commands = Vec::new();
-    let mut label = HashSet::new();
+    let mut block_commands = Vec::new();
 
     for (line_num, line) in lines {
         if line.starts_with('@') {
             if let Some((cmd, arg)) = line[1..].split_once(' ') {
                 let cmd = match cmd {
                     "bg" => SetBackground(arg.to_string()),
-                    "bgm" => PlayBgm(arg.to_string()),
+                    "bgm" => {
+                        bgms.insert(*block_index, arg.to_string());
+                        PlayBgm(arg.to_string())
+                    }
+                    "choose" => {
+                        let num = arg.parse::<usize>()?;
+                        let mut choose_branch = HashMap::with_capacity(num);
+                        for i in 1..=num {
+                            if let Some((choice, script)) = lines[i].1.split_once(' ') {
+                                let (choice, label) = match script.split_once(":") {
+                                    Some((name, label))
+                                        if !name.is_empty() && !label.is_empty() =>
+                                    {
+                                        (choice.to_string(), (name.to_string(), label.to_string()))
+                                    }
+                                    Some((name, "")) if !name.is_empty() => (
+                                        choice.to_string(),
+                                        (name.to_string(), "start".to_string()),
+                                    ),
+                                    Some(("", label)) => (
+                                        choice.to_string(),
+                                        (script_name.to_string(), label.to_string()),
+                                    ),
+                                    None => (
+                                        choice.to_string(),
+                                        (script.to_string(), "start".to_string()),
+                                    ),
+                                    _ => unreachable!(),
+                                };
+                                choose_branch.insert(choice.clone(), label.clone());
+                                choices.insert(choice, label);
+                            } else {
+                                return Err(EngineError::from(ParserError::ChooseError(format!(
+                                    "Invalid choice: {}",
+                                    lines[line_num + i].1
+                                ))));
+                            }
+                        }
+                        block_commands.push(Choice(choose_branch));
+                        break;
+                    }
                     "voice" => PlayVoice(arg.to_string()),
                     "fg" => {
                         let mut parts = arg.split('|').map(str::trim);
@@ -135,7 +187,7 @@ fn parse_block(
                         _ => unreachable!(),
                     },
                     "label" => {
-                        label.insert(arg.to_string());
+                        labels.insert(arg.to_string(), *block_index);
                         Label(arg.to_string())
                     }
                     _ => {
@@ -145,7 +197,7 @@ fn parse_block(
                         }));
                     }
                 };
-                commands.push(cmd);
+                block_commands.push(cmd);
             } else {
                 return Err(EngineError::from(ParserError::InvalidCommand {
                     line: *line_num,
@@ -161,7 +213,6 @@ fn parse_block(
                             indeed: arg.to_string(),
                         }));
                     }
-                    return Ok((EmptyCommands, label));
                 } else {
                     return Err(EngineError::from(ParserError::UnknownLine {
                         line: *line_num,
@@ -178,7 +229,7 @@ fn parse_block(
             continue;
         } else if let Some((speaker, text)) = line.split_once("“") {
             if let Some(text) = text.strip_suffix("”") {
-                commands.push(Dialogue {
+                block_commands.push(Dialogue {
                     speaker: speaker.trim().to_string(),
                     text: text.trim().to_string(),
                 });
@@ -197,15 +248,19 @@ fn parse_block(
         }
     }
 
-    if commands.is_empty() {
-        return Err(EngineError::from(ParserError::EmptyBlock {
-            line: lines[0].0,
-        }));
+    // if block_commands.is_empty() {
+    //     return Err(EngineError::from(ParserError::EmptyBlock {
+    //         line: lines[0].0,
+    //     }));
+    // }
+
+    if block_commands.len() == 1 {
+        *block_index += 1;
+        commands.push(OneCommand(block_commands.into_iter().next().unwrap()));
+    } else if block_commands.len() > 1 {
+        *block_index += 1;
+        commands.push(VarCommands(block_commands))
     }
 
-    Ok(if commands.len() == 1 {
-        (OneCommand(commands.into_iter().next().unwrap()), label)
-    } else {
-        (VarCommands(commands), label)
-    })
+    Ok(())
 }

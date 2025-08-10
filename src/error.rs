@@ -1,6 +1,7 @@
 use crate::parser::script_parser::ParserError;
 use slint::PlatformError;
 use std::io::Error;
+use std::num::ParseIntError;
 
 #[derive(Debug)]
 pub enum EngineError {
@@ -24,5 +25,13 @@ impl From<Error> for EngineError {
 impl From<PlatformError> for EngineError {
     fn from(err: PlatformError) -> Self {
         EngineError::UiError(err)
+    }
+}
+
+impl From<ParseIntError> for EngineError {
+    fn from(_: ParseIntError) -> Self {
+        EngineError::ParseError(ParserError::ChooseError(String::from(
+            "Invalid choice number",
+        )))
     }
 }
