@@ -11,20 +11,6 @@ use std::time::Instant;
 
 slint::include_modules!();
 
-#[derive(Debug, Clone, Default)]
-pub struct UiRenderBlock {
-    pub dialogue: Option<(String, String)>,
-    pub background: Option<String>,
-    pub bgm: Option<String>,
-    pub voice: Option<String>,
-    pub figure: Option<(String, String, String, String, String)>,
-}
-
-static BACKGROUND_PATH: &str = "./source/background/";
-static VOICE_PATH: &str = "./source/voice/";
-static BGM_PATH: &str = "./source/bgm/";
-static FG_PATH: &str = "./source/figure/";
-
 pub async fn ui(
     script: Rc<RefCell<Script>>,
     bgm_player: Rc<RefCell<Player>>,
@@ -65,7 +51,7 @@ pub async fn ui(
                     bgm_player.change_volume(volume * bgm_volume);
                     voice_player.change_volume(volume * voice_volume);
                 })
-                    .expect("TODO: panic message");
+                .expect("TODO: panic message");
             }
         }
     });
@@ -82,7 +68,7 @@ pub async fn ui(
                     let bgm_volume = window.get_bgm_volume() / 100.0;
                     bgm_player.change_volume(volume * bgm_volume);
                 })
-                    .expect("TODO: panic message");
+                .expect("TODO: panic message");
             }
         }
     });
@@ -99,75 +85,21 @@ pub async fn ui(
                     let voice_volume = window.get_voice_volume() / 100.0;
                     voice_player.change_volume(volume * voice_volume);
                 })
-                    .expect("TODO: panic message");
+                .expect("TODO: panic message");
             }
         }
     });
 
     window.on_clicked({
-        let weak = weak.clone();
         move || {
-            //let time = Instant::now();
             let script = script.clone();
             let bgm_player = bgm_player.clone();
             let voice_player = voice_player.clone();
-            if let Some(window) = weak.upgrade() {
-                slint::spawn_local(async move {
-                    let mut script = script.borrow_mut();
-                    let mut bgm_player = bgm_player.borrow_mut();
-                    let mut voice_player = voice_player.borrow_mut();
-                    if let Some(block) = execute_script(&mut script) {
-                        if let Some(bg) = block.background {
-                            let image = Image::load_from_path(Path::new(&format!(
-                                "{}{}",
-                                BACKGROUND_PATH, bg
-                            )))
-                            .unwrap();
-                            window.set_bg(image);
-                            //println!("{:?}", time.elapsed());
-                        }
-
-                        if let Some((name, distant, body, face, position)) = block.figure {
-                            let body = Image::load_from_path(Path::new(&format!(
-                                "{}{}/{}/{}.png",
-                                FG_PATH, name, distant, body
-                            ))).unwrap();
-                            let face = Image::load_from_path(Path::new(&format!(
-                                "{}{}/{}/{}.png",
-                                FG_PATH, name, distant, face
-                            ))).unwrap();
-                            match &position[..] {
-                                "0" => {
-                                    window.set_fg_body_0(body);
-                                    window.set_fg_face_0(face);
-                                }
-                                _ => ()
-                            }
-                        }
-
-                        if let Some(voice) = block.voice {
-                            let volume = window.get_main_volume() / 100.0;
-                            let voice_volume = window.get_voice_volume() / 100.0;
-                            voice_player.play_voice(&format!("{}{}", VOICE_PATH, voice), volume * voice_volume);
-                            //println!("{:?}", time.elapsed());
-                        }
-
-                        if let Some((speaker, text)) = block.dialogue {
-                            window.set_speaker(SharedString::from(speaker));
-                            window.set_dialogue(SharedString::from(text));
-                            //println!("{:?}", time.elapsed());
-                        }
-
-                        if let Some(bgm) = block.bgm {
-                            let volume = window.get_main_volume() / 100.0;
-                            let bgm_volume = window.get_bgm_volume() / 100.0;
-                            bgm_player.play_loop(&format!("{}{}", BGM_PATH, bgm), volume * bgm_volume);
-                            //println!("{:?}", time.elapsed());
-                        }
-                    }
-                })
-                .expect("TODO: panic message");
-            }
+            let weak = weak.clone();
+            slint::spawn_local(async move {
+                execute_script(script, bgm_player, voice_player, weak).await
+            })
+            .expect("TODO: panic message");
         }
     });
 
