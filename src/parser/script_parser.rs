@@ -1,5 +1,6 @@
+use std::collections::{HashMap, HashSet};
 use crate::script::Script;
-use std::collections::VecDeque;
+use crate::error::EngineError;
 
 #[derive(Debug, Clone)]
 pub enum Commands {
@@ -16,7 +17,7 @@ pub enum Command {
     Dialogue { speaker: String, text: String },
     Figure { name: String, distance: String, body: String, face: String, position: String },
     Choice(Vec<(String, String)>),
-    Jump(String),
+    Jump((String, String)),
     Label(String),
 }
 
@@ -27,21 +28,32 @@ pub enum ParserError {
     UnknownLine { line: usize, content: String },
     EmptyBlock { line: usize },
     UnSupportedVersion { need: usize, indeed: String },
-    FigureTooShort,
+    NoLabel,
+    TooShort,
 }
 
 static VERSION: usize = 1;
 
-pub fn parse_script(text: &str) -> Result<Script, ParserError> {
-    let mut commands = VecDeque::new();
+type Commands_and_Labels = (Vec<Commands>, HashMap<String, usize>);
+type Command_and_Label = (Commands, HashSet<String>);
+
+pub fn parse_script(text: &str, script_name: &str) -> Result<Commands_and_Labels, EngineError> {
+    let mut commands = Vec::new();
+    let mut labels = HashMap::new();
+
     let mut block_lines = Vec::new();
+    let mut block_index = 0;
 
     for (lineno, line) in text.lines().enumerate() {
         let line = line.trim();
         if line.is_empty() {
             if !block_lines.is_empty() {
-                let block = parse_block(&block_lines)?;
-                commands.push_back(block);
+                let (block,label) = parse_block(&block_lines, script_name)?;
+                for la in label {
+                    labels.insert(la.to_string(), block_index);
+                }
+                block_index += 1;
+                commands.push(block);
                 block_lines.clear();
             }
         } else {
@@ -50,18 +62,22 @@ pub fn parse_script(text: &str) -> Result<Script, ParserError> {
     }
 
     if !block_lines.is_empty() {
-        let block = parse_block(&block_lines)?;
-        commands.push_back(block);
+        let (block,label) = parse_block(&block_lines, script_name)?;
+        for la in label {
+            labels.insert(la.to_string(), block_index);
+        }
+        commands.push(block);
     }
 
-    Ok(Script::from_commands(commands))
+    Ok((commands, labels))
 }
 
-fn parse_block(lines: &[(usize, String)]) -> Result<Commands, ParserError> {
+fn parse_block(lines: &[(usize, String)], script_name: &str) -> Result<Command_and_Label, EngineError> {
     use Command::*;
     use Commands::*;
 
     let mut commands = Vec::new();
+    let mut label = HashSet::new();
 
     for (line_num, line) in lines {
         if line.starts_with('@') {
@@ -76,46 +92,59 @@ fn parse_block(lines: &[(usize, String)]) -> Result<Commands, ParserError> {
                             (Some(name), Some(distance), Some(body), Some(face), Some(position)) => {
                                 Figure {name: name.to_string(), distance: distance.to_string(), body: body.to_string(), face: face.to_string(), position: position.to_string()}
                             }
-                            _ => return Err(ParserError::FigureTooShort),
+                            _ => return Err(EngineError::from(ParserError::TooShort)),
                         }
                     }
-                    "jump" => Jump(arg.to_string()),
-                    "label" => Label(arg.to_string()),
+                    "jump" => {
+                        match arg.split_once(":") {
+                            Some((name, label)) if !name.is_empty() && !label.is_empty() => {
+                                Jump((name.to_string(), label.to_string()))
+                            }
+                            Some((name, "")) if !name.is_empty() => Jump((name.to_string(), "start".to_string())),
+                            Some(("", label)) => Jump((script_name.to_string(), label.to_string())),
+                            None => Jump((arg.to_string(), "start".to_string())),
+                            _ => unreachable!()
+                        }
+                    },
+                    "label" => {
+                        label.insert(arg.to_string());
+                        Label(arg.to_string())
+                    },
                     _ => {
-                        return Err(ParserError::InvalidCommand {
+                        return Err(EngineError::from(ParserError::InvalidCommand {
                             line: *line_num,
                             content: line.clone(),
-                        });
+                        }));
                     }
                 };
                 commands.push(cmd);
             } else {
-                return Err(ParserError::InvalidCommand {
+                return Err(EngineError::from(ParserError::InvalidCommand {
                     line: *line_num,
                     content: line.clone(),
-                });
+                }));
             }
         } else if line.starts_with('%') {
             if let Some((cmd, arg)) = line[1..].split_once(' ') {
                 if cmd == "version" {
                     if !(arg.parse::<usize>().unwrap_or(0) == VERSION) {
-                        return Err(ParserError::UnSupportedVersion {
+                        return Err(EngineError::from(ParserError::UnSupportedVersion {
                             need: VERSION,
                             indeed: arg.to_string(),
-                        });
+                        }));
                     }
-                    return Ok(EmptyCommands);
+                    return Ok((EmptyCommands, label));
                 } else {
-                    return Err(ParserError::UnknownLine {
+                    return Err(EngineError::from(ParserError::UnknownLine {
                         line: *line_num,
                         content: line.clone(),
-                    });
+                    }));
                 }
             } else {
-                return Err(ParserError::InvalidCommand {
+                return Err(EngineError::from(ParserError::InvalidCommand {
                     line: *line_num,
                     content: line.clone(),
-                });
+                }));
             }
         } else if line.starts_with('#') {
             continue;
@@ -127,26 +156,26 @@ fn parse_block(lines: &[(usize, String)]) -> Result<Commands, ParserError> {
                 });
                 break;
             } else {
-                return Err(ParserError::MalformedDialogue {
+                return Err(EngineError::from(ParserError::MalformedDialogue {
                     line: *line_num,
                     content: line.clone(),
-                });
+                }));
             }
         } else {
-            return Err(ParserError::UnknownLine {
+            return Err(EngineError::from(ParserError::UnknownLine {
                 line: *line_num,
                 content: line.clone(),
-            });
+            }));
         }
     }
 
     if commands.is_empty() {
-        return Err(ParserError::EmptyBlock { line: lines[0].0 });
+        return Err(EngineError::from(ParserError::EmptyBlock { line: lines[0].0 }));
     }
 
     Ok(if commands.len() == 1 {
-        OneCommand(commands.into_iter().next().unwrap())
+        (OneCommand(commands.into_iter().next().unwrap()),label)
     } else {
-        VarCommands(commands)
+        (VarCommands(commands),label)
     })
 }

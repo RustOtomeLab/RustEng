@@ -1,19 +1,22 @@
 %version 1
 
-@bg bg022a.png
-@bgm bgm36.ogg
+@label start
+@bg bg022a
+@bgm bgm36
 旁白“壬戌之秋，七月既望”
 
-@voice fem_rir_50520.ogg
+@voice fem_rir_50520
 #@fg rir|z1|rir_z1b0200|b0050|0
 莉々子“はじめまして、聖です。智宏さんがご兄妹の話をよくされるので、私もお噂はかねがね……とても仲の良いご様子で”
 
-@voice fem_rir_50521.ogg
+@voice fem_rir_50521
 莉々子“え、ええ、喜んでいただけたのなら何よりです。祖母の畑で採れたものですが、私もほんの少し収穫の手伝いをしたもので”
 
-@bg bg024c.png
-@bgm bgm37.ogg
+@bg bg024c
+@bgm bgm37
 旁白“换个场景”
 
-@voice fem_rir_50522.ogg
+@voice fem_rir_50522
 莉々子“千玉学園生徒会の皆さんに改めてご挨拶申しあげます。百合ヶ峰学園生徒会長の聖です”
+
+@jump ky02
