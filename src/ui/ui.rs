@@ -1,6 +1,8 @@
 use crate::audio::player::Player;
 use crate::error::EngineError;
-use crate::executor::script_executor::{execute_script, execute_choose};
+use crate::executor::script_executor::{
+    execute_bgm_volume, execute_choose, execute_script, execute_voice_volume,
+};
 use crate::script::Script;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -35,20 +37,15 @@ pub async fn ui(
         let bgm_player = bgm_player.clone();
         let voice_player = voice_player.clone();
         move || {
+            let weak_for_bgm = weak_for_volume.clone();
+            let weak_for_voice = weak_for_volume.clone();
             let bgm_player = bgm_player.clone();
             let voice_player = voice_player.clone();
-            if let Some(window) = weak_for_volume.upgrade() {
-                slint::spawn_local(async move {
-                    let bgm_player = bgm_player.borrow_mut();
-                    let voice_player = voice_player.borrow_mut();
-                    let volume = window.get_main_volume() / 100.0;
-                    let bgm_volume = window.get_bgm_volume() / 100.0;
-                    let voice_volume = window.get_voice_volume() / 100.0;
-                    bgm_player.change_volume(volume * bgm_volume);
-                    voice_player.change_volume(volume * voice_volume);
-                })
-                .expect("TODO: panic message");
-            }
+            slint::spawn_local(async move {
+                let _ = execute_bgm_volume(bgm_player, weak_for_bgm).await;
+                execute_voice_volume(voice_player, weak_for_voice).await
+            })
+            .expect("TODO: panic message");
         }
     });
 
@@ -56,16 +53,10 @@ pub async fn ui(
     window.on_bgm_volume_changed({
         let bgm_player = bgm_player.clone();
         move || {
+            let weak = weak_for_bgm_volume.clone();
             let bgm_player = bgm_player.clone();
-            if let Some(window) = weak_for_bgm_volume.upgrade() {
-                slint::spawn_local(async move {
-                    let bgm_player = bgm_player.borrow_mut();
-                    let volume = window.get_main_volume() / 100.0;
-                    let bgm_volume = window.get_bgm_volume() / 100.0;
-                    bgm_player.change_volume(volume * bgm_volume);
-                })
+            slint::spawn_local(async move { execute_bgm_volume(bgm_player, weak).await })
                 .expect("TODO: panic message");
-            }
         }
     });
 
@@ -73,16 +64,10 @@ pub async fn ui(
     window.on_voice_volume_changed({
         let voice_player = voice_player.clone();
         move || {
+            let weak = weak_for_voice_volume.clone();
             let voice_player = voice_player.clone();
-            if let Some(window) = weak_for_voice_volume.upgrade() {
-                slint::spawn_local(async move {
-                    let voice_player = voice_player.borrow_mut();
-                    let volume = window.get_main_volume() / 100.0;
-                    let voice_volume = window.get_voice_volume() / 100.0;
-                    voice_player.change_volume(volume * voice_volume);
-                })
+            slint::spawn_local(async move { execute_voice_volume(voice_player, weak).await })
                 .expect("TODO: panic message");
-            }
         }
     });
 
@@ -94,21 +79,37 @@ pub async fn ui(
             let weak = weak_for_choose.clone();
             let script = script.clone();
             let bgm_player = bgm_player.clone();
-            slint::spawn_local(async move {
-                execute_choose(script,bgm_player,choice,weak).await
-            })
+            slint::spawn_local(
+                async move { execute_choose(script, bgm_player, choice, weak).await },
+            )
             .expect("TODO: panic message");
-       }
+        }
     });
 
+    let weak_for_click = weak.clone();
     window.on_clicked({
         move || {
             let script = script.clone();
             let bgm_player = bgm_player.clone();
             let voice_player = voice_player.clone();
-            let weak = weak.clone();
+            let weak = weak_for_click.clone();
             slint::spawn_local(async move {
                 execute_script(script, bgm_player, voice_player, weak).await
+            })
+            .expect("TODO: panic message");
+        }
+    });
+
+    window.on_exit({
+        move || {
+            slint::spawn_local({
+                let weak = weak.clone();
+                async move {
+                    if let Some(window) = weak.upgrade() {
+                        let _ = window.hide();
+                    }
+                    let _ = slint::quit_event_loop();
+                }
             })
             .expect("TODO: panic message");
         }

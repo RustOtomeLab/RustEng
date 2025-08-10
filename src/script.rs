@@ -32,6 +32,7 @@ pub struct Script {
     current_block: usize,
     bgms: BTreeMap<usize, String>,
     current_bgm: String,
+    backgrounds: BTreeMap<usize, String>,
     choices: HashMap<String, Label>,
     labels: HashMap<String, usize>,
 }
@@ -44,13 +45,23 @@ impl Script {
         let mut labels = HashMap::new();
         let mut choices = HashMap::new();
         let mut bgms = BTreeMap::new();
-        parse_script(&script, &name, &mut commands, &mut labels, &mut choices, &mut bgms)?;
+        let mut backgrounds = BTreeMap::new();
+        parse_script(
+            &script,
+            &name,
+            &mut commands,
+            &mut labels,
+            &mut choices,
+            &mut bgms,
+            &mut backgrounds,
+        )?;
         Ok(Script {
             name,
             commands,
             current_block: 0,
             bgms,
             current_bgm: String::new(),
+            backgrounds,
             choices,
             labels,
         })
@@ -92,5 +103,9 @@ impl Script {
 
     pub fn get_bgm(&self, index: usize) -> Option<(&usize, &String)> {
         self.bgms.range(..=index).next_back()
+    }
+
+    pub fn get_background(&self, index: usize) -> Option<(&usize, &String)> {
+        self.backgrounds.range(..=index).next_back()
     }
 }

@@ -11,6 +11,7 @@ export component MainWindow inherits Window {
     in property<[{index:int, text:string}]> choose_branch;
 
     in property<image> bg;
+    in property<string> pre-bg;
 
     in property<image> fg-body-0;
     in property<image> fg-face-0;
@@ -71,7 +72,6 @@ export component MainWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 clicked => {
-                    root.new_game();
                     root.current-screen = 2;
                 }
             }
@@ -98,8 +98,7 @@ export component MainWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 clicked => {
-                    root.load_game();
-                    root.current-screen = 3;
+                    //root.current-screen = 3;
                 }
             }
         }
@@ -125,7 +124,7 @@ export component MainWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 clicked => {
-                    root.current-screen = 3;
+                    //root.current-screen = 3;
                 }
             }
         }
@@ -470,7 +469,5 @@ export component MainWindow inherits Window {
     callback bgm_volume_changed();
     callback voice_volume_changed();
     callback choose(string);
-    callback new_game();
-    callback load_game();
     callback exit();
 }
