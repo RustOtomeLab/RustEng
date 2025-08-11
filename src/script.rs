@@ -28,6 +28,7 @@ impl Default for Args {
 #[derive(Debug, Clone)]
 pub struct Script {
     name: String,
+    explain: String,
     commands: Vec<Commands>,
     current_block: usize,
     bgms: BTreeMap<usize, String>,
@@ -57,6 +58,7 @@ impl Script {
         )?;
         Ok(Script {
             name,
+            explain: String::new(),
             commands,
             current_block: 0,
             bgms,
@@ -73,6 +75,14 @@ impl Script {
         command
     }
 
+    pub fn set_explain(&mut self, explain: &String) {
+        let mut explain = &explain[..];
+        if explain.len() > 18 {
+            explain = &explain[0..18];
+        }
+        self.explain = explain.to_string();
+    }
+
     pub fn set_index(&mut self, index: usize) {
         self.current_block = index;
     }
@@ -87,6 +97,10 @@ impl Script {
 
     pub fn index(&self) -> usize {
         self.current_block
+    }
+
+    pub fn explain(&self) -> &str {
+        &self.explain
     }
 
     pub fn current_bgm(&self) -> &str {

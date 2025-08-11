@@ -1,5 +1,6 @@
 import { MainMenu } from "components/main_menu.slint";
-import { SettingsPanel } from "components/settings.slint";
+import { SaveView } from "components/save.slint";
+import { SettingsView } from "components/settings.slint";
 import { StoryView } from "components/story.slint";
 
 export component MainWindow inherits Window {
@@ -21,6 +22,13 @@ export component MainWindow inherits Window {
 
     in-out property<int> current-screen: 0;
     in-out property <int> last-screen: 0;
+
+    in property <[{name:string, index:int, bg:image, explain:string}]> save-items: [
+        {explain:"空的"},{explain:"空的"},{explain:"空的"},{explain:"空的"},
+        {explain:"空的"},{explain:"空的"},{explain:"空的"},{explain:"空的"},
+        {explain:"空的"},{explain:"空的"},{explain:"空的"},{explain:"空的"},
+        {explain:"空的"},{explain:"空的"},{explain:"空的"},{explain:"空的"},
+    ];
 
     out property <float> main-volume: 100;
     out property <float> bgm-volume: 100;
@@ -67,7 +75,7 @@ export component MainWindow inherits Window {
         }
 
         // 设置界面
-        if root.current-screen == 1: SettingsPanel {
+        if root.current-screen == 1: SettingsView {
             container-width: parent.width;
             container-height: parent.height;
             is-fullscreen: root.is-fullscreen;
@@ -94,10 +102,21 @@ export component MainWindow inherits Window {
 
             clicked => { root.clicked(); }
             choose(text) => { root.choose(text); }
+            save-game => { root.current-screen = 3; }
+            load-game => { /* 加载游戏逻辑 */ }
             settings => {
                 root.last-screen = 2;
                 root.current-screen = 1;
             }
+        }
+
+        if root.current-screen == 3: SaveView {
+            container-width: parent.width;
+            container-height: parent.height;
+            save-items <=> root.save-items;
+
+            save(index) => { root.save(index); }
+            back => { root.current-screen = 2; }
         }
     }
 
@@ -108,5 +127,6 @@ export component MainWindow inherits Window {
     callback bgm-volume-changed();
     callback voice-volume-changed();
     callback choose(string);
+    callback save(int);
     callback exit();
 }

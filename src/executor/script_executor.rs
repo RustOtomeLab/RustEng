@@ -3,7 +3,7 @@ use crate::error::EngineError;
 use crate::parser::script_parser::{Command, Commands};
 use crate::script::{Label, Script};
 use crate::ui::ui::MainWindow;
-use slint::{Image, SharedString, VecModel, Weak};
+use slint::{Image, Model, SharedString, VecModel, Weak};
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
@@ -12,6 +12,29 @@ static BACKGROUND_PATH: &str = "./source/background/";
 static VOICE_PATH: &str = "./source/voice/";
 static BGM_PATH: &str = "./source/bgm/";
 static FIGURE_PATH: &str = "./source/figure/";
+
+pub async fn execute_save(script: Rc<RefCell<Script>>, index: i32, weak: Weak<MainWindow>,) -> Result<(), EngineError> {
+    if let Some(window) = weak.upgrade() {
+        let script = script.borrow();
+        let bg = window.get_bg();
+        let mut save_items = Vec::with_capacity(index as usize);
+        let exists_save_items = window.get_save_items();
+        for (i, item) in exists_save_items.iter().enumerate() {
+            if i != index as usize {
+                save_items.push(item);
+            }
+            else {
+                save_items.push((bg.clone(), SharedString::from(script.explain()), script.index() as i32, SharedString::from(script.name())))
+            }
+        }
+        //println!("{:#?}", save_items);
+        window.set_save_items(Rc::new(VecModel::from(save_items)).into());
+
+        println!("save {}", index);
+    }
+
+    Ok(())
+}
 
 pub async fn execute_bgm_volume(
     bgm_player: Rc<RefCell<Player>>,
@@ -182,6 +205,8 @@ async fn apply_command(
                 window.set_current_choose(choices.len() as i32);
             }
             Command::Dialogue { speaker, text } => {
+                let mut script = script.borrow_mut();
+                script.set_explain(&text);
                 window.set_speaker(SharedString::from(speaker));
                 window.set_dialogue(SharedString::from(text));
             }
