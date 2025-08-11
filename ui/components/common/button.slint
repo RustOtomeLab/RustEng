@@ -1,0 +1,32 @@
+import { Colors } from "../../styles/colors.slint";
+
+// 通用按钮组件
+export component CustomButton {
+    in property <string> text;
+    in property <length> button-width;
+    in property <length> button-height;
+    in property <length> font-size;
+
+    callback clicked();
+
+    Rectangle {
+        in property <length> font-size: parent.font-size;
+        in property <string> text: parent.text;
+        width: button-width;
+        height: button-height;
+        background: Colors.button-background;
+        border-radius: button-width / 144;
+
+        Text {
+            text: parent.text;
+            color: Colors.button-text;
+            font-size: parent.font-size;
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => { root.clicked(); }
+        }
+    }
+}
