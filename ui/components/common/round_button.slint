@@ -1,0 +1,28 @@
+import { Colors } from "../../styles/colors.slint";
+
+export component CustomRoundButton {
+    in property <string> text;
+
+    callback clicked();
+
+    Rectangle {
+        width: parent.width;
+        height: parent.width;
+        background: #0006;
+        border-radius: self.width / 2;
+        border-width: self.width * 0.1;
+        border-color: Colors.border-color;
+
+        Text {
+            text: text;
+            font-size: parent.height * 0.35;
+            color: Colors.text-light;
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => { root.clicked(); }
+        }
+    }
+}

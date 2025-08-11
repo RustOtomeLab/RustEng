@@ -1,4 +1,5 @@
 import { CustomButton } from "common/button.slint";
+import { CustomRoundButton } from "common/round_button.slint";
 import { Colors } from "../styles/colors.slint";
 
 export component StoryView {
@@ -14,6 +15,8 @@ export component StoryView {
     callback clicked();
     callback choose(string);
     callback settings();
+    callback save-game();
+    callback load-game();
 
     Rectangle {
         width: container-width;
@@ -92,28 +95,36 @@ export component StoryView {
             }
         }
 
-        // 设置按钮
+        //下方按钮
         Rectangle {
-            width: parent.width * 0.04;
+            width: parent.width;
             height: parent.width * 0.04;
-            x: parent.width - self.width - parent.width * 0.03;
             y: parent.height - self.height - parent.height * 0.02;
-            background: #0006;
-            border-radius: self.width / 2;
-            border-width: 2px;
-            border-color: Colors.border-color;
 
-            Text {
-                text: "设置";
-                font-size: parent.height * 0.4;
-                color: Colors.text-light;
-                horizontal-alignment: center;
-                vertical-alignment: center;
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.85 - self.width;
+                y: 0;
+                text: "存档";
+                clicked => { root.save-game(); }
             }
 
-            TouchArea {
-                width: parent.width;
+            CustomRoundButton {
+                width: parent.height;
                 height: parent.height;
+                x: parent.width * 0.91 - self.width;
+                y: 0;
+                text: "读档";
+                clicked => { root.load-game(); }
+            }
+
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.97 - self.width;
+                y: 0;
+                text: "设置";
                 clicked => { root.settings(); }
             }
         }
