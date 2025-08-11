@@ -224,7 +224,6 @@ async fn apply_command(
                 execute_jump(script, bgm_player, volume, jump, weak_for_jump).await?;
             }
             Command::Label(label) => println!("{}", label),
-            _ => {}
         }
     };
     Ok(())

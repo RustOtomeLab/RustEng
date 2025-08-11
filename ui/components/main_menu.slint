@@ -1,0 +1,71 @@
+import { CustomButton } from "common/button.slint";
+import { Colors } from "../styles/colors.slint";
+
+export component MainMenu {
+    in property <length> container-width;
+    in property <length> container-height;
+
+    callback new-game();
+    callback load-game();
+    callback gallery();
+    callback settings();
+    callback exit-game();
+
+    Rectangle {
+        width: container-width;
+        height: container-height;
+        background: Colors.text-light;
+
+        // 按钮容器
+        Rectangle {
+            y: parent.height * 0.92;
+            width: parent.width;
+            height: parent.height * 0.06;
+
+            CustomButton {
+                x: parent.width * 0.108 - parent.height * 0.6;
+                text: "新游戏";
+                button-width: parent.width * 0.176;
+                button-height: parent.height;
+                font-size: parent.height * 0.4;
+                clicked => { root.new-game(); }
+            }
+
+            CustomButton {
+                x: parent.width * 0.304 - parent.height * 0.8;
+                text: "加载游戏";
+                button-width: parent.width * 0.176;
+                button-height: parent.height;
+                font-size: parent.height * 0.4;
+                clicked => { root.load-game(); }
+            }
+
+            CustomButton {
+                x: parent.width * 0.5 - parent.height * 0.4;
+                text: "画廊";
+                button-width: parent.width * 0.176;
+                button-height: parent.height;
+                font-size: parent.height * 0.4;
+                clicked => { root.gallery(); }
+            }
+
+            CustomButton {
+                x: parent.width * 0.696 - parent.height * 0.4;
+                text: "设置";
+                button-width: parent.width * 0.176;
+                button-height: parent.height;
+                font-size: parent.height * 0.4;
+                clicked => { root.settings(); }
+            }
+
+            CustomButton {
+                x: parent.width * 0.892 - parent.height * 0.4;
+                text: "退出";
+                button-width: parent.width * 0.176;
+                button-height: parent.height;
+                font-size: parent.height * 0.4;
+                clicked => { root.exit-game(); }
+            }
+        }
+    }
+}

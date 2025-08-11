@@ -1,0 +1,121 @@
+import { CustomButton } from "common/button.slint";
+import { Colors } from "../styles/colors.slint";
+
+export component StoryView {
+    in property <length> container-width;
+    in property <length> container-height;
+    in property <string> dialogue;
+    in property <string> speaker;
+    in property <[{index:int, text:string}]> choose-branch;
+    in property <image> bg;
+    in property <image> fg-body-0;
+    in property <int> current-choose: 0;
+
+    callback clicked();
+    callback choose(string);
+    callback settings();
+
+    Rectangle {
+        width: container-width;
+        height: container-height;
+        background: Colors.text-light;
+
+        if current-choose == 0: TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => { root.clicked(); }
+        }
+
+        // 背景图片
+        Image {
+            source: root.bg;
+            width: parent.width;
+            height: parent.height;
+        }
+
+        // 角色立绘
+        Image {
+            source: root.fg-body-0;
+            width: parent.width * 0.25;
+            height: parent.width * 0.65;
+            x: parent.width * 0.375;
+            y: parent.height / 6;
+        }
+
+        // 对话框
+        if root.current-choose == 0: Rectangle {
+            y: parent.height * 0.75;
+            width: parent.width;
+            height: parent.height * 0.25;
+            background: Colors.overlay-background;
+
+            Text {
+                text: root.speaker;
+                x: parent.width / 64;
+                y: 0;
+                font-size: parent.height * 2 / 15;
+                color: Colors.text-light;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
+
+            Text {
+                text: root.dialogue;
+                x: parent.width / 64;
+                y: parent.height * 0.2;
+                font-size: parent.height * 2 / 15;
+                color: Colors.text-light;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
+        }
+
+        // 选择分支
+        if root.current-choose != 0: Rectangle {
+            height: parent.height * 0.05 * (2 * root.current-choose - 1);
+            width: parent.width * 0.75;
+
+            for choose in root.choose-branch: Rectangle {
+                height: parent.height / (2 * root.current-choose - 1);
+                y: 2 * (choose.index - 1) * parent.height / (2 * root.current-choose - 1);
+                background: Colors.overlay-background;
+
+                Text {
+                    text: choose.text;
+                    font-size: parent.height;
+                    color: Colors.text-light;
+                }
+
+                TouchArea {
+                    clicked => { root.choose(choose.text); }
+                }
+            }
+        }
+
+        // 设置按钮
+        Rectangle {
+            width: parent.width * 0.04;
+            height: parent.width * 0.04;
+            x: parent.width - self.width - parent.width * 0.03;
+            y: parent.height - self.height - parent.height * 0.02;
+            background: #0006;
+            border-radius: self.width / 2;
+            border-width: 2px;
+            border-color: Colors.border-color;
+
+            Text {
+                text: "设置";
+                font-size: parent.height * 0.4;
+                color: Colors.text-light;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => { root.settings(); }
+            }
+        }
+    }
+}

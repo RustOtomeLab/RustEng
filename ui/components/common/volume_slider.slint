@@ -1,0 +1,40 @@
+import { Slider } from "std-widgets.slint";
+import { Colors } from "../../styles/colors.slint";
+
+export component VolumeSlider {
+    in property <string> label;
+    in-out property <float> volume: 100;
+    in property <length> font-size;
+
+    callback volume-changed(float);
+
+    Rectangle {
+        Text {
+            x: 0;
+            y: 0;
+            text: label;
+            font-size: parent.height * 0.8;
+            color: Colors.text-light;
+            vertical-alignment: center;
+            width: parent.width * 0.3;
+        }
+
+        Rectangle {
+            x: parent.width * 0.2;
+            y: 0;
+            width: parent.width * 0.8;
+            height: parent.height;
+            background: Colors.slider-background;
+
+            Slider {
+                width: parent.width;
+                height: parent.height;
+                value: root.volume;
+                changed value => {
+                    root.volume = self.value;
+                    root.volume-changed(self.value);
+                }
+            }
+        }
+    }
+}
