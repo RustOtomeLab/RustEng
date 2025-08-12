@@ -1,0 +1,57 @@
+import { CustomButton } from "common/button.slint";
+import { Colors } from "../styles/colors.slint";
+import { Save } from "save.slint";
+
+export component LoadView {
+    in property <length> container-width;
+    in property <length> container-height;
+    in property <[{name:string, index:int, bg:image, explain:string}]> save-items;
+    in property <[int]> indexs: [
+            0, 1, 2, 3,
+            4, 5, 6, 7,
+            8, 9, 10, 11,
+            12, 13, 14, 15,
+        ];
+
+    callback back();
+    callback load(string, int);
+
+    Rectangle {
+        width: container-width;
+        height: container-height;
+        background: Colors.light-purple;
+
+        // 返回按钮
+        CustomButton {
+            x: parent.width * 0.073;
+            y: parent.height * 0.04;
+            text: "返回游戏";
+            button-width: parent.width * 0.10;
+            button-height: parent.height * 0.06;
+            font-size: parent.width * 0.0135;
+            clicked => { root.back(); }
+        }
+
+        Rectangle {
+            x: parent.width * 0.05;
+            y: parent.height * 0.12;
+            width: parent.width * 0.88;
+            height: parent.height * 0.85;
+
+            for i in 4 :Rectangle {
+                y: i * 21.625 / 85 * parent.height;
+                height: 10.125 / 85 * parent.height / 9 * 16;
+
+                for j in 4: Save {
+                    x: j * 24 / 88 * parent.width;
+                    y: 0;
+                    width: 18 / 88 * parent.width;
+                    height: parent.height;
+                    save-item: save-items[(i * 4 + j)];
+                    clicked => { load(self.save-item.name, self.save-item.index); }
+                }
+            }
+        }
+    }
+}
+

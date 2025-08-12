@@ -1,6 +1,6 @@
 use crate::audio::player::Player;
 use crate::error::EngineError;
-use crate::executor::script_executor::{execute_bgm_volume, execute_choose, execute_save, execute_script, execute_voice_volume};
+use crate::executor::script_executor::{execute_bgm_volume, execute_choose, execute_save, execute_load, execute_script, execute_voice_volume};
 use crate::script::Script;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -40,6 +40,23 @@ pub async fn ui(
                 execute_save(script, index, weak).await
             })
             .expect("TODO: panic message");  
+        }
+    });
+
+    let weak_for_load = weak.clone();
+    window.on_load({
+        let script = script.clone();
+        let bgm_player = bgm_player.clone();
+        let voice_player = voice_player.clone();
+        move |name, index| {
+            let script = script.clone();
+            let bgm_player = bgm_player.clone();
+            let voice_player = voice_player.clone();
+            let weak = weak_for_load.clone();
+            slint::spawn_local(async move {
+                execute_load(script, name.to_string(), index, bgm_player, voice_player, weak).await
+            })
+            .expect("TODO: panic message");
         }
     });
 

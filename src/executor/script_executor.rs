@@ -13,6 +13,11 @@ static VOICE_PATH: &str = "./source/voice/";
 static BGM_PATH: &str = "./source/bgm/";
 static FIGURE_PATH: &str = "./source/figure/";
 
+enum Jump {
+    Label(Label),
+    Index((String, i32)),
+}
+
 pub async fn execute_save(script: Rc<RefCell<Script>>, index: i32, weak: Weak<MainWindow>,) -> Result<(), EngineError> {
     if let Some(window) = weak.upgrade() {
         let script = script.borrow();
@@ -32,6 +37,28 @@ pub async fn execute_save(script: Rc<RefCell<Script>>, index: i32, weak: Weak<Ma
 
         println!("save {}", index);
     }
+
+    Ok(())
+}
+
+pub async fn execute_load(
+    script: Rc<RefCell<Script>>,
+    name: String,
+    index: i32,
+    bgm_player: Rc<RefCell<Player>>,
+    voice_player: Rc<RefCell<Player>>,
+    weak: Weak<MainWindow>,
+) -> Result<(), EngineError> {
+    let mut volume = 0.0;
+    {
+        let weak = weak.clone();
+        if let Some(window) = weak.upgrade() {
+            volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
+            window.set_current_screen(2);
+        }
+    }
+    execute_jump(script.clone(), bgm_player.clone(), volume, Jump::Index((name, index)), weak.clone()).await?;
+    execute_script(script, bgm_player, voice_player, weak).await?;
 
     Ok(())
 }
@@ -87,37 +114,51 @@ pub async fn execute_choose(
         volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
     }
 
-    execute_jump(script, bgm_player, volume, label, weak_for_jump).await
+    execute_jump(script, bgm_player, volume, Jump::Label(label), weak_for_jump).await
 }
 
 pub async fn execute_jump(
     script: Rc<RefCell<Script>>,
     bgm_player: Rc<RefCell<Player>>,
     volume: f32,
-    label: Label,
+    label: Jump,
     weak: Weak<MainWindow>,
 ) -> Result<(), EngineError> {
     let mut script = script.borrow_mut();
     let mut current_bgm = script.current_bgm().to_string();
-    if label.0 != script.name() {
-        *script = Script::from_name(label.0)?;
-    }
+    let jump_index= match label {
+        Jump::Label((name,label)) => {
+            if name != script.name() {
+                *script = Script::from_name(name)?;
+            }
+            if let Some(index) = script.find_label(&label) {
+                Some(*index)
+            } else { None }
+        }
+        Jump::Index((name,index)) => {
+            if name != script.name() {
+                *script = Script::from_name(name)?;
+            }
+            Some(index as usize)
+        }
+    };
+
     let mut current_block = script.index();
-    if let Some(index) = script.find_label(&label.1) {
-        current_block = *index;
-        if let Some((_, bgm)) = script.get_bgm(*index) {
+    if let Some(index) = jump_index {
+        current_block = index;
+        if let Some((_, bgm)) = script.get_bgm(index) {
             if &current_bgm != bgm {
                 let bgm_player = bgm_player.borrow_mut();
                 bgm_player.play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume);
                 current_bgm = bgm.clone();
             }
-        } else if let None = script.get_bgm(*index) {
+        } else if let None = script.get_bgm(index) {
             let bgm_player = bgm_player.borrow_mut();
             bgm_player.stop();
             current_bgm = String::new();
         }
 
-        if let Some((_, background)) = script.get_background(*index) {
+        if let Some((_, background)) = script.get_background(index) {
             if let Some(window) = weak.upgrade() {
                 window.set_pre_bg(background.into());
             }
@@ -246,7 +287,7 @@ async fn apply_command(
             }
             Command::Jump(jump) => {
                 let volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
-                execute_jump(script, bgm_player, volume, jump, weak_for_jump).await?;
+                execute_jump(script, bgm_player, volume, Jump::Label(jump), weak_for_jump).await?;
             }
             Command::Label(label) => println!("{}", label),
         }
