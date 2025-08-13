@@ -1,10 +1,11 @@
-use crate::parser::script_parser::ParserError;
+use crate::parser::parser::ParserError;
 use slint::PlatformError;
 use std::io::Error;
 use std::num::ParseIntError;
 
 #[derive(Debug)]
 pub enum EngineError {
+    #[warn(dead_code)]
     FileError(Error),
     ParseError(ParserError),
     UiError(PlatformError),

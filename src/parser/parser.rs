@@ -1,12 +1,12 @@
 use crate::error::EngineError;
-use crate::script::{Label, Script};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use crate::script::Label;
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug, Clone)]
 pub enum Commands {
-    OneCommand(Command),
-    VarCommands(Vec<Command>),
-    EmptyCommands,
+    OneCmd(Command),
+    VarCmds(Vec<Command>),
+    EmptyCmd,
 }
 
 #[derive(Debug, Clone)]
@@ -108,8 +108,8 @@ fn parse_block(
     let mut block_commands = Vec::new();
 
     for (line_num, line) in lines {
-        if line.starts_with('@') {
-            if let Some((cmd, arg)) = line[1..].split_once(' ') {
+        if let Some(line) = line.strip_prefix('@') {
+            if let Some((cmd, arg)) = line.split_once(' ') {
                 let cmd = match cmd {
                     "bg" => {
                         backgrounds.insert(*block_index, arg.to_string());
@@ -200,7 +200,7 @@ fn parse_block(
                     _ => {
                         return Err(EngineError::from(ParserError::InvalidCommand {
                             line: *line_num,
-                            content: line.clone(),
+                            content: line.to_string(),
                         }));
                     }
                 };
@@ -208,13 +208,13 @@ fn parse_block(
             } else {
                 return Err(EngineError::from(ParserError::InvalidCommand {
                     line: *line_num,
-                    content: line.clone(),
+                    content: line.to_string(),
                 }));
             }
-        } else if line.starts_with('%') {
-            if let Some((cmd, arg)) = line[1..].split_once(' ') {
+        } else if let Some(line) = line.strip_prefix('%') {
+            if let Some((cmd, arg)) = line.split_once(' ') {
                 if cmd == "version" {
-                    if !(arg.parse::<usize>().unwrap_or(0) == VERSION) {
+                    if arg.parse::<usize>().unwrap_or(0) != VERSION {
                         return Err(EngineError::from(ParserError::UnSupportedVersion {
                             need: VERSION,
                             indeed: arg.to_string(),
@@ -223,16 +223,16 @@ fn parse_block(
                 } else {
                     return Err(EngineError::from(ParserError::UnknownLine {
                         line: *line_num,
-                        content: line.clone(),
+                        content: line.to_string(),
                     }));
                 }
             } else {
                 return Err(EngineError::from(ParserError::InvalidCommand {
                     line: *line_num,
-                    content: line.clone(),
+                    content: line.to_string(),
                 }));
             }
-        } else if line.starts_with('#') {
+        } else if let Some(_) = line.strip_prefix('#') {
             continue;
         } else if let Some((speaker, text)) = line.split_once("“") {
             if let Some(text) = text.strip_suffix("”") {
@@ -255,18 +255,12 @@ fn parse_block(
         }
     }
 
-    // if block_commands.is_empty() {
-    //     return Err(EngineError::from(ParserError::EmptyBlock {
-    //         line: lines[0].0,
-    //     }));
-    // }
-
     if block_commands.len() == 1 {
         *block_index += 1;
-        commands.push(OneCommand(block_commands.into_iter().next().unwrap()));
+        commands.push(OneCmd(block_commands.into_iter().next().unwrap()));
     } else if block_commands.len() > 1 {
         *block_index += 1;
-        commands.push(VarCommands(block_commands))
+        commands.push(VarCmds(block_commands))
     }
 
     Ok(())

@@ -1,5 +1,5 @@
 use crate::error::EngineError;
-use crate::parser::script_parser::{parse_script, Commands};
+use crate::parser::parser::{parse_script, Commands};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 
