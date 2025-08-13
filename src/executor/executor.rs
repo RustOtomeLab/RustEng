@@ -148,13 +148,17 @@ impl Executor {
         let jump_index= match label {
             Jump::Label((name,label)) => {
                 if name != script.name() {
-                    *script = Script::from_name(name)?;
+                    let mut scr = Script::new();
+                    scr.from_name(&name);
+                    *script = scr;
                 }
                 script.find_label(&label).map(|index| *index)
             }
             Jump::Index((name,index)) => {
                 if name != script.name() {
-                    *script = Script::from_name(name)?;
+                    let mut scr = Script::new();
+                    scr.from_name(&name);
+                    *script = scr;
                 }
                 Some(index as usize)
             }

@@ -39,34 +39,33 @@ pub struct Script {
 }
 
 impl Script {
-    pub fn from_name(name: String) -> Result<Self, EngineError> {
+    pub fn new() -> Script {
+        Script {
+            name: String::new(),
+            explain: String::new(),
+            commands: Vec::new(),
+            current_block: 0,
+            bgms: BTreeMap::new(),
+            current_bgm: String::new(),
+            backgrounds: BTreeMap::new(),
+            choices: HashMap::new(),
+            labels: HashMap::new(),
+        }
+    }
+
+    pub fn from_name(&mut self, name: &str) -> Result<(), EngineError> {
+        self.name = name.to_string();
         let path = Args::new(&name);
         let script = fs::read_to_string(&path.path)?;
-        let mut commands = Vec::new();
-        let mut labels = HashMap::new();
-        let mut choices = HashMap::new();
-        let mut bgms = BTreeMap::new();
-        let mut backgrounds = BTreeMap::new();
         parse_script(
             &script,
-            &name,
-            &mut commands,
-            &mut labels,
-            &mut choices,
-            &mut bgms,
-            &mut backgrounds,
-        )?;
-        Ok(Script {
-            name,
-            explain: String::new(),
-            commands,
-            current_block: 0,
-            bgms,
-            current_bgm: String::new(),
-            backgrounds,
-            choices,
-            labels,
-        })
+            &self.name,
+            &mut self.commands,
+            &mut self.labels,
+            &mut self.choices,
+            &mut self.bgms,
+            &mut self.backgrounds,
+        )
     }
 
     pub fn next_command(&mut self) -> Option<&Commands> {

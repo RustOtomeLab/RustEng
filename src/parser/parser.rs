@@ -36,7 +36,6 @@ pub enum ParserError {
     InvalidCommand { line: usize, content: String },
     MalformedDialogue { line: usize, content: String },
     UnknownLine { line: usize, content: String },
-    EmptyBlock { line: usize },
     UnSupportedVersion { need: usize, indeed: String },
     TooShort,
 }
