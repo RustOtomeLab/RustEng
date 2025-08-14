@@ -1,8 +1,9 @@
+use crate::audio::player::PreBgm;
 use crate::error::EngineError;
 use crate::parser::parser::{parse_script, Commands};
+use slint::SharedString;
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
-use crate::audio::player::PreBgm;
 
 pub type Label = (String, String);
 
@@ -30,6 +31,8 @@ impl Default for Args {
 pub struct Script {
     name: String,
     explain: String,
+    backlog_offset: i32,
+    backlog: Vec<(SharedString, SharedString)>,
     commands: Vec<Commands>,
     current_block: usize,
     bgms: BTreeMap<usize, String>,
@@ -46,6 +49,8 @@ impl Script {
         Script {
             name: String::new(),
             explain: String::new(),
+            backlog_offset: 0,
+            backlog: Vec::new(),
             commands: Vec::new(),
             current_block: 0,
             bgms: BTreeMap::new(),
@@ -91,6 +96,14 @@ impl Script {
         self.current_block = index;
     }
 
+    pub fn set_offset(&mut self, offset: i32) {
+        self.backlog_offset = if self.backlog_offset + offset <= 0 {
+            self.backlog_offset + offset
+        } else {
+            0
+        };
+    }
+
     pub fn set_current_bgm(&mut self, bgm: String) {
         self.current_bgm = bgm;
     }
@@ -105,6 +118,19 @@ impl Script {
         } else {
             self.pre_bg = None;
         }
+    }
+
+    pub fn push_backlog(&mut self, name: SharedString, text: SharedString) {
+        self.backlog.push((name, text));
+    }
+
+    pub fn backlog(&self) -> Vec<(SharedString, SharedString)> {
+        let offset = if self.backlog.len() as i32 + self.backlog_offset >= 8 {
+            -self.backlog_offset as usize
+        } else {
+            self.backlog.len() - 8
+        };
+        self.backlog[self.backlog.len() - 8 - offset..self.backlog.len() - offset].to_vec()
     }
 
     pub fn name(&self) -> &str {

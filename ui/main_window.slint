@@ -12,16 +12,18 @@ export component MainWindow inherits Window {
     // 所有原有的属性保持不变
     in property<string> dialogue;
     in property<string> speaker;
-    in property<[{index:int, text:string}]> choose-branch;
+    in property <[{ speaker: string, text: string }]> backlogs;
+    in property<[{ index: int, text: string }]> choose-branch;
     in property<image> bg;
     in property<string> pre-bg;
     in property<image> fg-body-0;
     in property<image> fg-face-0;
     in property<bool> is-fullscreen: false;
+    in-out property <bool> is_backlog: false;
     in property<int> current-choose: 0;
     property <bool> has-focus: true;
 
-    in-out property<int> current-screen: 0;
+    in-out property <int> current-screen: 0;
     in-out property <int> last-screen: 0;
 
     in property <[{name:string, index:int, bg:image, explain:string}]> save-items: [
@@ -104,6 +106,11 @@ export component MainWindow inherits Window {
             fg-body-0: root.fg-body-0;
             current-choose: root.current-choose;
 
+            backlogs <=> root.backlogs;
+            is_backlog <=> root.is_backlog;
+
+            backlog => { root.backlog(); }
+            backlog-change(i) => { root.backlog-change(i); }
             clicked => { root.clicked(); }
             choose(text) => { root.choose(text); }
             save-game => { root.current-screen = 3; }
@@ -142,6 +149,8 @@ export component MainWindow inherits Window {
     callback volume-changed();
     callback bgm-volume-changed();
     callback voice-volume-changed();
+    callback backlog();
+    callback backlog-change(int);
     callback choose(string);
     callback save(int);
     callback load(string, int);
