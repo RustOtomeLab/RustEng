@@ -1,4 +1,4 @@
-use crate::audio::player::Player;
+use crate::audio::player::{Player, PreBgm};
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
 use crate::script::{Label, Script};
@@ -7,6 +7,7 @@ use slint::{Image, Model, SharedString, VecModel, Weak};
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
+use crate::audio::player::PreBgm::Play;
 
 static BACKGROUND_PATH: &str = "./source/background/";
 static VOICE_PATH: &str = "./source/voice/";
@@ -144,12 +145,14 @@ impl Executor {
         label: Jump,
     ) -> Result<(), EngineError> {
         let mut script = self.script.borrow_mut();
-        let mut current_bgm = script.current_bgm().to_string();
+        let current_bgm = script.current_bgm().to_string();
+        let mut pre_bg = None;
+        let mut pre_bgm = PreBgm::None;
         let jump_index= match label {
             Jump::Label((name,label)) => {
                 if name != script.name() {
                     let mut scr = Script::new();
-                    scr.from_name(&name);
+                    scr.with_name(&name)?;
                     *script = scr;
                 }
                 script.find_label(&label).map(|index| *index)
@@ -157,7 +160,7 @@ impl Executor {
             Jump::Index((name,index)) => {
                 if name != script.name() {
                     let mut scr = Script::new();
-                    scr.from_name(&name);
+                    scr.with_name(&name)?;
                     *script = scr;
                 }
                 Some(index as usize)
@@ -169,23 +172,17 @@ impl Executor {
             current_block = index;
             if let Some((_, bgm)) = script.get_bgm(index) {
                 if &current_bgm != bgm {
-                    let bgm_player = self.bgm_player.borrow_mut();
-                    bgm_player.play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume);
-                    current_bgm = bgm.clone();
+                    pre_bgm = Play(bgm.to_string());
                 }
             } else if script.get_bgm(index).is_none() {
-                let bgm_player = self.bgm_player.borrow_mut();
-                bgm_player.stop();
-                current_bgm = String::new();
+                pre_bgm = PreBgm::Stop;
             }
-
-            if let Some((_, background)) = script.get_background(index) {
-                if let Some(window) = self.weak.upgrade() {
-                    window.set_pre_bg(background.into());
-                }
+            {
+                pre_bg = script.get_background(index).map(|(i, bg)| bg.clone());
             }
         }
-        script.set_current_bgm(current_bgm);
+        script.set_pre_bg(pre_bg);
+        script.set_pre_bgm(pre_bgm);
         script.set_index(current_block);
 
         Ok(())
@@ -219,13 +216,27 @@ impl Executor {
         command: Command,
     ) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
-            let pre_bg = window.get_pre_bg();
-            if !pre_bg.is_empty() {
+            let pre_bg;
+            let pre_bgm;
+            {
+                let mut scr = self.script.borrow_mut();
+                pre_bg = scr.pre_bg();
+                pre_bgm = scr.pre_bgm();
+            }
+            if let Some(bg) = pre_bg {
                 let image =
-                    Image::load_from_path(Path::new(&format!("{}{}.png", BACKGROUND_PATH, pre_bg)))
+                    Image::load_from_path(Path::new(&format!("{}{}.png", BACKGROUND_PATH, bg)))
                         .unwrap();
                 window.set_bg(image);
-                window.set_pre_bg("".into());
+            }
+            if let Play(bgm) = pre_bgm {
+                let bgm_player = self.bgm_player.borrow_mut();
+                let volume = window.get_main_volume() / 100.0;
+                let bgm_volume = window.get_bgm_volume() / 100.0;
+                bgm_player.play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume * bgm_volume);
+            } else if let PreBgm::Stop = pre_bgm {
+                let bgm_player = self.bgm_player.borrow_mut();
+                bgm_player.stop();
             }
 
             match command {
@@ -246,6 +257,8 @@ impl Executor {
                     }
                 }
                 Command::Choice(choices) => {
+                    let mut script = self.script.borrow_mut();
+                    script.set_explain(&"选择支".to_string());
                     let mut choose_branch = Vec::with_capacity(choices.len());
                     for (index, choice) in choices.iter().enumerate() {
                         choose_branch.push((index as i32, SharedString::from(choice.0.clone())));
