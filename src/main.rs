@@ -15,7 +15,7 @@ use std::rc::Rc;
 #[tokio::main]
 async fn main() -> Result<(), EngineError> {
     let mut script = Script::new();
-    script.from_name("ky01")?;
+    script.with_name("ky01")?;
     let script = Rc::new(RefCell::new(script));
     let bgm_player = Rc::new(RefCell::new(Player::new()));
     let voice_player = Rc::new(RefCell::new(Player::new()));

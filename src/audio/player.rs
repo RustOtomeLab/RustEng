@@ -11,6 +11,13 @@ pub struct Player {
     stream_handle: rodio::OutputStreamHandle,
 }
 
+#[derive(Debug ,Clone)]
+pub enum PreBgm {
+    Play(String),
+    Stop,
+    None,
+}
+
 impl Player {
     pub fn new() -> Self {
         let (_stream, handle) = OutputStream::try_default().expect("Failed to open audio output");

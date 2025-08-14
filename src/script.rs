@@ -2,6 +2,7 @@ use crate::error::EngineError;
 use crate::parser::parser::{parse_script, Commands};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
+use crate::audio::player::PreBgm;
 
 pub type Label = (String, String);
 
@@ -33,7 +34,9 @@ pub struct Script {
     current_block: usize,
     bgms: BTreeMap<usize, String>,
     current_bgm: String,
+    pre_bgm: PreBgm,
     backgrounds: BTreeMap<usize, String>,
+    pre_bg: Option<String>,
     choices: HashMap<String, Label>,
     labels: HashMap<String, usize>,
 }
@@ -47,13 +50,15 @@ impl Script {
             current_block: 0,
             bgms: BTreeMap::new(),
             current_bgm: String::new(),
+            pre_bgm: PreBgm::None,
             backgrounds: BTreeMap::new(),
+            pre_bg: None,
             choices: HashMap::new(),
             labels: HashMap::new(),
         }
     }
 
-    pub fn from_name(&mut self, name: &str) -> Result<(), EngineError> {
+    pub fn with_name(&mut self, name: &str) -> Result<(), EngineError> {
         self.name = name.to_string();
         let path = Args::new(&name);
         let script = fs::read_to_string(&path.path)?;
@@ -79,7 +84,7 @@ impl Script {
         if explain.len() > 18 {
             explain = &explain[0..18];
         }
-        self.explain = explain.to_string();
+        self.explain = format!("{}{}", explain, "...");
     }
 
     pub fn set_index(&mut self, index: usize) {
@@ -88,6 +93,18 @@ impl Script {
 
     pub fn set_current_bgm(&mut self, bgm: String) {
         self.current_bgm = bgm;
+    }
+
+    pub fn set_pre_bgm(&mut self, pre_bgm: PreBgm) {
+        self.pre_bgm = pre_bgm;
+    }
+
+    pub fn set_pre_bg(&mut self, pre_bg: Option<String>) {
+        if let Some(pre_bg) = pre_bg {
+            self.pre_bg = Some(pre_bg);
+        } else {
+            self.pre_bg = None;
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -104,6 +121,14 @@ impl Script {
 
     pub fn current_bgm(&self) -> &str {
         &self.current_bgm
+    }
+
+    pub fn pre_bg(&mut self) -> Option<String> {
+        self.pre_bg.take()
+    }
+
+    pub fn pre_bgm(&mut self) -> PreBgm {
+        self.pre_bgm.clone()
     }
 
     pub fn find_label(&self, name: &str) -> Option<&usize> {
