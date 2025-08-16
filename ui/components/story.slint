@@ -1,5 +1,6 @@
 import { CustomButton } from "common/button.slint";
 import { CustomRoundButton } from "common/round_button.slint";
+import { BackLogView } from "backlog.slint";
 import { Colors } from "../styles/colors.slint";
 
 export component StoryView {
@@ -7,26 +8,46 @@ export component StoryView {
     in property <length> container-height;
     in property <string> dialogue;
     in property <string> speaker;
-    in property <[{index:int, text:string}]> choose-branch;
+    in property <[{ index: int, text: string }]> choose-branch;
+    in property <[{ speaker: string, text: string }]> backlogs;
     in property <image> bg;
     in property <image> fg-body-0;
     in property <int> current-choose: 0;
+    in-out property <bool> is_backlog;
 
+    callback backlog();
+    callback backlog-change(int);
     callback clicked();
     callback choose(string);
     callback settings();
     callback save-game();
     callback load-game();
+    
+
+    TouchArea {
+        width: parent.width;
+        height: parent.height;
+
+        scroll-event(event) => {
+            if (event.delta-y > 0) {
+                root.backlog();
+                is_backlog = true;
+                accept
+            } else {
+                reject
+            }
+        }
+    }
 
     Rectangle {
         width: container-width;
         height: container-height;
         background: Colors.text-light;
 
-        if current-choose == 0: TouchArea {
+        if current-choose == 0 : TouchArea {
             width: parent.width;
             height: parent.height;
-            clicked => { root.clicked(); }
+            clicked => { if (!is_backlog) {root.clicked();} }
         }
 
         // 背景图片
@@ -46,7 +67,7 @@ export component StoryView {
         }
 
         // 对话框
-        if root.current-choose == 0: Rectangle {
+        if root.current-choose == 0 && !root.is_backlog: Rectangle {
             y: parent.height * 0.75;
             width: parent.width;
             height: parent.height * 0.25;
@@ -74,7 +95,7 @@ export component StoryView {
         }
 
         // 选择分支
-        if root.current-choose != 0: Rectangle {
+        if root.current-choose != 0 && !root.is_backlog: Rectangle {
             height: parent.height * 0.05 * (2 * root.current-choose - 1);
             width: parent.width * 0.75;
 
@@ -96,7 +117,7 @@ export component StoryView {
         }
 
         //下方按钮
-        Rectangle {
+        if !root.is_backlog: Rectangle {
             width: parent.width;
             height: parent.width * 0.04;
             y: parent.height - self.height - parent.height * 0.02;
@@ -127,6 +148,15 @@ export component StoryView {
                 text: "设置";
                 clicked => { root.settings(); }
             }
+        }
+
+        //历史记录
+        if root.is_backlog: BackLogView {
+            container-width: parent.width;
+            container-height: parent.height;
+            backlogs <=> root.backlogs;
+            back => { is_backlog = false; }
+            backlog-change(i) => { root.backlog-change(i); }
         }
     }
 }

@@ -11,7 +11,7 @@ pub struct Player {
     stream_handle: rodio::OutputStreamHandle,
 }
 
-#[derive(Debug ,Clone)]
+#[derive(Debug, Clone)]
 pub enum PreBgm {
     Play(String),
     Stop,
