@@ -1,13 +1,13 @@
+use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
 use crate::script::{Label, Script};
 use crate::ui::ui::MainWindow;
-use slint::{Image, Model, SharedString, VecModel, Weak};
+use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
-use crate::audio::player::PreBgm::Play;
 
 static BACKGROUND_PATH: &str = "./source/background/";
 static VOICE_PATH: &str = "./source/voice/";
@@ -38,7 +38,12 @@ impl Clone for Executor {
 }
 
 impl Executor {
-    pub fn new(script: Rc<RefCell<Script>>, bgm_player: Rc<RefCell<Player>>, voice_player: Rc<RefCell<Player>>, weak: Weak<MainWindow>) -> Executor {
+    pub fn new(
+        script: Rc<RefCell<Script>>,
+        bgm_player: Rc<RefCell<Player>>,
+        voice_player: Rc<RefCell<Player>>,
+        weak: Weak<MainWindow>,
+    ) -> Executor {
         Executor {
             script,
             bgm_player,
@@ -47,9 +52,27 @@ impl Executor {
         }
     }
 
-   pub fn get_weak(&self) -> Weak<MainWindow> {
-       self.weak.clone()
-   }
+    pub fn get_weak(&self) -> Weak<MainWindow> {
+        self.weak.clone()
+    }
+
+    pub async fn execute_backlog(&self) -> Result<(), EngineError> {
+        if let Some(window) = self.weak.upgrade() {
+            let script = self.script.borrow();
+            let backlog = script.backlog();
+            window.set_backlogs(Rc::new(VecModel::from(backlog)).into());
+        }
+
+        Ok(())
+    }
+
+    pub async fn execute_backlog_change(&mut self, offset: i32) -> Result<(), EngineError> {
+        {
+            let mut script = self.script.borrow_mut();
+            script.set_offset(offset);
+        }
+        self.execute_backlog().await
+    }
 
     pub async fn execute_save(&mut self, index: i32) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
@@ -60,9 +83,13 @@ impl Executor {
             for (i, item) in exists_save_items.iter().enumerate() {
                 if i != index as usize {
                     save_items.push(item);
-                }
-                else {
-                    save_items.push((bg.clone(), SharedString::from(script.explain()), script.index() as i32, SharedString::from(script.name())))
+                } else {
+                    save_items.push((
+                        bg.clone(),
+                        SharedString::from(script.explain()),
+                        script.index() as i32,
+                        SharedString::from(script.name()),
+                    ))
                 }
             }
             //println!("{:#?}", save_items);
@@ -74,11 +101,7 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_load(
-        &mut self,
-        name: String,
-        index: i32,
-    ) -> Result<(), EngineError> {
+    pub async fn execute_load(&mut self, name: String, index: i32) -> Result<(), EngineError> {
         let mut volume = 0.0;
         if !name.is_empty() {
             let weak = self.weak.clone();
@@ -87,7 +110,8 @@ impl Executor {
                 window.set_current_screen(2);
                 window.set_current_choose(0);
             }
-            self.execute_jump(volume, Jump::Index((name, index - 1))).await?;
+            self.execute_jump(volume, Jump::Index((name, index - 1)))
+                .await?;
             self.execute_script().await?;
         }
 
@@ -116,11 +140,8 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_choose(
-        &mut self,
-        choice: SharedString,
-    ) -> Result<(), EngineError> {
-        let label:(String, String);
+    pub async fn execute_choose(&mut self, choice: SharedString) -> Result<(), EngineError> {
+        let label: (String, String);
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
@@ -139,17 +160,13 @@ impl Executor {
         self.execute_jump(volume, Jump::Label(label)).await
     }
 
-    pub async fn execute_jump(
-        &mut self,
-        volume: f32,
-        label: Jump,
-    ) -> Result<(), EngineError> {
+    pub async fn execute_jump(&mut self, volume: f32, label: Jump) -> Result<(), EngineError> {
         let mut script = self.script.borrow_mut();
         let current_bgm = script.current_bgm().to_string();
         let mut pre_bg = None;
         let mut pre_bgm = PreBgm::None;
-        let jump_index= match label {
-            Jump::Label((name,label)) => {
+        let jump_index = match label {
+            Jump::Label((name, label)) => {
                 if name != script.name() {
                     let mut scr = Script::new();
                     scr.with_name(&name)?;
@@ -157,10 +174,12 @@ impl Executor {
                 }
                 script.find_label(&label).map(|index| *index)
             }
-            Jump::Index((name,index)) => {
+            Jump::Index((name, index)) => {
                 if name != script.name() {
+                    let backlog = script.to_owned().take_backlog();
                     let mut scr = Script::new();
                     scr.with_name(&name)?;
+                    scr.set_backlog(backlog);
                     *script = scr;
                 }
                 Some(index as usize)
@@ -211,10 +230,7 @@ impl Executor {
         Ok(())
     }
 
-    async fn apply_command(
-        &mut self,
-        command: Command,
-    ) -> Result<(), EngineError> {
+    async fn apply_command(&mut self, command: Command) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let pre_bg;
             let pre_bgm;
@@ -253,7 +269,8 @@ impl Executor {
                         let bgm_player = self.bgm_player.borrow_mut();
                         let volume = window.get_main_volume() / 100.0;
                         let bgm_volume = window.get_bgm_volume() / 100.0;
-                        bgm_player.play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume * bgm_volume);
+                        bgm_player
+                            .play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume * bgm_volume);
                     }
                 }
                 Command::Choice(choices) => {
@@ -263,12 +280,14 @@ impl Executor {
                     for (index, choice) in choices.iter().enumerate() {
                         choose_branch.push((index as i32, SharedString::from(choice.0.clone())));
                     }
+                    script.push_backlog("选择支".to_shared_string(), "".to_shared_string());
                     window.set_choose_branch(Rc::new(VecModel::from(choose_branch)).into());
                     window.set_current_choose(choices.len() as i32);
                 }
                 Command::Dialogue { speaker, text } => {
                     let mut script = self.script.borrow_mut();
                     script.set_explain(&text);
+                    script.push_backlog(speaker.to_shared_string(), text.to_shared_string());
                     window.set_speaker(SharedString::from(speaker));
                     window.set_dialogue(SharedString::from(text));
                 }
@@ -292,12 +311,12 @@ impl Executor {
                         "{}{}/{}/{}.png",
                         FIGURE_PATH, name, distance, body
                     )))
-                        .unwrap();
+                    .unwrap();
                     let face = Image::load_from_path(Path::new(&format!(
                         "{}{}/{}/{}.png",
                         FIGURE_PATH, name, distance, face
                     )))
-                        .unwrap();
+                    .unwrap();
                     match &position[..] {
                         "0" => {
                             window.set_fg_body_0(body);

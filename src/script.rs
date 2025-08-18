@@ -1,10 +1,13 @@
+use crate::audio::player::PreBgm;
 use crate::error::EngineError;
 use crate::parser::parser::{parse_script, Commands};
+use slint::SharedString;
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
-use crate::audio::player::PreBgm;
 
 pub type Label = (String, String);
+
+const WINDOW_SIZE: usize = 4;
 
 struct Args {
     path: String,
@@ -30,6 +33,8 @@ impl Default for Args {
 pub struct Script {
     name: String,
     explain: String,
+    backlog_offset: usize,
+    backlog: Vec<(SharedString, SharedString)>,
     commands: Vec<Commands>,
     current_block: usize,
     bgms: BTreeMap<usize, String>,
@@ -46,6 +51,8 @@ impl Script {
         Script {
             name: String::new(),
             explain: String::new(),
+            backlog_offset: 0,
+            backlog: Vec::new(),
             commands: Vec::new(),
             current_block: 0,
             bgms: BTreeMap::new(),
@@ -91,6 +98,17 @@ impl Script {
         self.current_block = index;
     }
 
+    pub fn set_offset(&mut self, offset: i32) {
+        let new_offset = (self.backlog_offset as i32 + offset).max(0);
+        // 不能超过最大可偏移量
+        let max_offset = self.max_offset();
+        self.backlog_offset = new_offset.min(max_offset as i32) as usize;
+    }
+
+    fn max_offset(&self) -> usize {
+        self.backlog.len().saturating_sub(WINDOW_SIZE)
+    }
+
     pub fn set_current_bgm(&mut self, bgm: String) {
         self.current_bgm = bgm;
     }
@@ -105,6 +123,29 @@ impl Script {
         } else {
             self.pre_bg = None;
         }
+    }
+    
+    pub fn set_backlog(&mut self, backlog: Vec<(SharedString, SharedString)>) {
+        self.backlog = backlog;
+    }
+
+    pub fn push_backlog(&mut self, name: SharedString, text: SharedString) {
+        self.backlog.push((name, text));
+    }
+
+    pub fn backlog(&self) -> Vec<(SharedString, SharedString)> {
+        let total = self.backlog.len();
+        if total == 0 {
+            return vec![];
+        }
+
+        let end = total.saturating_sub(self.backlog_offset);
+        let start = end.saturating_sub(WINDOW_SIZE);
+        self.backlog[start..end].to_vec()
+    }
+    
+    pub fn take_backlog(self) -> Vec<(SharedString, SharedString)> {
+        self.backlog
     }
 
     pub fn name(&self) -> &str {
