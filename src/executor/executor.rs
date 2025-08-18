@@ -59,6 +59,7 @@ impl Executor {
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
+            //println!("{:#?}", script.backlog);
             let backlog = script.backlog();
             window.set_backlogs(Rc::new(VecModel::from(backlog)).into());
         }
@@ -72,6 +73,13 @@ impl Executor {
             script.set_offset(offset);
         }
         self.execute_backlog().await
+    }
+
+    pub async fn execute_backlog_jump(&mut self, name: String, index: i32) -> Result<(), EngineError> {
+        if let Some(window) = self.weak.upgrade() {
+            window.set_is_backlog(false);
+        }
+        self.execute_load(name, index).await
     }
 
     pub async fn execute_save(&mut self, index: i32) -> Result<(), EngineError> {
@@ -95,7 +103,7 @@ impl Executor {
             //println!("{:#?}", save_items);
             window.set_save_items(Rc::new(VecModel::from(save_items)).into());
 
-            println!("save {}", index);
+            //println!("save {}", index);
         }
 
         Ok(())
@@ -165,18 +173,19 @@ impl Executor {
         let current_bgm = script.current_bgm().to_string();
         let mut pre_bg = None;
         let mut pre_bgm = PreBgm::None;
+        let backlog = script.to_owned().take_backlog();
         let jump_index = match label {
             Jump::Label((name, label)) => {
                 if name != script.name() {
                     let mut scr = Script::new();
                     scr.with_name(&name)?;
+                    scr.set_backlog(backlog);
                     *script = scr;
                 }
                 script.find_label(&label).map(|index| *index)
             }
             Jump::Index((name, index)) => {
                 if name != script.name() {
-                    let backlog = script.to_owned().take_backlog();
                     let mut scr = Script::new();
                     scr.with_name(&name)?;
                     scr.set_backlog(backlog);
@@ -273,14 +282,14 @@ impl Executor {
                             .play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume * bgm_volume);
                     }
                 }
-                Command::Choice(choices) => {
+                Command::Choice((explain, choices)) => {
                     let mut script = self.script.borrow_mut();
-                    script.set_explain(&"选择支".to_string());
+                    script.set_explain(&format!("选择支：{}", explain));
                     let mut choose_branch = Vec::with_capacity(choices.len());
                     for (index, choice) in choices.iter().enumerate() {
                         choose_branch.push((index as i32, SharedString::from(choice.0.clone())));
                     }
-                    script.push_backlog("选择支".to_shared_string(), "".to_shared_string());
+                    script.push_backlog("选择支".to_shared_string(), explain.to_shared_string());
                     window.set_choose_branch(Rc::new(VecModel::from(choose_branch)).into());
                     window.set_current_choose(choices.len() as i32);
                 }
@@ -329,7 +338,7 @@ impl Executor {
                     let volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
                     self.execute_jump(volume, Jump::Label(jump)).await?;
                 }
-                Command::Label(label) => println!("{}", label),
+                Command::Label(label) => (),
             }
         };
         Ok(())

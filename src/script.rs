@@ -1,7 +1,7 @@
 use crate::audio::player::PreBgm;
 use crate::error::EngineError;
 use crate::parser::parser::{parse_script, Commands};
-use slint::SharedString;
+use slint::{SharedString, ToSharedString};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 
@@ -30,11 +30,19 @@ impl Default for Args {
 }
 
 #[derive(Debug, Clone)]
+pub struct BackLog {
+    pub front: SharedString,
+    pub back: SharedString,
+    pub script: SharedString,
+    pub index: usize,
+}
+
+#[derive(Debug, Clone)]
 pub struct Script {
     name: String,
     explain: String,
     backlog_offset: usize,
-    backlog: Vec<(SharedString, SharedString)>,
+    pub backlog: Vec<BackLog>,
     commands: Vec<Commands>,
     current_block: usize,
     bgms: BTreeMap<usize, String>,
@@ -125,15 +133,20 @@ impl Script {
         }
     }
     
-    pub fn set_backlog(&mut self, backlog: Vec<(SharedString, SharedString)>) {
+    pub fn set_backlog(&mut self, backlog: Vec<BackLog>) {
         self.backlog = backlog;
     }
 
     pub fn push_backlog(&mut self, name: SharedString, text: SharedString) {
-        self.backlog.push((name, text));
+        self.backlog.push(BackLog {
+            front: name,
+            back: text,
+            script: self.name.to_shared_string(),
+            index: self.current_block,
+        });
     }
 
-    pub fn backlog(&self) -> Vec<(SharedString, SharedString)> {
+    pub fn backlog(&self) -> Vec<(SharedString, SharedString, i32, SharedString)> {
         let total = self.backlog.len();
         if total == 0 {
             return vec![];
@@ -141,10 +154,10 @@ impl Script {
 
         let end = total.saturating_sub(self.backlog_offset);
         let start = end.saturating_sub(WINDOW_SIZE);
-        self.backlog[start..end].to_vec()
+        self.backlog[start..end].iter().map(|backlog| (backlog.back.to_shared_string(), backlog.front.to_shared_string(), backlog.index as i32, backlog.script.to_shared_string())).collect()
     }
     
-    pub fn take_backlog(self) -> Vec<(SharedString, SharedString)> {
+    pub fn take_backlog(self) -> Vec<BackLog> {
         self.backlog
     }
 

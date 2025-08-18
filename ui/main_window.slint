@@ -12,7 +12,7 @@ export component MainWindow inherits Window {
     // 所有原有的属性保持不变
     in property<string> dialogue;
     in property<string> speaker;
-    in property <[{ speaker: string, text: string }]> backlogs;
+    in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
     in property<[{ index: int, text: string }]> choose-branch;
     in property<image> bg;
     in property<string> pre-bg;
@@ -111,6 +111,7 @@ export component MainWindow inherits Window {
 
             backlog => { root.backlog(); }
             backlog-change(i) => { root.backlog-change(i); }
+            backlog-jump(s, i) => { root.backlog-jump(s, i); }
             clicked => { root.clicked(); }
             choose(text) => { root.choose(text); }
             save-game => { root.current-screen = 3; }
@@ -151,6 +152,7 @@ export component MainWindow inherits Window {
     callback voice-volume-changed();
     callback backlog();
     callback backlog-change(int);
+    callback backlog-jump(string, int);
     callback choose(string);
     callback save(int);
     callback load(string, int);
