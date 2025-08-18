@@ -25,7 +25,7 @@ pub enum Command {
         face: String,
         position: String,
     },
-    Choice(HashMap<String, Label>),
+    Choice((String, HashMap<String, Label>)),
     Jump(Label),
     Label(String),
 }
@@ -106,7 +106,7 @@ fn parse_block(
 
     let mut block_commands = Vec::new();
 
-    for (line_num, line) in lines {
+    for (index, (line_num, line)) in lines.into_iter().enumerate() {
         if let Some(line) = line.strip_prefix('@') {
             if let Some((cmd, arg)) = line.split_once(' ') {
                 let cmd = match cmd {
@@ -121,7 +121,8 @@ fn parse_block(
                     "choose" => {
                         let num = arg.parse::<usize>()?;
                         let mut choose_branch = HashMap::with_capacity(num);
-                        for i in 1..=num {
+                        let explain = lines[index + 1].1.clone();
+                        for i in index + 2..=index + num + 1 {
                             if let Some((choice, script)) = lines[i].1.split_once(' ') {
                                 let (choice, label) = match script.split_once(":") {
                                     Some((name, label))
@@ -152,7 +153,7 @@ fn parse_block(
                                 ))));
                             }
                         }
-                        block_commands.push(Choice(choose_branch));
+                        block_commands.push(Choice((explain, choose_branch)));
                         break;
                     }
                     "voice" => PlayVoice(arg.to_string()),

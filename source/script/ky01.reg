@@ -2,7 +2,6 @@
 
 @label start
 @bg bg022a
-@bgm bgm36
 旁白“壬戌之秋，七月既望”
 
 @voice fem_rir_50520
@@ -12,7 +11,9 @@
 @voice fem_rir_50521
 莉々子“え、ええ、喜んでいただけたのなら何よりです。祖母の畑で採れたものですが、私もほんの少し収穫の手伝いをしたもので”
 
+@bgm bgm36
 @choose 3
+test
 选择1 :start
 选择2 ky02
 选择3 ky01:test

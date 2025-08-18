@@ -103,7 +103,17 @@ pub async fn ui(
         move |i| {
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_backlog_change(i).await })
-                .expect("Backlog panicked");
+                .expect("Backlog change panicked");
+        }
+    });
+
+    window.on_backlog_jump({
+        let executor = executor.clone();
+        move |name, i| {
+            let mut executor = executor.clone();
+            //println!("backlog {} {}", i, name);
+            slint::spawn_local(async move { executor.execute_backlog_jump(name.to_string(), i).await })
+                .expect("Backlog jump panicked");
         }
     });
 
