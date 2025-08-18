@@ -33,17 +33,21 @@ export component BackLogView {
 
             for len in backlog_len : Text {
                 property <{ speaker: string, text: string }> item: backlogs[len];
+                height: parent.height * 0.06 * 4;
+                width: parent.width * 31 / 32;
                 text: item.speaker + ": " + item.text;
                 color: white;
                 wrap: word-wrap;
                 font-size: parent.height * 0.06;
                 x: 0;
-                y: len * 2 * parent.height * 0.06;
+                y: len * 5 * parent.height * 0.06;
             }
         }
 
 
         TouchArea {
+            y: 0.1 * parent.height;
+            height: 0.9 * parent.height;
             scroll-event(event) => {
                 if(event.delta-y == 0) {
                     reject

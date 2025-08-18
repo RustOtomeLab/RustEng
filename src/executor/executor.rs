@@ -176,8 +176,10 @@ impl Executor {
             }
             Jump::Index((name, index)) => {
                 if name != script.name() {
+                    let backlog = script.to_owned().take_backlog();
                     let mut scr = Script::new();
                     scr.with_name(&name)?;
+                    scr.set_backlog(backlog);
                     *script = scr;
                 }
                 Some(index as usize)

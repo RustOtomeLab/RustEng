@@ -7,6 +7,8 @@ use std::fs;
 
 pub type Label = (String, String);
 
+const WINDOW_SIZE: usize = 4;
+
 struct Args {
     path: String,
 }
@@ -31,7 +33,7 @@ impl Default for Args {
 pub struct Script {
     name: String,
     explain: String,
-    backlog_offset: i32,
+    backlog_offset: usize,
     backlog: Vec<(SharedString, SharedString)>,
     commands: Vec<Commands>,
     current_block: usize,
@@ -97,11 +99,14 @@ impl Script {
     }
 
     pub fn set_offset(&mut self, offset: i32) {
-        self.backlog_offset = if self.backlog_offset + offset <= 0 {
-            self.backlog_offset + offset
-        } else {
-            0
-        };
+        let new_offset = (self.backlog_offset as i32 + offset).max(0);
+        // 不能超过最大可偏移量
+        let max_offset = self.max_offset();
+        self.backlog_offset = new_offset.min(max_offset as i32) as usize;
+    }
+
+    fn max_offset(&self) -> usize {
+        self.backlog.len().saturating_sub(WINDOW_SIZE)
     }
 
     pub fn set_current_bgm(&mut self, bgm: String) {
@@ -119,18 +124,28 @@ impl Script {
             self.pre_bg = None;
         }
     }
+    
+    pub fn set_backlog(&mut self, backlog: Vec<(SharedString, SharedString)>) {
+        self.backlog = backlog;
+    }
 
     pub fn push_backlog(&mut self, name: SharedString, text: SharedString) {
         self.backlog.push((name, text));
     }
 
     pub fn backlog(&self) -> Vec<(SharedString, SharedString)> {
-        let offset = if self.backlog.len() as i32 + self.backlog_offset >= 8 {
-            -self.backlog_offset as usize
-        } else {
-            self.backlog.len() - 8
-        };
-        self.backlog[self.backlog.len() - 8 - offset..self.backlog.len() - offset].to_vec()
+        let total = self.backlog.len();
+        if total == 0 {
+            return vec![];
+        }
+
+        let end = total.saturating_sub(self.backlog_offset);
+        let start = end.saturating_sub(WINDOW_SIZE);
+        self.backlog[start..end].to_vec()
+    }
+    
+    pub fn take_backlog(self) -> Vec<(SharedString, SharedString)> {
+        self.backlog
     }
 
     pub fn name(&self) -> &str {
