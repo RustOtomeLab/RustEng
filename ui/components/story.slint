@@ -14,7 +14,9 @@ export component StoryView {
     in property <image> fg-body-0;
     in property <int> current-choose: 0;
     in-out property <bool> is_backlog;
+    in-out property <bool> is-auto;
 
+    callback auto-play();
     callback backlog();
     callback backlog-change(int);
     callback backlog-jump(string, int);
@@ -45,7 +47,7 @@ export component StoryView {
         height: container-height;
         background: Colors.text-light;
 
-        if current-choose == 0 : TouchArea {
+        TouchArea {
             width: parent.width;
             height: parent.height;
             clicked => { if (!is_backlog) {root.clicked();} }
@@ -126,7 +128,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.85 - self.width;
+                x: parent.width * 0.79 - self.width;
                 y: 0;
                 text: "存档";
                 clicked => { root.save-game(); }
@@ -135,10 +137,23 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.91 - self.width;
+                x: parent.width * 0.85 - self.width;
                 y: 0;
                 text: "读档";
                 clicked => { root.load-game(); }
+            }
+
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.91 - self.width;
+                y: 0;
+                text: "自动";
+                is-on: is-auto;
+                clicked => {
+                    is-auto = !is-auto;
+                    root.auto-play();
+                }
             }
 
             CustomRoundButton {

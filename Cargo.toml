@@ -7,7 +7,7 @@ build = "src/ui/build.rs"
 [dependencies]
 slint = "1.12.1"
 rodio = "0.17"
-tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros", "sync"] }
 
 [build-dependencies]
 slint-build = "1.12.1"

@@ -1,7 +1,9 @@
+use crate::error::EngineError::AutoError;
 use crate::parser::parser::ParserError;
 use slint::PlatformError;
 use std::io::Error;
 use std::num::ParseIntError;
+use tokio::sync::mpsc::error::SendError;
 
 #[derive(Debug)]
 pub enum EngineError {
@@ -9,6 +11,7 @@ pub enum EngineError {
     FileError(Error),
     ParseError(ParserError),
     UiError(PlatformError),
+    AutoError,
 }
 
 impl From<ParserError> for EngineError {
@@ -34,5 +37,11 @@ impl From<ParseIntError> for EngineError {
         EngineError::ParseError(ParserError::ChooseError(String::from(
             "Invalid choice number",
         )))
+    }
+}
+
+impl<T> From<SendError<T>> for EngineError {
+    fn from(_: SendError<T>) -> Self {
+        AutoError
     }
 }

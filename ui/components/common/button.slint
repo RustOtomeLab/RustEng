@@ -6,6 +6,7 @@ export component CustomButton {
     in property <length> button-width;
     in property <length> button-height;
     in property <length> font-size;
+    in property <bool> is-on;
 
     callback clicked();
 
@@ -14,7 +15,7 @@ export component CustomButton {
         in property <string> text: parent.text;
         width: button-width;
         height: button-height;
-        background: Colors.button-background;
+        background: is-on ? Colors.slider-background : Colors.button-background;
         border-radius: button-width / 144;
 
         Text {

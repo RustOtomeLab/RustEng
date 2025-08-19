@@ -20,6 +20,7 @@ export component MainWindow inherits Window {
     in property<image> fg-face-0;
     in property<bool> is-fullscreen: false;
     in-out property <bool> is_backlog: false;
+    in-out property <bool> is-auto;
     in property<int> current-choose: 0;
     property <bool> has-focus: true;
 
@@ -108,18 +109,32 @@ export component MainWindow inherits Window {
 
             backlogs <=> root.backlogs;
             is_backlog <=> root.is_backlog;
+            is-auto <=> root.is-auto;
 
-            backlog => { root.backlog(); }
+            auto-play => { root.auto-play(); }
+            backlog => {
+                root.is-auto = false;
+                root.auto-play();
+                root.backlog();
+            }
             backlog-change(i) => { root.backlog-change(i); }
             backlog-jump(s, i) => { root.backlog-jump(s, i); }
             clicked => { root.clicked(); }
             choose(text) => { root.choose(text); }
-            save-game => { root.current-screen = 3; }
+            save-game => {
+                root.is-auto = false;
+                root.auto-play();
+                root.current-screen = 3;
+            }
             load-game => {
+                root.is-auto = false;
+                root.auto-play();
                 root.last-screen = 2;
                 root.current-screen = 4;
             }
             settings => {
+                root.is-auto = false;
+                root.auto-play();
                 root.last-screen = 2;
                 root.current-screen = 1;
             }
@@ -128,6 +143,7 @@ export component MainWindow inherits Window {
         if root.current-screen == 3: SaveView {
             container-width: parent.width;
             container-height: parent.height;
+
             save-items <=> root.save-items;
 
             save(index) => { root.save(index); }
@@ -145,6 +161,7 @@ export component MainWindow inherits Window {
     }
 
     // 回调函数保持不变
+    callback auto-play();
     callback clicked();
     callback toggle-fullscreen();
     callback volume-changed();
