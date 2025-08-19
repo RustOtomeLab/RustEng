@@ -24,6 +24,7 @@ pub struct Executor {
     bgm_player: Rc<RefCell<Player>>,
     voice_player: Rc<RefCell<Player>>,
     weak: Weak<MainWindow>,
+    choose_lock: Rc<RefCell<bool>>,
 }
 
 impl Clone for Executor {
@@ -33,6 +34,7 @@ impl Clone for Executor {
             bgm_player: self.bgm_player.clone(),
             voice_player: self.voice_player.clone(),
             weak: self.weak.clone(),
+            choose_lock: self.choose_lock.clone(),
         }
     }
 }
@@ -49,6 +51,7 @@ impl Executor {
             bgm_player,
             voice_player,
             weak,
+            choose_lock: Rc::new(RefCell::new(false)),
         }
     }
 
@@ -75,7 +78,11 @@ impl Executor {
         self.execute_backlog().await
     }
 
-    pub async fn execute_backlog_jump(&mut self, name: String, index: i32) -> Result<(), EngineError> {
+    pub async fn execute_backlog_jump(
+        &mut self,
+        name: String,
+        index: i32,
+    ) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             window.set_is_backlog(false);
         }
@@ -149,6 +156,8 @@ impl Executor {
     }
 
     pub async fn execute_choose(&mut self, choice: SharedString) -> Result<(), EngineError> {
+        *self.choose_lock.borrow_mut() = false;
+
         let label: (String, String);
         {
             let scr = self.script.clone();
@@ -217,6 +226,10 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
+        if *self.choose_lock.borrow() {
+            return Ok(());
+        }
+
         let mut commands = Commands::EmptyCmd;
         {
             let scr = self.script.clone();
@@ -283,6 +296,8 @@ impl Executor {
                     }
                 }
                 Command::Choice((explain, choices)) => {
+                    *self.choose_lock.borrow_mut() = true;
+
                     let mut script = self.script.borrow_mut();
                     script.set_explain(&format!("选择支：{}", explain));
                     let mut choose_branch = Vec::with_capacity(choices.len());

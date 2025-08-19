@@ -132,7 +132,7 @@ impl Script {
             self.pre_bg = None;
         }
     }
-    
+
     pub fn set_backlog(&mut self, backlog: Vec<BackLog>) {
         self.backlog = backlog;
     }
@@ -154,9 +154,19 @@ impl Script {
 
         let end = total.saturating_sub(self.backlog_offset);
         let start = end.saturating_sub(WINDOW_SIZE);
-        self.backlog[start..end].iter().map(|backlog| (backlog.back.to_shared_string(), backlog.front.to_shared_string(), backlog.index as i32, backlog.script.to_shared_string())).collect()
+        self.backlog[start..end]
+            .iter()
+            .map(|backlog| {
+                (
+                    backlog.back.to_shared_string(),
+                    backlog.front.to_shared_string(),
+                    backlog.index as i32,
+                    backlog.script.to_shared_string(),
+                )
+            })
+            .collect()
     }
-    
+
     pub fn take_backlog(self) -> Vec<BackLog> {
         self.backlog
     }

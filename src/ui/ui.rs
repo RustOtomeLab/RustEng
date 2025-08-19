@@ -1,5 +1,6 @@
 use crate::audio::player::Player;
 use crate::error::EngineError;
+use crate::executor::auto_executor::AutoExecutor;
 use crate::executor::executor::Executor;
 use crate::script::Script;
 use std::cell::RefCell;
@@ -16,6 +17,8 @@ pub async fn ui(
     let weak = window.as_weak();
 
     let executor = Executor::new(script, bgm_player, voice_player, weak);
+    let (auto_executor, auto_tx) = AutoExecutor::new(executor.clone());
+    auto_executor.start_timer();
 
     let mut is_fullscreen = false;
     let weak_for_fullscreen = executor.get_weak();
@@ -112,8 +115,10 @@ pub async fn ui(
         move |name, i| {
             let mut executor = executor.clone();
             //println!("backlog {} {}", i, name);
-            slint::spawn_local(async move { executor.execute_backlog_jump(name.to_string(), i).await })
-                .expect("Backlog jump panicked");
+            slint::spawn_local(
+                async move { executor.execute_backlog_jump(name.to_string(), i).await },
+            )
+            .expect("Backlog jump panicked");
         }
     });
 
@@ -123,6 +128,19 @@ pub async fn ui(
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_script().await })
                 .expect("Clicked panicked");
+        }
+    });
+
+    window.on_auto_play({
+        move || {
+            slint::spawn_local({
+                let tx = auto_tx.clone();
+                async move {
+                    println!("发送");
+                    tx.send(true).await
+                }
+            })
+            .expect("TODO: panic message");
         }
     });
 

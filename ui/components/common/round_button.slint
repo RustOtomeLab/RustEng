@@ -2,13 +2,14 @@ import { Colors } from "../../styles/colors.slint";
 
 export component CustomRoundButton {
     in property <string> text;
+    in property <bool> is-on: false;
 
     callback clicked();
 
     Rectangle {
         width: parent.width;
         height: parent.width;
-        background: #0006;
+        background: is-on ? Colors.slider-background : #0006;
         border-radius: self.width / 2;
         border-width: self.width * 0.1;
         border-color: Colors.border-color;
