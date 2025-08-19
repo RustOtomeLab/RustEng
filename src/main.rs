@@ -4,6 +4,7 @@ mod executor;
 mod parser;
 mod script;
 mod ui;
+mod config;
 
 use crate::audio::player::Player;
 use crate::error::EngineError;

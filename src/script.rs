@@ -1,33 +1,14 @@
 use crate::audio::player::PreBgm;
 use crate::error::EngineError;
-use crate::parser::parser::{parse_script, Commands};
+use crate::parser::parser::Commands;
 use slint::{SharedString, ToSharedString};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
+use crate::config::ENGINE_CONFIG;
 
 pub type Label = (String, String);
 
 const WINDOW_SIZE: usize = 4;
-
-struct Args {
-    path: String,
-}
-
-impl Args {
-    fn new(args: &str) -> Args {
-        Args {
-            path: format!("./source/script/{}.reg", args),
-        }
-    }
-}
-
-impl Default for Args {
-    fn default() -> Self {
-        Args {
-            path: "./source/script/ky01.reg".to_string(),
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct BackLog {
@@ -39,19 +20,19 @@ pub struct BackLog {
 
 #[derive(Debug, Clone)]
 pub struct Script {
-    name: String,
+    pub(crate) name: String,
     explain: String,
     backlog_offset: usize,
-    pub backlog: Vec<BackLog>,
-    commands: Vec<Commands>,
+    backlog: Vec<BackLog>,
+    pub(crate) commands: Vec<Commands>,
     current_block: usize,
-    bgms: BTreeMap<usize, String>,
+    pub(crate) bgms: BTreeMap<usize, String>,
     current_bgm: String,
     pre_bgm: PreBgm,
-    backgrounds: BTreeMap<usize, String>,
+    pub(crate) backgrounds: BTreeMap<usize, String>,
     pre_bg: Option<String>,
-    choices: HashMap<String, Label>,
-    labels: HashMap<String, usize>,
+    pub(crate) choices: HashMap<String, Label>,
+    pub(crate) labels: HashMap<String, usize>,
 }
 
 impl Script {
@@ -75,16 +56,10 @@ impl Script {
 
     pub fn with_name(&mut self, name: &str) -> Result<(), EngineError> {
         self.name = name.to_string();
-        let path = Args::new(&name);
-        let script = fs::read_to_string(&path.path)?;
-        parse_script(
+        let path = format!("{}{}.reg", ENGINE_CONFIG.script_path(), name);
+        let script = fs::read_to_string(&path)?;
+        self.parse_script(
             &script,
-            &self.name,
-            &mut self.commands,
-            &mut self.labels,
-            &mut self.choices,
-            &mut self.bgms,
-            &mut self.backgrounds,
         )
     }
 

@@ -8,11 +8,11 @@ use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
-
-static BACKGROUND_PATH: &str = "./source/background/";
-static VOICE_PATH: &str = "./source/voice/";
-static BGM_PATH: &str = "./source/bgm/";
-static FIGURE_PATH: &str = "./source/figure/";
+use crate::config::ENGINE_CONFIG;
+// static BACKGROUND_PATH: &str = "./source/background/";
+// static VOICE_PATH: &str = "./source/voice/";
+// static BGM_PATH: &str = "./source/bgm/";
+// static FIGURE_PATH: &str = "./source/figure/";
 
 pub(crate) enum Jump {
     Label(Label),
@@ -263,7 +263,7 @@ impl Executor {
             }
             if let Some(bg) = pre_bg {
                 let image =
-                    Image::load_from_path(Path::new(&format!("{}{}.png", BACKGROUND_PATH, bg)))
+                    Image::load_from_path(Path::new(&format!("{}{}.png", ENGINE_CONFIG.background_path(), bg)))
                         .unwrap();
                 window.set_bg(image);
             }
@@ -271,7 +271,7 @@ impl Executor {
                 let bgm_player = self.bgm_player.borrow_mut();
                 let volume = window.get_main_volume() / 100.0;
                 let bgm_volume = window.get_bgm_volume() / 100.0;
-                bgm_player.play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume * bgm_volume);
+                bgm_player.play_loop(&format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm), volume * bgm_volume);
             } else if let PreBgm::Stop = pre_bgm {
                 let bgm_player = self.bgm_player.borrow_mut();
                 bgm_player.stop();
@@ -280,7 +280,7 @@ impl Executor {
             match command {
                 Command::SetBackground(bg) => {
                     let image =
-                        Image::load_from_path(Path::new(&format!("{}{}.png", BACKGROUND_PATH, bg)))
+                        Image::load_from_path(Path::new(&format!("{}{}.png", ENGINE_CONFIG.background_path(), bg)))
                             .unwrap();
                     window.set_bg(image);
                 }
@@ -292,7 +292,7 @@ impl Executor {
                         let volume = window.get_main_volume() / 100.0;
                         let bgm_volume = window.get_bgm_volume() / 100.0;
                         bgm_player
-                            .play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume * bgm_volume);
+                            .play_loop(&format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm), volume * bgm_volume);
                     }
                 }
                 Command::Choice((explain, choices)) => {
@@ -320,7 +320,7 @@ impl Executor {
                     let volume = window.get_main_volume() / 100.0;
                     let voice_volume = window.get_voice_volume() / 100.0;
                     voice_player.play_voice(
-                        &format!("{}{}.ogg", VOICE_PATH, voice),
+                        &format!("{}{}.ogg", ENGINE_CONFIG.voice_path(), voice),
                         volume * voice_volume,
                     );
                 }
@@ -333,12 +333,12 @@ impl Executor {
                 } => {
                     let body = Image::load_from_path(Path::new(&format!(
                         "{}{}/{}/{}.png",
-                        FIGURE_PATH, name, distance, body
+                        ENGINE_CONFIG.figure_path(), name, distance, body
                     )))
                     .unwrap();
                     let face = Image::load_from_path(Path::new(&format!(
                         "{}{}/{}/{}.png",
-                        FIGURE_PATH, name, distance, face
+                        ENGINE_CONFIG.figure_path(), name, distance, face
                     )))
                     .unwrap();
                     match &position[..] {
