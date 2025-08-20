@@ -16,7 +16,7 @@ export component StoryView {
     in-out property <bool> is_backlog;
     in-out property <bool> is-auto;
 
-    callback auto-play();
+    callback auto-play(bool);
     callback backlog();
     callback backlog-change(int);
     callback backlog-jump(string, int);
@@ -152,7 +152,7 @@ export component StoryView {
                 is-on: is-auto;
                 clicked => {
                     is-auto = !is-auto;
-                    root.auto-play();
+                    root.auto-play(true);
                 }
             }
 

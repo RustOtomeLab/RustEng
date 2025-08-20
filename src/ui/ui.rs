@@ -16,9 +16,11 @@ pub async fn ui(
     let window = MainWindow::new()?;
     let weak = window.as_weak();
 
-    let executor = Executor::new(script, bgm_player, voice_player, weak);
+    let mut executor = Executor::new(script, bgm_player, voice_player, weak);
     let (auto_executor, auto_tx) = AutoExecutor::new(executor.clone());
     auto_executor.start_timer();
+
+    executor.load_save_data()?;
 
     let mut is_fullscreen = false;
     let weak_for_fullscreen = executor.get_weak();
@@ -132,13 +134,12 @@ pub async fn ui(
     });
 
     window.on_auto_play({
-        move || {
-            slint::spawn_local({
-                let tx = auto_tx.clone();
-                async move {
-                    println!("发送");
-                    tx.send(true).await
-                }
+        let executor = executor.clone();
+        move |source| {
+            let tx = auto_tx.clone();
+            let mut executor = executor.clone();
+            slint::spawn_local( async move {
+                executor.execute_auto(tx, source).await
             })
             .expect("TODO: panic message");
         }

@@ -1,3 +1,4 @@
+use std::fs;
 use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
 use crate::error::EngineError;
@@ -8,11 +9,9 @@ use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
+use tokio::sync::mpsc::Sender;
 use crate::config::ENGINE_CONFIG;
-// static BACKGROUND_PATH: &str = "./source/background/";
-// static VOICE_PATH: &str = "./source/voice/";
-// static BGM_PATH: &str = "./source/bgm/";
-// static FIGURE_PATH: &str = "./source/figure/";
+use crate::config::save_load::SaveData;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -96,18 +95,22 @@ impl Executor {
             let mut save_items = Vec::with_capacity(index as usize);
             let exists_save_items = window.get_save_items();
             for (i, item) in exists_save_items.iter().enumerate() {
+                let mut content = String::default();
+                let mut sava_data = SaveData::new(item.3.to_string(), item.2 as usize, item.1.to_string(), item.0.path().unwrap_or("".as_ref()).to_str().unwrap().to_string());
                 if i != index as usize {
                     save_items.push(item);
                 } else {
+                    sava_data = SaveData::new(script.name.clone(), script.index(), script.explain().to_string(), bg.path().unwrap().to_str().unwrap().to_string());
                     save_items.push((
                         bg.clone(),
                         SharedString::from(script.explain()),
                         script.index() as i32,
                         SharedString::from(script.name()),
-                    ))
+                    ));
                 }
+                content = toml::to_string_pretty(&sava_data)?;
+                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), content)?;
             }
-            //println!("{:#?}", save_items);
             window.set_save_items(Rc::new(VecModel::from(save_items)).into());
 
             //println!("save {}", index);
@@ -221,6 +224,22 @@ impl Executor {
         script.set_pre_bg(pre_bg);
         script.set_pre_bgm(pre_bgm);
         script.set_index(current_block);
+
+        Ok(())
+    }
+
+    pub async fn execute_auto(&mut self, tx:Sender<bool>, source: bool) -> Result<(), EngineError> {
+        if let Some(window) = self.weak.upgrade() {
+            if source {
+                println!("发送");
+                tx.send(true).await?;
+            } else {
+                if window.get_is_auto() {
+                    tx.send(true).await?;
+                }
+                window.set_is_auto(false);
+            }
+        }
 
         Ok(())
     }

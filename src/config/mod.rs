@@ -1,23 +1,16 @@
-use serde::{Deserialize, Serialize};
 use std::fs;
-use crate::error::EngineError;
+use serde::{Deserialize, Serialize};
+
+pub mod initialize;
+pub mod save_load;
 
 lazy_static::lazy_static! {
     pub static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct InitializeConfig {
-    script_path: String,
-    background_path: String,
-    voice_path: String,
-    bgm_path: String,
-    figure_path: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
 pub struct EngineConfig {
-    initialize: InitializeConfig,
+    initialize: initialize::InitializeConfig,
 }
 
 impl EngineConfig {
@@ -39,6 +32,10 @@ impl EngineConfig {
 
     pub fn figure_path(&self) -> &str {
         &self.initialize.figure_path
+    }
+
+    pub fn save_path(&self) -> &str {
+        &self.initialize.save_path
     }
 }
 

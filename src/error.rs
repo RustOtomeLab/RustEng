@@ -14,6 +14,7 @@ pub enum EngineError {
     UiError,
     AutoError,
     ConfigError,
+    SaveError,
 }
 
 impl From<ParserError> for EngineError {
@@ -49,5 +50,11 @@ impl<T> From<SendError<T>> for EngineError {
 impl From<toml::de::Error> for EngineError {
     fn from(_: toml::de::Error) -> Self {
         EngineError::ConfigError
+    }
+}
+
+impl From<toml::ser::Error> for EngineError {
+    fn from(_: toml::ser::Error) -> Self {
+        EngineError::SaveError
     }
 }
