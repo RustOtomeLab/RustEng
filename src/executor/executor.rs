@@ -1,3 +1,4 @@
+use std::fs;
 use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
 use crate::error::EngineError;
@@ -8,11 +9,9 @@ use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
-
-static BACKGROUND_PATH: &str = "./source/background/";
-static VOICE_PATH: &str = "./source/voice/";
-static BGM_PATH: &str = "./source/bgm/";
-static FIGURE_PATH: &str = "./source/figure/";
+use tokio::sync::mpsc::Sender;
+use crate::config::ENGINE_CONFIG;
+use crate::config::save_load::SaveData;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -96,18 +95,22 @@ impl Executor {
             let mut save_items = Vec::with_capacity(index as usize);
             let exists_save_items = window.get_save_items();
             for (i, item) in exists_save_items.iter().enumerate() {
+                let mut content = String::default();
+                let mut sava_data = SaveData::new(item.3.to_string(), item.2 as usize, item.1.to_string(), item.0.path().unwrap_or("".as_ref()).to_str().unwrap().to_string());
                 if i != index as usize {
                     save_items.push(item);
                 } else {
+                    sava_data = SaveData::new(script.name.clone(), script.index(), script.explain().to_string(), bg.path().unwrap().to_str().unwrap().to_string());
                     save_items.push((
                         bg.clone(),
                         SharedString::from(script.explain()),
                         script.index() as i32,
                         SharedString::from(script.name()),
-                    ))
+                    ));
                 }
+                content = toml::to_string_pretty(&sava_data)?;
+                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), content)?;
             }
-            //println!("{:#?}", save_items);
             window.set_save_items(Rc::new(VecModel::from(save_items)).into());
 
             //println!("save {}", index);
@@ -225,6 +228,22 @@ impl Executor {
         Ok(())
     }
 
+    pub async fn execute_auto(&mut self, tx:Sender<bool>, source: bool) -> Result<(), EngineError> {
+        if let Some(window) = self.weak.upgrade() {
+            if source {
+                println!("发送");
+                tx.send(true).await?;
+            } else {
+                if window.get_is_auto() {
+                    tx.send(true).await?;
+                }
+                window.set_is_auto(false);
+            }
+        }
+
+        Ok(())
+    }
+
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
         if *self.choose_lock.borrow() {
             return Ok(());
@@ -263,7 +282,7 @@ impl Executor {
             }
             if let Some(bg) = pre_bg {
                 let image =
-                    Image::load_from_path(Path::new(&format!("{}{}.png", BACKGROUND_PATH, bg)))
+                    Image::load_from_path(Path::new(&format!("{}{}.png", ENGINE_CONFIG.background_path(), bg)))
                         .unwrap();
                 window.set_bg(image);
             }
@@ -271,7 +290,7 @@ impl Executor {
                 let bgm_player = self.bgm_player.borrow_mut();
                 let volume = window.get_main_volume() / 100.0;
                 let bgm_volume = window.get_bgm_volume() / 100.0;
-                bgm_player.play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume * bgm_volume);
+                bgm_player.play_loop(&format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm), volume * bgm_volume);
             } else if let PreBgm::Stop = pre_bgm {
                 let bgm_player = self.bgm_player.borrow_mut();
                 bgm_player.stop();
@@ -280,7 +299,7 @@ impl Executor {
             match command {
                 Command::SetBackground(bg) => {
                     let image =
-                        Image::load_from_path(Path::new(&format!("{}{}.png", BACKGROUND_PATH, bg)))
+                        Image::load_from_path(Path::new(&format!("{}{}.png", ENGINE_CONFIG.background_path(), bg)))
                             .unwrap();
                     window.set_bg(image);
                 }
@@ -292,7 +311,7 @@ impl Executor {
                         let volume = window.get_main_volume() / 100.0;
                         let bgm_volume = window.get_bgm_volume() / 100.0;
                         bgm_player
-                            .play_loop(&format!("{}{}.ogg", BGM_PATH, bgm), volume * bgm_volume);
+                            .play_loop(&format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm), volume * bgm_volume);
                     }
                 }
                 Command::Choice((explain, choices)) => {
@@ -320,7 +339,7 @@ impl Executor {
                     let volume = window.get_main_volume() / 100.0;
                     let voice_volume = window.get_voice_volume() / 100.0;
                     voice_player.play_voice(
-                        &format!("{}{}.ogg", VOICE_PATH, voice),
+                        &format!("{}{}.ogg", ENGINE_CONFIG.voice_path(), voice),
                         volume * voice_volume,
                     );
                 }
@@ -333,12 +352,12 @@ impl Executor {
                 } => {
                     let body = Image::load_from_path(Path::new(&format!(
                         "{}{}/{}/{}.png",
-                        FIGURE_PATH, name, distance, body
+                        ENGINE_CONFIG.figure_path(), name, distance, body
                     )))
                     .unwrap();
                     let face = Image::load_from_path(Path::new(&format!(
                         "{}{}/{}/{}.png",
-                        FIGURE_PATH, name, distance, face
+                        ENGINE_CONFIG.figure_path(), name, distance, face
                     )))
                     .unwrap();
                     match &position[..] {

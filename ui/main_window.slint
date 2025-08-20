@@ -111,10 +111,9 @@ export component MainWindow inherits Window {
             is_backlog <=> root.is_backlog;
             is-auto <=> root.is-auto;
 
-            auto-play => { root.auto-play(); }
+            auto-play(b) => { root.auto-play(b); }
             backlog => {
-                root.is-auto = false;
-                root.auto-play();
+                root.auto-play(false);
                 root.backlog();
             }
             backlog-change(i) => { root.backlog-change(i); }
@@ -122,19 +121,16 @@ export component MainWindow inherits Window {
             clicked => { root.clicked(); }
             choose(text) => { root.choose(text); }
             save-game => {
-                root.is-auto = false;
-                root.auto-play();
+                root.auto-play(false);
                 root.current-screen = 3;
             }
             load-game => {
-                root.is-auto = false;
-                root.auto-play();
+                root.auto-play(false);
                 root.last-screen = 2;
                 root.current-screen = 4;
             }
             settings => {
-                root.is-auto = false;
-                root.auto-play();
+                root.auto-play(false);
                 root.last-screen = 2;
                 root.current-screen = 1;
             }
@@ -161,7 +157,7 @@ export component MainWindow inherits Window {
     }
 
     // 回调函数保持不变
-    callback auto-play();
+    callback auto-play(bool);
     callback clicked();
     callback toggle-fullscreen();
     callback volume-changed();
