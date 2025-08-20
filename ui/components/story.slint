@@ -12,7 +12,11 @@ export component StoryView {
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
     in property <image> bg;
     in property <image> fg-body-0;
+    in property <image> fg-face-0;
     in property <int> current-choose: 0;
+    in property <float> rate;
+    in property <float> face-x;
+    in property <float> face-y;
     in-out property <bool> is_backlog;
     in-out property <bool> is-auto;
 
@@ -63,10 +67,17 @@ export component StoryView {
         // 角色立绘
         Image {
             source: root.fg-body-0;
-            width: parent.width * 0.25;
+            width: self.height * rate;
             height: parent.width * 0.65;
             x: parent.width * 0.375;
             y: parent.height / 6;
+
+            // 角色表情
+            Image {
+                source: root.fg-face-0;
+                x: parent.width * face-x;
+                y: parent.height * face-y;
+            }
         }
 
         // 对话框

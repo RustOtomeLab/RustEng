@@ -1,8 +1,11 @@
+use std::collections::HashMap;
 use std::fs;
 use serde::{Deserialize, Serialize};
+use crate::config::initialize::{Character, InitializeConfig};
 
 pub mod initialize;
 pub mod save_load;
+pub mod figure;
 
 lazy_static::lazy_static! {
     pub static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
@@ -10,7 +13,8 @@ lazy_static::lazy_static! {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EngineConfig {
-    initialize: initialize::InitializeConfig,
+    initialize: InitializeConfig,
+    character: Character,
 }
 
 impl EngineConfig {
