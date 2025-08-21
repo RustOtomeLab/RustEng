@@ -30,6 +30,7 @@ pub enum Command {
     Choice((String, HashMap<String, Label>)),
     Jump(Label),
     Label(String),
+    Empty,
 }
 
 #[derive(Debug)]

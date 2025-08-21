@@ -25,6 +25,7 @@ pub struct Executor {
     voice_player: Rc<RefCell<Player>>,
     weak: Weak<MainWindow>,
     choose_lock: Rc<RefCell<bool>>,
+    delay_tx: Option<Sender<Command>>,
 }
 
 impl Clone for Executor {
@@ -35,6 +36,7 @@ impl Clone for Executor {
             voice_player: self.voice_player.clone(),
             weak: self.weak.clone(),
             choose_lock: self.choose_lock.clone(),
+            delay_tx: self.delay_tx.clone(),
         }
     }
 }
@@ -52,11 +54,16 @@ impl Executor {
             voice_player,
             weak,
             choose_lock: Rc::new(RefCell::new(false)),
+            delay_tx: None,
         }
     }
 
     pub fn get_weak(&self) -> Weak<MainWindow> {
         self.weak.clone()
+    }
+
+    pub fn set_delay_tx(&mut self, delay_tx: Sender<Command>) {
+        self.delay_tx = Some(delay_tx);
     }
 
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
@@ -345,16 +352,21 @@ impl Executor {
                     );
                 }
                 Command::Figure {
-                    name,
-                    distance,
-                    body,
-                    face,
-                    position,
-                    ..
+                    ref name,
+                    ref distance,
+                    ref body,
+                    ref face,
+                    ref position,
+                    ref delay,
                 } => {
+                    if let Some(_) = delay {
+                        let tx = self.delay_tx.clone().unwrap();
+                        tx.send(command.clone()).await?;
+                        return Ok(());
+                    }
                     if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
                         let body = if !body.is_empty() {
-                            window.set_rate(*body_para.get(&body).unwrap());
+                            window.set_rate(*body_para.get(body).unwrap());
                             Image::load_from_path(Path::new(&format!(
                                 "{}{}/{}/{}.png",
                                 ENGINE_CONFIG.figure_path(), name, distance, body
@@ -364,7 +376,7 @@ impl Executor {
                             window.get_fg_body_0()
                         };
                         let face = if !face.is_empty() {
-                            let (face_x, face_y) = face_para.get(&face).unwrap();
+                            let (face_x, face_y) = face_para.get(face).unwrap();
                             window.set_face_x(*face_x);
                             window.set_face_y(*face_y);
                             Image::load_from_path(Path::new(&format!(
@@ -398,6 +410,7 @@ impl Executor {
                     self.execute_jump(volume, Jump::Label(jump)).await?;
                 }
                 Command::Label(label) => (),
+                Command::Empty => (),
             }
         };
         Ok(())

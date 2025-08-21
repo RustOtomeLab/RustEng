@@ -18,10 +18,14 @@ pub async fn ui(
     let weak = window.as_weak();
 
     let mut executor = Executor::new(script, bgm_player, voice_player, weak);
-    let (auto_executor, auto_tx) = AutoExecutor::new(executor.clone());
+    
     let (delay_executor, delay_tx) = DelayExecutor::new(executor.clone());
-    auto_executor.start_timer();
     delay_executor.start_timer();
+    
+    executor.set_delay_tx(delay_tx);
+
+    let (auto_executor, auto_tx) = AutoExecutor::new(executor.clone());
+    auto_executor.start_timer();
 
     executor.load_save_data()?;
 
@@ -130,7 +134,6 @@ pub async fn ui(
     window.on_clicked({
         let executor = executor.clone();
         move || {
-            let tx = delay_tx.clone();
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_script().await })
                 .expect("Clicked panicked");
