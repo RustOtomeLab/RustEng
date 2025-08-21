@@ -75,6 +75,8 @@ export component StoryView {
             // 角色表情
             Image {
                 source: root.fg-face-0;
+                width: root.fg-face-0.width * parent.width / root.fg-body-0.width;
+                height: root.fg-face-0.height * parent.height / root.fg-body-0.height;
                 x: parent.width * face-x;
                 y: parent.height * face-y;
             }

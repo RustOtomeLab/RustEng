@@ -11,6 +11,7 @@ use std::path::Path;
 use std::rc::Rc;
 use tokio::sync::mpsc::Sender;
 use crate::config::ENGINE_CONFIG;
+use crate::config::figure::FIGURE_CONFIG;
 use crate::config::save_load::SaveData;
 
 pub(crate) enum Jump {
@@ -350,20 +351,43 @@ impl Executor {
                     face,
                     position,
                 } => {
-                    let body = Image::load_from_path(Path::new(&format!(
-                        "{}{}/{}/{}.png",
-                        ENGINE_CONFIG.figure_path(), name, distance, body
-                    )))
-                    .unwrap();
-                    let face = Image::load_from_path(Path::new(&format!(
-                        "{}{}/{}/{}.png",
-                        ENGINE_CONFIG.figure_path(), name, distance, face
-                    )))
-                    .unwrap();
+                    if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
+                        let body = if !body.is_empty() {
+                            window.set_rate(*body_para.get(&body).unwrap());
+                            Image::load_from_path(Path::new(&format!(
+                                "{}{}/{}/{}.png",
+                                ENGINE_CONFIG.figure_path(), name, distance, body
+                            )))
+                                .unwrap()
+                        } else {
+                            window.get_fg_body_0()
+                        };
+                        let face = if !face.is_empty() {
+                            let (face_x, face_y) = face_para.get(&face).unwrap();
+                            window.set_face_x(*face_x);
+                            window.set_face_y(*face_y);
+                            Image::load_from_path(Path::new(&format!(
+                                "{}{}/{}/{}.png",
+                                ENGINE_CONFIG.figure_path(), name, distance, face
+                            )))
+                                .unwrap()
+                        } else {
+                            window.get_fg_face_0()
+                        };
+                        match &position[..] {
+                            "0" => {
+                                window.set_fg_body_0(body);
+                                window.set_fg_face_0(face);
+                            }
+                            _ => (),
+                        }
+                    }
+                }
+                Command::Clear(position) => {
                     match &position[..] {
                         "0" => {
-                            window.set_fg_body_0(body);
-                            window.set_fg_face_0(face);
+                            window.set_fg_body_0(Image::default());
+                            window.set_fg_face_0(Image::default());
                         }
                         _ => (),
                     }

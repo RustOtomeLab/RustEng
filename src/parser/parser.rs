@@ -25,6 +25,7 @@ pub enum Command {
         face: String,
         position: String,
     },
+    Clear(String),
     Choice((String, HashMap<String, Label>)),
     Jump(Label),
     Label(String),
@@ -160,6 +161,9 @@ impl Script {
                                 },
                                 _ => return Err(EngineError::from(ParserError::TooShort)),
                             }
+                        }
+                        "clear" => {
+                            Clear(arg.to_string())
                         }
                         "jump" => match arg.split_once(":") {
                             Some((name, label)) if !name.is_empty() && !label.is_empty() => {

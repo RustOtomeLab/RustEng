@@ -22,6 +22,9 @@ export component MainWindow inherits Window {
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
     in property<int> current-choose: 0;
+    in property <float> rate;
+    in property <float> face-x;
+    in property <float> face-y;
     property <bool> has-focus: true;
 
     in-out property <int> current-screen: 0;
@@ -104,12 +107,17 @@ export component MainWindow inherits Window {
             speaker: root.speaker;
             choose-branch: root.choose-branch;
             bg: root.bg;
-            fg-body-0: root.fg-body-0;
             current-choose: root.current-choose;
 
             backlogs <=> root.backlogs;
             is_backlog <=> root.is_backlog;
             is-auto <=> root.is-auto;
+            
+            fg-body-0 <=> root.fg-body-0;
+            fg-face-0 <=> root.fg-face-0;
+            rate <=> root.rate;
+            face-x <=> root.face-x;
+            face-y <=> root.face-y;
 
             auto-play(b) => { root.auto-play(b); }
             backlog => {
