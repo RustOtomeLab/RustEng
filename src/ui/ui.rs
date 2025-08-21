@@ -1,6 +1,7 @@
 use crate::audio::player::Player;
 use crate::error::EngineError;
 use crate::executor::auto_executor::AutoExecutor;
+use crate::executor::delay_executor::DelayExecutor;
 use crate::executor::executor::Executor;
 use crate::script::Script;
 use std::cell::RefCell;
@@ -17,6 +18,12 @@ pub async fn ui(
     let weak = window.as_weak();
 
     let mut executor = Executor::new(script, bgm_player, voice_player, weak);
+
+    let (delay_executor, delay_tx) = DelayExecutor::new(executor.clone());
+    delay_executor.start_timer();
+
+    executor.set_delay_tx(delay_tx);
+
     let (auto_executor, auto_tx) = AutoExecutor::new(executor.clone());
     auto_executor.start_timer();
 
@@ -138,10 +145,8 @@ pub async fn ui(
         move |source| {
             let tx = auto_tx.clone();
             let mut executor = executor.clone();
-            slint::spawn_local( async move {
-                executor.execute_auto(tx, source).await
-            })
-            .expect("TODO: panic message");
+            slint::spawn_local(async move { executor.execute_auto(tx, source).await })
+                .expect("TODO: panic message");
         }
     });
 

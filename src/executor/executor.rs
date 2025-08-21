@@ -1,18 +1,18 @@
-use std::fs;
 use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
+use crate::config::figure::FIGURE_CONFIG;
+use crate::config::save_load::SaveData;
+use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
 use crate::script::{Label, Script};
 use crate::ui::ui::MainWindow;
 use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::cell::RefCell;
+use std::fs;
 use std::path::Path;
 use std::rc::Rc;
 use tokio::sync::mpsc::Sender;
-use crate::config::ENGINE_CONFIG;
-use crate::config::figure::FIGURE_CONFIG;
-use crate::config::save_load::SaveData;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -25,6 +25,7 @@ pub struct Executor {
     voice_player: Rc<RefCell<Player>>,
     weak: Weak<MainWindow>,
     choose_lock: Rc<RefCell<bool>>,
+    delay_tx: Option<Sender<Command>>,
 }
 
 impl Clone for Executor {
@@ -35,6 +36,7 @@ impl Clone for Executor {
             voice_player: self.voice_player.clone(),
             weak: self.weak.clone(),
             choose_lock: self.choose_lock.clone(),
+            delay_tx: self.delay_tx.clone(),
         }
     }
 }
@@ -52,11 +54,16 @@ impl Executor {
             voice_player,
             weak,
             choose_lock: Rc::new(RefCell::new(false)),
+            delay_tx: None,
         }
     }
 
     pub fn get_weak(&self) -> Weak<MainWindow> {
         self.weak.clone()
+    }
+
+    pub fn set_delay_tx(&mut self, delay_tx: Sender<Command>) {
+        self.delay_tx = Some(delay_tx);
     }
 
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
@@ -97,11 +104,26 @@ impl Executor {
             let exists_save_items = window.get_save_items();
             for (i, item) in exists_save_items.iter().enumerate() {
                 let mut content = String::default();
-                let mut sava_data = SaveData::new(item.3.to_string(), item.2 as usize, item.1.to_string(), item.0.path().unwrap_or("".as_ref()).to_str().unwrap().to_string());
+                let mut sava_data = SaveData::new(
+                    item.3.to_string(),
+                    item.2 as usize,
+                    item.1.to_string(),
+                    item.0
+                        .path()
+                        .unwrap_or("".as_ref())
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
+                );
                 if i != index as usize {
                     save_items.push(item);
                 } else {
-                    sava_data = SaveData::new(script.name.clone(), script.index(), script.explain().to_string(), bg.path().unwrap().to_str().unwrap().to_string());
+                    sava_data = SaveData::new(
+                        script.name.clone(),
+                        script.index(),
+                        script.explain().to_string(),
+                        bg.path().unwrap().to_str().unwrap().to_string(),
+                    );
                     save_items.push((
                         bg.clone(),
                         SharedString::from(script.explain()),
@@ -229,7 +251,11 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_auto(&mut self, tx:Sender<bool>, source: bool) -> Result<(), EngineError> {
+    pub async fn execute_auto(
+        &mut self,
+        tx: Sender<bool>,
+        source: bool,
+    ) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
                 println!("发送");
@@ -272,7 +298,7 @@ impl Executor {
         Ok(())
     }
 
-    async fn apply_command(&mut self, command: Command) -> Result<(), EngineError> {
+    pub async fn apply_command(&mut self, command: Command) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let pre_bg;
             let pre_bgm;
@@ -282,16 +308,22 @@ impl Executor {
                 pre_bgm = scr.pre_bgm();
             }
             if let Some(bg) = pre_bg {
-                let image =
-                    Image::load_from_path(Path::new(&format!("{}{}.png", ENGINE_CONFIG.background_path(), bg)))
-                        .unwrap();
+                let image = Image::load_from_path(Path::new(&format!(
+                    "{}{}.png",
+                    ENGINE_CONFIG.background_path(),
+                    bg
+                )))
+                .unwrap();
                 window.set_bg(image);
             }
             if let Play(bgm) = pre_bgm {
                 let bgm_player = self.bgm_player.borrow_mut();
                 let volume = window.get_main_volume() / 100.0;
                 let bgm_volume = window.get_bgm_volume() / 100.0;
-                bgm_player.play_loop(&format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm), volume * bgm_volume);
+                bgm_player.play_loop(
+                    &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
+                    volume * bgm_volume,
+                );
             } else if let PreBgm::Stop = pre_bgm {
                 let bgm_player = self.bgm_player.borrow_mut();
                 bgm_player.stop();
@@ -299,9 +331,12 @@ impl Executor {
 
             match command {
                 Command::SetBackground(bg) => {
-                    let image =
-                        Image::load_from_path(Path::new(&format!("{}{}.png", ENGINE_CONFIG.background_path(), bg)))
-                            .unwrap();
+                    let image = Image::load_from_path(Path::new(&format!(
+                        "{}{}.png",
+                        ENGINE_CONFIG.background_path(),
+                        bg
+                    )))
+                    .unwrap();
                     window.set_bg(image);
                 }
                 Command::PlayBgm(bgm) => {
@@ -311,8 +346,10 @@ impl Executor {
                         let bgm_player = self.bgm_player.borrow_mut();
                         let volume = window.get_main_volume() / 100.0;
                         let bgm_volume = window.get_bgm_volume() / 100.0;
-                        bgm_player
-                            .play_loop(&format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm), volume * bgm_volume);
+                        bgm_player.play_loop(
+                            &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
+                            volume * bgm_volume,
+                        );
                     }
                 }
                 Command::Choice((explain, choices)) => {
@@ -345,32 +382,44 @@ impl Executor {
                     );
                 }
                 Command::Figure {
-                    name,
-                    distance,
-                    body,
-                    face,
-                    position,
+                    ref name,
+                    ref distance,
+                    ref body,
+                    ref face,
+                    ref position,
+                    ref delay,
                 } => {
+                    if let Some(_) = delay {
+                        let tx = self.delay_tx.clone().unwrap();
+                        tx.send(command.clone()).await?;
+                        return Ok(());
+                    }
                     if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
                         let body = if !body.is_empty() {
-                            window.set_rate(*body_para.get(&body).unwrap());
+                            window.set_rate(*body_para.get(body).unwrap());
                             Image::load_from_path(Path::new(&format!(
                                 "{}{}/{}/{}.png",
-                                ENGINE_CONFIG.figure_path(), name, distance, body
+                                ENGINE_CONFIG.figure_path(),
+                                name,
+                                distance,
+                                body
                             )))
-                                .unwrap()
+                            .unwrap()
                         } else {
                             window.get_fg_body_0()
                         };
                         let face = if !face.is_empty() {
-                            let (face_x, face_y) = face_para.get(&face).unwrap();
+                            let (face_x, face_y) = face_para.get(face).unwrap();
                             window.set_face_x(*face_x);
                             window.set_face_y(*face_y);
                             Image::load_from_path(Path::new(&format!(
                                 "{}{}/{}/{}.png",
-                                ENGINE_CONFIG.figure_path(), name, distance, face
+                                ENGINE_CONFIG.figure_path(),
+                                name,
+                                distance,
+                                face
                             )))
-                                .unwrap()
+                            .unwrap()
                         } else {
                             window.get_fg_face_0()
                         };
@@ -383,20 +432,19 @@ impl Executor {
                         }
                     }
                 }
-                Command::Clear(position) => {
-                    match &position[..] {
-                        "0" => {
-                            window.set_fg_body_0(Image::default());
-                            window.set_fg_face_0(Image::default());
-                        }
-                        _ => (),
+                Command::Clear(position) => match &position[..] {
+                    "0" => {
+                        window.set_fg_body_0(Image::default());
+                        window.set_fg_face_0(Image::default());
                     }
-                }
+                    _ => (),
+                },
                 Command::Jump(jump) => {
                     let volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
                     self.execute_jump(volume, Jump::Label(jump)).await?;
                 }
                 Command::Label(label) => (),
+                Command::Empty => (),
             }
         };
         Ok(())
