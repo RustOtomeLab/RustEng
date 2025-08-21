@@ -24,6 +24,7 @@ pub enum Command {
         body: String,
         face: String,
         position: String,
+        delay: Option<String>,
     },
     Clear(String),
     Choice((String, HashMap<String, Label>)),
@@ -145,6 +146,7 @@ impl Script {
                                 parts.next(),
                                 parts.next(),
                                 parts.next(),
+                                parts.next(),
                             ) {
                                 (
                                     Some(name),
@@ -152,12 +154,14 @@ impl Script {
                                     Some(body),
                                     Some(face),
                                     Some(position),
+                                    delay,
                                 ) => Figure {
                                     name: name.to_string(),
                                     distance: distance.to_string(),
                                     body: body.to_string(),
                                     face: face.to_string(),
                                     position: position.to_string(),
+                                    delay: delay.map(|d| d.to_string()),
                                 },
                                 _ => return Err(EngineError::from(ParserError::TooShort)),
                             }

@@ -272,7 +272,7 @@ impl Executor {
         Ok(())
     }
 
-    async fn apply_command(&mut self, command: Command) -> Result<(), EngineError> {
+    pub async fn apply_command(&mut self, command: Command) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let pre_bg;
             let pre_bgm;
@@ -350,6 +350,7 @@ impl Executor {
                     body,
                     face,
                     position,
+                    ..
                 } => {
                     if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
                         let body = if !body.is_empty() {
