@@ -1,10 +1,10 @@
 use crate::audio::player::PreBgm;
+use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::Commands;
 use slint::{SharedString, ToSharedString};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
-use crate::config::ENGINE_CONFIG;
 
 pub type Label = (String, String);
 
@@ -58,9 +58,7 @@ impl Script {
         self.name = name.to_string();
         let path = format!("{}{}.reg", ENGINE_CONFIG.script_path(), name);
         let script = fs::read_to_string(&path)?;
-        self.parse_script(
-            &script,
-        )
+        self.parse_script(&script)
     }
 
     pub fn next_command(&mut self) -> Option<&Commands> {

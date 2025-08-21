@@ -20,11 +20,7 @@
 ```
 
 ## 待实现功能
-```
-文本设置
-快进功能
-二次确认窗口
-```
+#### 详见：[Issue：Roadmap](https://github.com/RustOtomeLab/RustEng/issues/13)
 
 ## 文档
 

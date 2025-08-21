@@ -46,10 +46,7 @@ pub enum ParserError {
 static VERSION: usize = 1;
 
 impl Script {
-    pub fn parse_script(
-        &mut self,
-    text: &str
-    ) -> Result<(), EngineError> {
+    pub fn parse_script(&mut self, text: &str) -> Result<(), EngineError> {
         let mut block_lines = Vec::new();
         let mut block_index = 0;
 
@@ -57,10 +54,7 @@ impl Script {
             let line = line.trim();
             if line.is_empty() {
                 if !block_lines.is_empty() {
-                    self.parse_block(
-                        &block_lines,
-                        &mut block_index,
-                    )?;
+                    self.parse_block(&block_lines, &mut block_index)?;
                     block_lines.clear();
                 }
             } else {
@@ -69,10 +63,7 @@ impl Script {
         }
 
         if !block_lines.is_empty() {
-            self.parse_block(
-                &block_lines,
-                &mut block_index,
-            )?;
+            self.parse_block(&block_lines, &mut block_index)?;
         }
 
         Ok(())
@@ -81,7 +72,7 @@ impl Script {
     fn parse_block(
         &mut self,
         lines: &[(usize, String)],
-        block_index: &mut usize
+        block_index: &mut usize,
     ) -> Result<(), EngineError> {
         use Command::*;
         use Commands::*;
@@ -110,7 +101,10 @@ impl Script {
                                         Some((name, label))
                                             if !name.is_empty() && !label.is_empty() =>
                                         {
-                                            (choice.to_string(), (name.to_string(), label.to_string()))
+                                            (
+                                                choice.to_string(),
+                                                (name.to_string(), label.to_string()),
+                                            )
                                         }
                                         Some((name, "")) if !name.is_empty() => (
                                             choice.to_string(),
@@ -129,10 +123,9 @@ impl Script {
                                     choose_branch.insert(choice.clone(), label.clone());
                                     self.choices.insert(choice, label);
                                 } else {
-                                    return Err(EngineError::from(ParserError::ChooseError(format!(
-                                        "Invalid choice: {}",
-                                        lines[line_num + i].1
-                                    ))));
+                                    return Err(EngineError::from(ParserError::ChooseError(
+                                        format!("Invalid choice: {}", lines[line_num + i].1),
+                                    )));
                                 }
                             }
                             block_commands.push(Choice((explain, choose_branch)));
@@ -167,9 +160,7 @@ impl Script {
                                 _ => return Err(EngineError::from(ParserError::TooShort)),
                             }
                         }
-                        "clear" => {
-                            Clear(arg.to_string())
-                        }
+                        "clear" => Clear(arg.to_string()),
                         "jump" => match arg.split_once(":") {
                             Some((name, label)) if !name.is_empty() && !label.is_empty() => {
                                 Jump((name.to_string(), label.to_string()))
@@ -245,7 +236,8 @@ impl Script {
 
         if block_commands.len() == 1 {
             *block_index += 1;
-            self.commands.push(OneCmd(block_commands.into_iter().next().unwrap()));
+            self.commands
+                .push(OneCmd(block_commands.into_iter().next().unwrap()));
         } else if block_commands.len() > 1 {
             *block_index += 1;
             self.commands.push(VarCmds(block_commands))

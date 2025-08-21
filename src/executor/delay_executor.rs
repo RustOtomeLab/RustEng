@@ -1,10 +1,10 @@
-use std::sync::RwLock;
-use std::sync::Arc;
-use std::thread::sleep;
 use crate::executor::executor::Executor;
 use crate::parser::parser::Command;
-use tokio::sync::mpsc::Sender;
 use crate::parser::parser::Command::Figure;
+use std::sync::Arc;
+use std::sync::RwLock;
+use std::thread::sleep;
+use tokio::sync::mpsc::Sender;
 
 pub struct DelayExecutor {
     timer: slint::Timer,
@@ -27,9 +27,11 @@ impl DelayExecutor {
         };
         tokio::spawn(async move {
             while let Some(command) = rx.recv().await {
-                if let Command::Figure {delay,..} = &command {
+                if let Command::Figure { delay, .. } = &command {
                     println!("收到delay指令");
-                    sleep(std::time::Duration::from_millis(delay.clone().unwrap().parse::<u64>().unwrap_or(0)));
+                    sleep(std::time::Duration::from_millis(
+                        delay.clone().unwrap().parse::<u64>().unwrap_or(0),
+                    ));
                     println!("delay结束");
                     let mut cmd = command_clone.write().unwrap();
                     *cmd = command;
@@ -49,11 +51,30 @@ impl DelayExecutor {
             std::time::Duration::from_millis(100),
             move || {
                 let mut cmd = command.write().unwrap();
-                if let Figure {name,distance,face,body,position, ..} = cmd.clone() {
+                if let Figure {
+                    name,
+                    distance,
+                    face,
+                    body,
+                    position,
+                    ..
+                } = cmd.clone()
+                {
                     println!("准备执行");
                     let mut executor = executor.clone();
-                    slint::spawn_local(async move { executor.apply_command(Figure {name, distance, face, body, position, delay: None}).await })
-                        .expect("Delay panicked");
+                    slint::spawn_local(async move {
+                        executor
+                            .apply_command(Figure {
+                                name,
+                                distance,
+                                face,
+                                body,
+                                position,
+                                delay: None,
+                            })
+                            .await
+                    })
+                    .expect("Delay panicked");
                     *cmd = Command::Empty;
                 }
             },

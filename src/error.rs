@@ -1,9 +1,9 @@
 use crate::error::EngineError::AutoError;
 use crate::parser::parser::ParserError;
+use serde::Deserialize;
 use slint::PlatformError;
 use std::io::Error;
 use std::num::ParseIntError;
-use serde::Deserialize;
 use tokio::sync::mpsc::error::SendError;
 
 #[derive(Debug, Deserialize)]

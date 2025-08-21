@@ -1,11 +1,11 @@
+use crate::config::initialize::{Character, InitializeConfig};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use serde::{Deserialize, Serialize};
-use crate::config::initialize::{Character, InitializeConfig};
 
+pub mod figure;
 pub mod initialize;
 pub mod save_load;
-pub mod figure;
 
 lazy_static::lazy_static! {
     pub static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
