@@ -4,6 +4,7 @@ use std::{
     io::BufReader,
     sync::{Arc, Mutex},
 };
+use std::time::Duration;
 
 pub struct Player {
     sink: Arc<Mutex<Option<Sink>>>,
@@ -59,12 +60,13 @@ impl Player {
         }
     }
 
-    pub fn play_voice(&self, path: &str, volume: f32) {
+    pub fn play_voice(&self, path: &str, volume: f32) -> Option<Duration> {
         if let Some(s) = self.sink.lock().unwrap().take() {
             s.stop();
         }
         let file = File::open(path).expect("Failed to open Voice file");
         let source = Decoder::new(BufReader::new(file)).expect("Failed to decode Voice file");
+        let duration = source.total_duration();
 
         let sink = Sink::try_new(&self.stream_handle).expect("Failed to create sink");
         sink.append(source);
@@ -72,5 +74,7 @@ impl Player {
         sink.play();
 
         *self.sink.lock().unwrap() = Some(sink);
+        
+        duration
     }
 }

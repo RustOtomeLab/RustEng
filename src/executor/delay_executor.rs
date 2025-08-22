@@ -18,7 +18,7 @@ impl DelayExecutor {
 
         let timer = slint::Timer::default();
         let command = Arc::new(RwLock::new(Command::Empty));
-        let mut command_clone = command.clone();
+        let command_clone = command.clone();
 
         let executor = Self {
             timer,
