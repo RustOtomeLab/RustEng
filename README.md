@@ -22,12 +22,12 @@
 ## 待实现功能
 #### 详见：[Issue：Roadmap](https://github.com/RustOtomeLab/RustEng/issues/13)
 
-## 文档
+## 文档（该如何使用RustEng）
 
  · [场景脚本（script）文档](docs/how_to_use_script.md)
  
  · [配置文件文档](docs/how_to_use_config.md)
 
-### **请注意，本项目仓库中仅包含一个场景脚本测试文件，其他测试文件请从此链接下载：**[测试资源文件下载](https://1drv.ms/u/c/6c9629b3f2440e6f/Ea6HVLmJXkVGpL_vCcXS7FcBIBySHHRRpENmlGNAbDEiIw?e=AcLV68)
+### **请注意，本项目仓库中仅包含一个场景脚本测试文件，其他测试文件请从此链接下载（当然你可以自己准备各种测试文件）：**[测试资源文件下载](https://1drv.ms/u/c/6c9629b3f2440e6f/Ea6HVLmJXkVGpL_vCcXS7FcBIBySHHRRpENmlGNAbDEiIw?e=AcLV68)
 
 #### *给颗star支持一下吧！*

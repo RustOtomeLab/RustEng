@@ -53,3 +53,22 @@ cast = [
 ]
 ```
 在```face.toml```中，定义立绘表情文件名，以及其相对于身体图片的位移。
+
+### 语音配置文件
+
+```
+voice
+--rir
+  length.toml
+```
+对于每个角色，都要为其配置**语音文件夹**以及**语音配置文件**。
+```
+#length.toml
+
+cast = [
+    {name = "fem_rir_50520", length = 11},
+    {name = "fem_rir_50521", length = 11},
+    {name = "fem_rir_50522", length = 9},
+]
+```
+在```length.toml```中，定义语音文件名，以及其长度用于**自动播放**。

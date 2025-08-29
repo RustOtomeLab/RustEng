@@ -1,6 +1,8 @@
 use crate::error::EngineError;
 use crate::script::{Label, Script};
 use std::collections::{BTreeMap, HashMap};
+use crate::error::EngineError::ParseError;
+use crate::parser::parser::ParserError::TooShort;
 
 #[derive(Debug, Clone)]
 pub enum Commands {
@@ -13,7 +15,10 @@ pub enum Commands {
 pub enum Command {
     SetBackground(String),
     PlayBgm(String),
-    PlayVoice(String),
+    PlayVoice { 
+        name: String,
+        voice: String,
+    },
     Dialogue {
         speaker: String,
         text: String,
@@ -131,7 +136,16 @@ impl Script {
                             block_commands.push(Choice((explain, choose_branch)));
                             break;
                         }
-                        "voice" => PlayVoice(arg.to_string()),
+                        "voice" => {
+                            if let Some((name, voice)) = arg.split_once('|') {
+                                PlayVoice {
+                                    name: name.to_string(),
+                                    voice: voice.to_string(),
+                                }
+                            } else {
+                                return Err(EngineError::from(TooShort))
+                            }
+                        },
                         "fg" => {
                             let mut parts = arg.split('|').map(str::trim);
                             match (

@@ -7,6 +7,8 @@ pub mod figure;
 pub mod initialize;
 pub mod save_load;
 
+pub mod voice;
+
 lazy_static::lazy_static! {
     pub static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
 }

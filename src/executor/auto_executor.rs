@@ -1,11 +1,10 @@
-use std::time::Duration;
 use crate::executor::executor::Executor;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::mpsc::Receiver;
-use std::thread::sleep;
-use tokio::sync::mpsc::Sender;
+use tokio::time::{Sleep, sleep, Duration};
+use tokio::sync::mpsc::{channel, Sender};
 
 pub struct AutoExecutor {
     timer: slint::Timer,
@@ -16,10 +15,12 @@ pub struct AutoExecutor {
 
 impl AutoExecutor {
     pub fn new(executor: Executor) -> (Self, Sender<bool>, Sender<Duration>) {
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<bool>(10);
-        let (delay_tx, mut delay_rx) = tokio::sync::mpsc::channel::<Duration>(10);
+        let (tx, mut rx) = channel::<bool>(10);
+        let (delay_tx, mut delay_rx) = channel::<Duration>(10);
         let (auto_tx, auto_rx) = std::sync::mpsc::channel::<bool>();
         let is_auto = Arc::new(AtomicBool::new(false));
+
+        let (reset_tx, mut reset_rx) = channel::<()>(10);
 
         // 创建定时器
         let timer = slint::Timer::default();
@@ -44,14 +45,40 @@ impl AutoExecutor {
                     println!("停止自动");
                     is_auto_clone.store(false, Ordering::Relaxed);
                     start = true;
+                    reset_tx.send(()).await.unwrap();
                 }
             }
         });
 
         tokio::spawn(async move {
-            while let Some(delay) = delay_rx.recv().await {
-                sleep(delay);
+            let mut current_delay: Option<Sleep> = None;
+
+            loop {
+                tokio::select! {
+            Some(delay) = delay_rx.recv() => {
+                println!("设置新的延迟: {:?}", delay);
+                current_delay = Some(tokio::time::sleep(delay));
+            }
+
+            // 延迟完成
+            _ = async {
+                if let Some(sleep) = current_delay {
+                    sleep.await
+                } else {
+                    std::future::pending::<()>().await
+                }
+            } => {
+                println!("准备自动");
                 auto_tx.send(true).unwrap();
+                current_delay = None;
+            }
+
+            // 重置请求
+            _ = reset_rx.recv() => {
+                println!("reset");
+                current_delay = None;
+            }
+        }
             }
         });
 
@@ -69,7 +96,7 @@ impl AutoExecutor {
             Duration::from_millis(100),
             move || {
                 if is_auto.load(Ordering::Relaxed) {
-                    if let Ok(rx) = rx.recv() {
+                    if let Ok(_) = rx.try_recv() {
                         println!("定时器触发 - 自动执行");
 
                         let mut executor = executor.clone();

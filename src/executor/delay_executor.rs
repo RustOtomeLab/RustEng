@@ -3,7 +3,7 @@ use crate::parser::parser::Command;
 use crate::parser::parser::Command::Figure;
 use std::sync::Arc;
 use std::sync::RwLock;
-use std::thread::sleep;
+use tokio::time::{sleep, Duration};
 use tokio::sync::mpsc::Sender;
 
 pub struct DelayExecutor {
@@ -29,9 +29,9 @@ impl DelayExecutor {
             while let Some(command) = rx.recv().await {
                 if let Command::Figure { delay, .. } = &command {
                     println!("收到delay指令");
-                    sleep(std::time::Duration::from_millis(
+                    sleep(Duration::from_millis(
                         delay.clone().unwrap().parse::<u64>().unwrap_or(0),
-                    ));
+                    )).await;
                     println!("delay结束");
                     let mut cmd = command_clone.write().unwrap();
                     *cmd = command;
