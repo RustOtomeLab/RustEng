@@ -4,6 +4,7 @@ use std::{
     io::BufReader,
     sync::{Arc, Mutex},
 };
+use std::time::Duration;
 
 pub struct Player {
     sink: Arc<Mutex<Option<Sink>>>,

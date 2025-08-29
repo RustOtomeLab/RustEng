@@ -24,7 +24,10 @@ pub async fn ui(
 
     executor.set_delay_tx(delay_tx);
 
-    let (auto_executor, auto_tx) = AutoExecutor::new(executor.clone());
+    let (mut auto_executor, auto_tx, delay_tx) = AutoExecutor::new(executor.clone());
+    
+    executor.set_auto_tx(delay_tx.clone());
+    auto_executor.executor.set_auto_tx(delay_tx);
     auto_executor.start_timer();
 
     executor.load_save_data()?;

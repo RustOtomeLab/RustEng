@@ -2,18 +2,25 @@ use crate::executor::executor::Executor;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use tokio::sync::mpsc::Sender;
+use std::sync::mpsc::Receiver;
+use tokio::time::{Sleep, sleep, Duration};
+use tokio::sync::mpsc::{channel, Sender};
 
 pub struct AutoExecutor {
     timer: slint::Timer,
-    executor: Executor,
+    pub executor: Executor,
     is_auto: Arc<AtomicBool>,
+    auto_rx: Option<Receiver<bool>>,
 }
 
 impl AutoExecutor {
-    pub fn new(executor: Executor) -> (Self, Sender<bool>) {
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<bool>(10);
+    pub fn new(executor: Executor) -> (Self, Sender<bool>, Sender<Duration>) {
+        let (tx, mut rx) = channel::<bool>(10);
+        let (delay_tx, mut delay_rx) = channel::<Duration>(10);
+        let (auto_tx, auto_rx) = std::sync::mpsc::channel::<bool>();
         let is_auto = Arc::new(AtomicBool::new(false));
+
+        let (reset_tx, mut reset_rx) = channel::<()>(10);
 
         // 创建定时器
         let timer = slint::Timer::default();
@@ -22,6 +29,7 @@ impl AutoExecutor {
             timer,
             executor,
             is_auto: is_auto.clone(),
+            auto_rx: Some(auto_rx),
         };
 
         // 监听控制信号的任务
@@ -37,30 +45,64 @@ impl AutoExecutor {
                     println!("停止自动");
                     is_auto_clone.store(false, Ordering::Relaxed);
                     start = true;
+                    reset_tx.send(()).await.unwrap();
                 }
             }
         });
 
-        (executor, tx)
+        tokio::spawn(async move {
+            let mut current_delay: Option<Sleep> = None;
+
+            loop {
+                tokio::select! {
+            Some(delay) = delay_rx.recv() => {
+                println!("设置新的延迟: {:?}", delay);
+                current_delay = Some(tokio::time::sleep(delay));
+            }
+
+            // 延迟完成
+            _ = async {
+                if let Some(sleep) = current_delay {
+                    sleep.await
+                } else {
+                    std::future::pending::<()>().await
+                }
+            } => {
+                println!("准备自动");
+                auto_tx.send(true).unwrap();
+                current_delay = None;
+            }
+
+            // 重置请求
+            _ = reset_rx.recv() => {
+                println!("reset");
+                current_delay = None;
+            }
+        }
+            }
+        });
+
+        (executor, tx, delay_tx)
     }
 
-    pub fn start_timer(&self) {
+    pub fn start_timer(&mut self) {
         println!("定时器打开");
         let executor = self.executor.clone();
         let is_auto = self.is_auto.clone();
+        let rx = self.auto_rx.take().unwrap();
 
         self.timer.start(
             slint::TimerMode::Repeated,
-            std::time::Duration::from_secs(5),
+            Duration::from_millis(100),
             move || {
                 if is_auto.load(Ordering::Relaxed) {
-                    println!("定时器触发 - 自动执行");
+                    if let Ok(_) = rx.try_recv() {
+                        println!("定时器触发 - 自动执行");
 
-                    let mut executor = executor.clone();
-                    slint::spawn_local(async move { executor.execute_script().await })
-                        .expect("Clicked panicked");
-                } else {
-                    println!("定时器触发 - 自动已关闭");
+                        let mut executor = executor.clone();
+                        slint::spawn_local(async move { executor.execute_script().await })
+                            .expect("Clicked panicked");
+                    }
                 }
             },
         );

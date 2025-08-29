@@ -12,7 +12,9 @@ use std::cell::RefCell;
 use std::fs;
 use std::path::Path;
 use std::rc::Rc;
+use std::time::Duration;
 use tokio::sync::mpsc::Sender;
+use crate::config::voice::VOICE_CONFIG;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -26,6 +28,7 @@ pub struct Executor {
     weak: Weak<MainWindow>,
     choose_lock: Rc<RefCell<bool>>,
     delay_tx: Option<Sender<Command>>,
+    auto_tx: Option<Sender<Duration>>,
 }
 
 impl Clone for Executor {
@@ -37,6 +40,7 @@ impl Clone for Executor {
             weak: self.weak.clone(),
             choose_lock: self.choose_lock.clone(),
             delay_tx: self.delay_tx.clone(),
+            auto_tx: self.auto_tx.clone(),
         }
     }
 }
@@ -55,6 +59,7 @@ impl Executor {
             weak,
             choose_lock: Rc::new(RefCell::new(false)),
             delay_tx: None,
+            auto_tx: None,
         }
     }
 
@@ -64,6 +69,10 @@ impl Executor {
 
     pub fn set_delay_tx(&mut self, delay_tx: Sender<Command>) {
         self.delay_tx = Some(delay_tx);
+    }
+
+    pub fn set_auto_tx(&mut self, auto_tx: Sender<Duration>) {
+        self.auto_tx = Some(auto_tx);
     }
 
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
@@ -200,6 +209,12 @@ impl Executor {
             volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
         }
 
+        if let Some(window) = self.weak.upgrade() {
+            if window.get_is_auto() {
+                println!("choose: 5s");
+                self.auto_tx.clone().unwrap().send(Duration::from_secs(5)).await?;
+            }
+        }
         self.execute_jump(volume, Jump::Label(label)).await
     }
 
@@ -259,12 +274,17 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             if source {
                 println!("发送");
+                self.auto_tx.clone().unwrap().send(Duration::from_secs(1)).await?;
                 tx.send(true).await?;
+
             } else {
+                println!("准备停止");
                 if window.get_is_auto() {
+                    println!("正在自动");
                     tx.send(true).await?;
                 }
                 window.set_is_auto(false);
+                println!("停止自动");
             }
         }
 
@@ -272,6 +292,7 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
+        let mut duration = Duration::from_secs(5);
         if *self.choose_lock.borrow() {
             return Ok(());
         }
@@ -287,18 +308,27 @@ impl Executor {
         match commands {
             Commands::EmptyCmd => unreachable!(),
             Commands::OneCmd(command) => {
-                self.apply_command(command).await?;
+                 duration +=self.apply_command(command).await?;
             }
             Commands::VarCmds(vars) => {
                 for command in vars {
-                    self.apply_command(command).await?;
+                    duration +=self.apply_command(command).await?;
                 }
+            }
+        }
+
+        if let Some(window) = self.weak.upgrade() {
+            if window.get_is_auto() {
+                println!("script:{:?}", duration);
+                self.auto_tx.clone().unwrap().send(duration).await?;
             }
         }
         Ok(())
     }
 
-    pub async fn apply_command(&mut self, command: Command) -> Result<(), EngineError> {
+    pub async fn apply_command(&mut self, command: Command) -> Result<Duration, EngineError> {
+        let mut duration = Duration::from_secs(0);
+
         if let Some(window) = self.weak.upgrade() {
             let pre_bg;
             let pre_bgm;
@@ -372,14 +402,17 @@ impl Executor {
                     window.set_speaker(SharedString::from(speaker));
                     window.set_dialogue(SharedString::from(text));
                 }
-                Command::PlayVoice(voice) => {
-                    let voice_player = self.voice_player.borrow_mut();
-                    let volume = window.get_main_volume() / 100.0;
-                    let voice_volume = window.get_voice_volume() / 100.0;
-                    voice_player.play_voice(
-                        &format!("{}{}.ogg", ENGINE_CONFIG.voice_path(), voice),
-                        volume * voice_volume,
-                    );
+                Command::PlayVoice{ref name, ref voice} => {
+                    if let Some(length) = VOICE_CONFIG.find(name) {
+                        let voice_player = self.voice_player.borrow_mut();
+                        let volume = window.get_main_volume() / 100.0;
+                        let voice_volume = window.get_voice_volume() / 100.0;
+                        voice_player.play_voice(
+                            &format!("{}/{}/{}.ogg", ENGINE_CONFIG.voice_path(), name, voice),
+                            volume * voice_volume,
+                        );
+                        duration += length.get(voice).unwrap().clone();
+                    }
                 }
                 Command::Figure {
                     ref name,
@@ -392,7 +425,7 @@ impl Executor {
                     if let Some(_) = delay {
                         let tx = self.delay_tx.clone().unwrap();
                         tx.send(command.clone()).await?;
-                        return Ok(());
+                        return Ok(Duration::from_secs(0));
                     }
                     if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
                         let body = if !body.is_empty() {
@@ -447,6 +480,8 @@ impl Executor {
                 Command::Empty => (),
             }
         };
-        Ok(())
+
+        println!("apply cmd:{:?}", duration);
+        Ok(duration)
     }
 }
