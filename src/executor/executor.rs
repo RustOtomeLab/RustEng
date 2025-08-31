@@ -109,7 +109,7 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
             let bg = window.get_bg();
-            let mut save_items = Vec::with_capacity(index as usize);
+            let mut save_items = Vec::with_capacity(16);
             let exists_save_items = window.get_save_items();
             for (i, item) in exists_save_items.iter().enumerate() {
                 let mut content = String::default();
@@ -223,6 +223,7 @@ impl Executor {
         let current_bgm = script.current_bgm().to_string();
         let mut pre_bg = None;
         let mut pre_bgm = PreBgm::None;
+        let mut pre_figures = None;
         let backlog = script.to_owned().take_backlog();
         let jump_index = match label {
             Jump::Label((name, label)) => {
@@ -257,10 +258,12 @@ impl Executor {
             }
             {
                 pre_bg = script.get_background(index).map(|(i, bg)| bg.clone());
+                pre_figures = script.get_figures(index).map(|(i, fg)| fg.clone());
             }
         }
         script.set_pre_bg(pre_bg);
         script.set_pre_bgm(pre_bgm);
+        script.set_pre_figures(pre_figures);
         script.set_index(current_block);
 
         Ok(())
@@ -347,13 +350,7 @@ impl Executor {
                 window.set_bg(image);
             }
             if let Play(bgm) = pre_bgm {
-                let bgm_player = self.bgm_player.borrow_mut();
-                let volume = window.get_main_volume() / 100.0;
-                let bgm_volume = window.get_bgm_volume() / 100.0;
-                bgm_player.play_loop(
-                    &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
-                    volume * bgm_volume,
-                );
+                self.play_bgm(bgm).await?;
             } else if let PreBgm::Stop = pre_bgm {
                 let bgm_player = self.bgm_player.borrow_mut();
                 bgm_player.stop();
@@ -373,13 +370,7 @@ impl Executor {
                     let mut script = self.script.borrow_mut();
                     if bgm != script.current_bgm() {
                         script.set_current_bgm(bgm.clone());
-                        let bgm_player = self.bgm_player.borrow_mut();
-                        let volume = window.get_main_volume() / 100.0;
-                        let bgm_volume = window.get_bgm_volume() / 100.0;
-                        bgm_player.play_loop(
-                            &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
-                            volume * bgm_volume,
-                        );
+                        self.play_bgm(bgm).await?;
                     }
                 }
                 Command::Choice((explain, choices)) => {
@@ -483,5 +474,20 @@ impl Executor {
 
         println!("apply cmd:{:?}", duration);
         Ok(duration)
+    }
+
+    async fn play_bgm(&self, bgm: String) -> Result<(), EngineError> {
+        let weak = self.weak.clone();
+
+        if let Some(window) = weak.upgrade() {
+            let bgm_player = self.bgm_player.borrow_mut();
+            let volume = window.get_main_volume() / 100.0;
+            let bgm_volume = window.get_bgm_volume() / 100.0;
+            bgm_player.play_loop(
+                &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
+                volume * bgm_volume,
+            );
+        }
+        Ok(())
     }
 }

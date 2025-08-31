@@ -163,15 +163,21 @@ impl Script {
                                     Some(face),
                                     Some(position),
                                     delay,
-                                ) => Figure {
-                                    name: name.to_string(),
-                                    distance: distance.to_string(),
-                                    body: body.to_string(),
-                                    face: face.to_string(),
-                                    position: position.to_string(),
-                                    delay: delay.map(|d| d.to_string()),
+                                ) => {
+                                    let command = Figure {
+                                        name: name.to_string(),
+                                        distance: distance.to_string(),
+                                        body: body.to_string(),
+                                        face: face.to_string(),
+                                        position: position.to_string(),
+                                        delay: delay.map(|d| d.to_string()),
+                                    };
+                                    self.figures.entry(*block_index)
+                                        .or_insert_with(Vec::new)
+                                        .push(command.clone());
+                                    command
                                 },
-                                _ => return Err(EngineError::from(ParserError::TooShort)),
+                                _ => return Err(EngineError::from(TooShort)),
                             }
                         }
                         "clear" => Clear(arg.to_string()),

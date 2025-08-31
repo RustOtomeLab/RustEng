@@ -157,6 +157,7 @@ export component MainWindow inherits Window {
         if root.current-screen == 4: LoadView {
             container-width: parent.width;
             container-height: parent.height;
+
             save-items <=> root.save-items;
 
             load(name, index) => { root.load(name, index); }
