@@ -176,25 +176,30 @@ impl Script {
         self.pre_figures.take()
     }
 
-    pub fn find_latest_body(&self, index: &usize, position: &str) -> String {
+    pub fn find_latest_fg(&self, index: &usize, position: &str) -> (String, String) {
+        let (mut latest_body, mut latest_face) = (String::new(), String::new());
         for i in (0..=*index - 1).rev() {
             if let Some(figures) = self.figures.get(&i) {
                 for figure in figures {
                     if let Command::Figure {
                         body,
+                        face,
                         position: pos,
                         ..
                     } = figure
                     {
-                        if pos == position && !body.is_empty() {
-                            return body.clone();
+                        if pos == position && latest_face.is_empty() {
+                            latest_face = face.clone();
+                        }
+                        if pos == position && !body.is_empty() && latest_body.is_empty() {
+                            latest_body = body.clone();
                         }
                     }
                 }
             }
         }
 
-        unreachable!()
+        (latest_body, latest_face)
     }
 
     pub fn find_label(&self, name: &str) -> Option<&usize> {

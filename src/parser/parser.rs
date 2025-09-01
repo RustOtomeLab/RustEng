@@ -37,7 +37,7 @@ pub enum Command {
 }
 
 impl Command {
-    fn empty_body(&self, index: &usize, pos: &str, script: &Script) -> Command {
+    fn latest_fg(&self, index: &usize, pos: &str, script: &Script) -> Option<Command> {
         if let Command::Figure {
             name,
             distance,
@@ -45,23 +45,36 @@ impl Command {
             face,
             position,
             delay,
+            ..
         } = self
         {
-            return if body.is_empty() {
-                let body = script.find_latest_body(index, pos);
-                Command::Figure {
-                    name: name.clone(),
-                    distance: distance.clone(),
-                    body,
-                    face: face.clone(),
-                    position: position.clone(),
-                    delay: delay.clone(),
-                }
-            } else {
-                self.clone()
+            return match (!body.is_empty(), delay.is_some()) {
+                (false, true) => {
+                    let (body, face) = script.find_latest_fg(index, pos);
+                    Some(Command::Figure {
+                        name: name.clone(),
+                        distance: distance.clone(),
+                        body,
+                        face,
+                        position: position.clone(),
+                        delay: None,
+                    })
+                },
+                (false, false) => {
+                    let (body, _) = script.find_latest_fg(index, pos);
+                    Some(Command::Figure {
+                        name: name.clone(),
+                        distance: distance.clone(),
+                        body,
+                        face: face.clone(),
+                        position: position.clone(),
+                        delay: None,
+                    })
+                },
+                (true, true) => None,
+                (true, false) => Some(self.clone()),
             }
         }
-
         unreachable!()
     }
 }
@@ -200,11 +213,12 @@ impl Script {
                                         position: position.to_string(),
                                         delay: delay.map(|d| d.to_string()),
                                     };
-                                    let store_cmd = command.empty_body(block_index, position, self);
-                                    self.figures
-                                        .entry(*block_index)
-                                        .or_insert_with(Vec::new)
-                                        .push(store_cmd);
+                                    if let Some(cmd) = command.latest_fg(block_index, position, self) {
+                                        self.figures
+                                            .entry(*block_index)
+                                            .or_insert_with(Vec::new)
+                                            .push(cmd);
+                                    }
                                     command
                                 }
                                 _ => return Err(EngineError::from(ParserError::TooShort)),
