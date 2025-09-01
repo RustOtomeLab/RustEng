@@ -1,8 +1,9 @@
+use std::collections::VecDeque;
 use crate::executor::executor::Executor;
 use crate::parser::parser::Command;
 use std::sync::Arc;
 use std::sync::RwLock;
-use tokio::time::{sleep, Duration};
+use tokio::time::{sleep, Duration, Sleep};
 use tokio::sync::mpsc::Sender;
 
 pub struct DelayExecutor {
@@ -12,8 +13,9 @@ pub struct DelayExecutor {
 }
 
 impl DelayExecutor {
-    pub fn new(executor: Executor) -> (Self, Sender<Command>) {
+    pub fn new(executor: Executor) -> (Self, Sender<Command>, Sender<()>) {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<Command>(10);
+        let (skip_tx, mut skip_rx) = tokio::sync::mpsc::channel::<()>(10);
 
         let timer = slint::Timer::default();
         let command = Arc::new(RwLock::new(Command::Empty));
@@ -25,6 +27,44 @@ impl DelayExecutor {
             command,
         };
         tokio::spawn(async move {
+            let mut current_figure: VecDeque<Command> = VecDeque::new();
+
+            loop {
+                tokio::select! {
+                    Some(figure) = rx.recv()=> {
+                        println!("收到delay指令");
+                        current_figure.push_back(figure);
+                    }
+
+                    // 延迟完成
+                    _ = async {
+                        if let Some(Command::Figure {delay, ..}) = current_figure.iter().peekable().peek() {
+                            sleep(Duration::from_millis(
+                                delay.clone().unwrap().parse::<u64>().unwrap_or(0),
+                            )).await;
+                        } else {
+                            std::future::pending::<()>().await
+                        }
+                    } => {
+                        println!("delay结束");
+                        let mut cmd = command_clone.write().unwrap();
+                        *cmd = current_figure.pop_front().unwrap();
+                    }
+
+                    // 重置请求
+                    _ = skip_rx.recv() => {
+                        println!("立刻完成延时立绘");
+                        loop {
+                            while let Some(figure) = current_figure.pop_front() {
+                                let mut cmd = command_clone.write().unwrap();
+                                *cmd = figure;
+                            }
+                            sleep(Duration::from_millis(100)).await;
+                        }
+                    }
+                }
+            }
+
             while let Some(command) = rx.recv().await {
                 if let Command::Figure { delay, .. } = &command {
                     println!("收到delay指令");
@@ -38,7 +78,7 @@ impl DelayExecutor {
             }
         });
 
-        (executor, tx)
+        (executor, tx, skip_tx)
     }
 
     pub fn start_timer(&self) {

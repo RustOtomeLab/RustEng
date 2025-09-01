@@ -29,6 +29,7 @@ pub struct Executor {
     choose_lock: Rc<RefCell<bool>>,
     delay_tx: Option<Sender<Command>>,
     auto_tx: Option<Sender<Duration>>,
+    fg_skip_tx: Option<Sender<()>>,
 }
 
 impl Clone for Executor {
@@ -41,6 +42,7 @@ impl Clone for Executor {
             choose_lock: self.choose_lock.clone(),
             delay_tx: self.delay_tx.clone(),
             auto_tx: self.auto_tx.clone(),
+            fg_skip_tx: self.fg_skip_tx.clone(),
         }
     }
 }
@@ -60,6 +62,7 @@ impl Executor {
             choose_lock: Rc::new(RefCell::new(false)),
             delay_tx: None,
             auto_tx: None,
+            fg_skip_tx: None,
         }
     }
 
@@ -73,6 +76,10 @@ impl Executor {
 
     pub fn set_auto_tx(&mut self, auto_tx: Sender<Duration>) {
         self.auto_tx = Some(auto_tx);
+    }
+    
+    pub fn set_fg_skip_tx(&mut self, fg_skip_tx: Sender<()>) {
+        self.fg_skip_tx = Some(fg_skip_tx);
     }
 
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {

@@ -19,15 +19,16 @@ pub async fn ui(
 
     let mut executor = Executor::new(script, bgm_player, voice_player, weak);
 
-    let (delay_executor, delay_tx) = DelayExecutor::new(executor.clone());
+    let (delay_executor, delay_tx, figure_skip_tx) = DelayExecutor::new(executor.clone());
     delay_executor.start_timer();
 
     executor.set_delay_tx(delay_tx);
+    executor.set_fg_skip_tx(figure_skip_tx);
 
-    let (mut auto_executor, auto_tx, delay_tx) = AutoExecutor::new(executor.clone());
+    let (mut auto_executor, auto_tx, auto_delay_tx) = AutoExecutor::new(executor.clone());
     
-    executor.set_auto_tx(delay_tx.clone());
-    auto_executor.executor.set_auto_tx(delay_tx);
+    executor.set_auto_tx(auto_delay_tx.clone());
+    auto_executor.executor.set_auto_tx(auto_delay_tx);
     auto_executor.start_timer();
 
     executor.load_save_data()?;
