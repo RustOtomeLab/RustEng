@@ -1,0 +1,10 @@
+[initialize]
+script_path = "./source/script/"
+background_path = "./source/background/"
+voice_path = "./source/voice/"
+bgm_path = "./source/bgm/"
+figure_path = "./source/figure/"
+save_path = "./savedata/"
+
+[character]
+list = ["rir"]

@@ -1,0 +1,4 @@
+script = "ky02"
+block_index = 1
+explain = "换个场景..."
+image_path = "./source/background/bg026a.png"

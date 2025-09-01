@@ -1,7 +1,7 @@
 use crate::audio::player::PreBgm;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
-use crate::parser::parser::Commands;
+use crate::parser::parser::{Command, Commands};
 use slint::{SharedString, ToSharedString};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
@@ -31,6 +31,8 @@ pub struct Script {
     pre_bgm: PreBgm,
     pub(crate) backgrounds: BTreeMap<usize, String>,
     pre_bg: Option<String>,
+    pub(crate) figures: BTreeMap<usize, Vec<Command>>,
+    pre_figures: Option<Vec<Command>>,
     pub(crate) choices: HashMap<String, Label>,
     pub(crate) labels: HashMap<String, usize>,
 }
@@ -49,6 +51,8 @@ impl Script {
             pre_bgm: PreBgm::None,
             backgrounds: BTreeMap::new(),
             pre_bg: None,
+            figures: BTreeMap::new(),
+            pre_figures: None,
             choices: HashMap::new(),
             labels: HashMap::new(),
         }
@@ -99,11 +103,11 @@ impl Script {
     }
 
     pub fn set_pre_bg(&mut self, pre_bg: Option<String>) {
-        if let Some(pre_bg) = pre_bg {
-            self.pre_bg = Some(pre_bg);
-        } else {
-            self.pre_bg = None;
-        }
+        self.pre_bg = pre_bg;
+    }
+
+    pub fn set_pre_figures(&mut self, pre_figures: Option<Vec<Command>>) {
+        self.pre_figures = pre_figures;
     }
 
     pub fn set_backlog(&mut self, backlog: Vec<BackLog>) {
@@ -168,6 +172,36 @@ impl Script {
         self.pre_bgm.clone()
     }
 
+    pub fn pre_figures(&mut self) -> Option<Vec<Command>> {
+        self.pre_figures.take()
+    }
+
+    pub fn find_latest_fg(&self, index: &usize, position: &str) -> (String, String) {
+        let (mut latest_body, mut latest_face) = (String::new(), String::new());
+        for i in (0..=*index - 1).rev() {
+            if let Some(figures) = self.figures.get(&i) {
+                for figure in figures {
+                    if let Command::Figure {
+                        body,
+                        face,
+                        position: pos,
+                        ..
+                    } = figure
+                    {
+                        if pos == position && latest_face.is_empty() {
+                            latest_face = face.clone();
+                        }
+                        if pos == position && !body.is_empty() && latest_body.is_empty() {
+                            latest_body = body.clone();
+                        }
+                    }
+                }
+            }
+        }
+
+        (latest_body, latest_face)
+    }
+
     pub fn find_label(&self, name: &str) -> Option<&usize> {
         self.labels.get(name)
     }
@@ -182,5 +216,9 @@ impl Script {
 
     pub fn get_background(&self, index: usize) -> Option<(&usize, &String)> {
         self.backgrounds.range(..=index).next_back()
+    }
+
+    pub fn get_figures(&self, index: usize) -> Option<(&usize, &Vec<Command>)> {
+        self.figures.range(..=index).next_back()
     }
 }

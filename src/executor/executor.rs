@@ -2,6 +2,7 @@ use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
 use crate::config::figure::FIGURE_CONFIG;
 use crate::config::save_load::SaveData;
+use crate::config::voice::VOICE_CONFIG;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
@@ -14,7 +15,6 @@ use std::path::Path;
 use std::rc::Rc;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use crate::config::voice::VOICE_CONFIG;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -29,6 +29,7 @@ pub struct Executor {
     choose_lock: Rc<RefCell<bool>>,
     delay_tx: Option<Sender<Command>>,
     auto_tx: Option<Sender<Duration>>,
+    fg_skip_tx: Option<Sender<()>>,
 }
 
 impl Clone for Executor {
@@ -41,6 +42,7 @@ impl Clone for Executor {
             choose_lock: self.choose_lock.clone(),
             delay_tx: self.delay_tx.clone(),
             auto_tx: self.auto_tx.clone(),
+            fg_skip_tx: self.fg_skip_tx.clone(),
         }
     }
 }
@@ -60,6 +62,7 @@ impl Executor {
             choose_lock: Rc::new(RefCell::new(false)),
             delay_tx: None,
             auto_tx: None,
+            fg_skip_tx: None,
         }
     }
 
@@ -73,6 +76,10 @@ impl Executor {
 
     pub fn set_auto_tx(&mut self, auto_tx: Sender<Duration>) {
         self.auto_tx = Some(auto_tx);
+    }
+
+    pub fn set_fg_skip_tx(&mut self, fg_skip_tx: Sender<()>) {
+        self.fg_skip_tx = Some(fg_skip_tx);
     }
 
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
@@ -109,7 +116,7 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
             let bg = window.get_bg();
-            let mut save_items = Vec::with_capacity(index as usize);
+            let mut save_items = Vec::with_capacity(16);
             let exists_save_items = window.get_save_items();
             for (i, item) in exists_save_items.iter().enumerate() {
                 let mut content = String::default();
@@ -160,7 +167,7 @@ impl Executor {
                 window.set_current_screen(2);
                 window.set_current_choose(0);
             }
-            self.execute_jump(volume, Jump::Index((name, index - 1)))
+            self.execute_jump(Jump::Index((name, index - 1)))
                 .await?;
             self.execute_script().await?;
         }
@@ -212,17 +219,22 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             if window.get_is_auto() {
                 println!("choose: 5s");
-                self.auto_tx.clone().unwrap().send(Duration::from_secs(5)).await?;
+                self.auto_tx
+                    .clone()
+                    .unwrap()
+                    .send(Duration::from_secs(5))
+                    .await?;
             }
         }
-        self.execute_jump(volume, Jump::Label(label)).await
+        self.execute_jump(Jump::Label(label)).await
     }
 
-    pub async fn execute_jump(&mut self, volume: f32, label: Jump) -> Result<(), EngineError> {
+    pub async fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
         let mut script = self.script.borrow_mut();
         let current_bgm = script.current_bgm().to_string();
         let mut pre_bg = None;
         let mut pre_bgm = PreBgm::None;
+        let mut pre_figures = None;
         let backlog = script.to_owned().take_backlog();
         let jump_index = match label {
             Jump::Label((name, label)) => {
@@ -257,10 +269,14 @@ impl Executor {
             }
             {
                 pre_bg = script.get_background(index).map(|(i, bg)| bg.clone());
+                pre_figures = script.get_figures(index).map(|(i, fg)| fg.clone());
             }
         }
         script.set_pre_bg(pre_bg);
         script.set_pre_bgm(pre_bgm);
+
+        self.clean_fg("0").await?;
+        script.set_pre_figures(pre_figures);
         script.set_index(current_block);
 
         Ok(())
@@ -274,9 +290,12 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             if source {
                 println!("发送");
-                self.auto_tx.clone().unwrap().send(Duration::from_secs(1)).await?;
+                self.auto_tx
+                    .clone()
+                    .unwrap()
+                    .send(Duration::from_secs(1))
+                    .await?;
                 tx.send(true).await?;
-
             } else {
                 println!("准备停止");
                 if window.get_is_auto() {
@@ -292,6 +311,8 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
+        self.fg_skip_tx.clone().unwrap().send(()).await?;
+
         let mut duration = Duration::from_secs(5);
         if *self.choose_lock.borrow() {
             return Ok(());
@@ -308,11 +329,11 @@ impl Executor {
         match commands {
             Commands::EmptyCmd => unreachable!(),
             Commands::OneCmd(command) => {
-                 duration +=self.apply_command(command).await?;
+                duration += self.apply_command(command).await?;
             }
             Commands::VarCmds(vars) => {
                 for command in vars {
-                    duration +=self.apply_command(command).await?;
+                    duration += self.apply_command(command).await?;
                 }
             }
         }
@@ -332,54 +353,37 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             let pre_bg;
             let pre_bgm;
+            let pre_fg;
+
             {
                 let mut scr = self.script.borrow_mut();
                 pre_bg = scr.pre_bg();
                 pre_bgm = scr.pre_bgm();
+                pre_fg = scr.pre_figures();
             }
+
             if let Some(bg) = pre_bg {
-                let image = Image::load_from_path(Path::new(&format!(
-                    "{}{}.png",
-                    ENGINE_CONFIG.background_path(),
-                    bg
-                )))
-                .unwrap();
-                window.set_bg(image);
+                self.show_bg(bg).await?;
             }
             if let Play(bgm) = pre_bgm {
-                let bgm_player = self.bgm_player.borrow_mut();
-                let volume = window.get_main_volume() / 100.0;
-                let bgm_volume = window.get_bgm_volume() / 100.0;
-                bgm_player.play_loop(
-                    &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
-                    volume * bgm_volume,
-                );
+                self.play_bgm(bgm).await?;
             } else if let PreBgm::Stop = pre_bgm {
                 let bgm_player = self.bgm_player.borrow_mut();
                 bgm_player.stop();
             }
+            if let Some(figures) = pre_fg {
+                for figure in figures {
+                    self.show_fg(&figure).await?;
+                }
+            }
 
             match command {
-                Command::SetBackground(bg) => {
-                    let image = Image::load_from_path(Path::new(&format!(
-                        "{}{}.png",
-                        ENGINE_CONFIG.background_path(),
-                        bg
-                    )))
-                    .unwrap();
-                    window.set_bg(image);
-                }
+                Command::SetBackground(bg) => self.show_bg(bg).await?,
                 Command::PlayBgm(bgm) => {
                     let mut script = self.script.borrow_mut();
                     if bgm != script.current_bgm() {
                         script.set_current_bgm(bgm.clone());
-                        let bgm_player = self.bgm_player.borrow_mut();
-                        let volume = window.get_main_volume() / 100.0;
-                        let bgm_volume = window.get_bgm_volume() / 100.0;
-                        bgm_player.play_loop(
-                            &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
-                            volume * bgm_volume,
-                        );
+                        self.play_bgm(bgm).await?;
                     }
                 }
                 Command::Choice((explain, choices)) => {
@@ -402,7 +406,10 @@ impl Executor {
                     window.set_speaker(SharedString::from(speaker));
                     window.set_dialogue(SharedString::from(text));
                 }
-                Command::PlayVoice{ref name, ref voice} => {
+                Command::PlayVoice {
+                    ref name,
+                    ref voice,
+                } => {
                     if let Some(length) = VOICE_CONFIG.find(name) {
                         let voice_player = self.voice_player.borrow_mut();
                         let volume = window.get_main_volume() / 100.0;
@@ -414,74 +421,128 @@ impl Executor {
                         duration += length.get(voice).unwrap().clone();
                     }
                 }
-                Command::Figure {
-                    ref name,
-                    ref distance,
-                    ref body,
-                    ref face,
-                    ref position,
-                    ref delay,
-                } => {
-                    if let Some(_) = delay {
-                        let tx = self.delay_tx.clone().unwrap();
-                        tx.send(command.clone()).await?;
-                        return Ok(Duration::from_secs(0));
-                    }
-                    if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
-                        let body = if !body.is_empty() {
-                            window.set_rate(*body_para.get(body).unwrap());
-                            Image::load_from_path(Path::new(&format!(
-                                "{}{}/{}/{}.png",
-                                ENGINE_CONFIG.figure_path(),
-                                name,
-                                distance,
-                                body
-                            )))
-                            .unwrap()
-                        } else {
-                            window.get_fg_body_0()
-                        };
-                        let face = if !face.is_empty() {
-                            let (face_x, face_y) = face_para.get(face).unwrap();
-                            window.set_face_x(*face_x);
-                            window.set_face_y(*face_y);
-                            Image::load_from_path(Path::new(&format!(
-                                "{}{}/{}/{}.png",
-                                ENGINE_CONFIG.figure_path(),
-                                name,
-                                distance,
-                                face
-                            )))
-                            .unwrap()
-                        } else {
-                            window.get_fg_face_0()
-                        };
-                        match &position[..] {
-                            "0" => {
-                                window.set_fg_body_0(body);
-                                window.set_fg_face_0(face);
-                            }
-                            _ => (),
-                        }
-                    }
+                Command::Figure { .. } => {
+                    self.show_fg(&command).await?;
                 }
-                Command::Clear(position) => match &position[..] {
-                    "0" => {
-                        window.set_fg_body_0(Image::default());
-                        window.set_fg_face_0(Image::default());
-                    }
-                    _ => (),
-                },
+                Command::Clear(position) => self.clean_fg(&position).await?,
                 Command::Jump(jump) => {
-                    let volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
-                    self.execute_jump(volume, Jump::Label(jump)).await?;
+                    self.execute_jump(Jump::Label(jump)).await?;
                 }
-                Command::Label(label) => (),
+                Command::Label(_) => (),
                 Command::Empty => (),
             }
         };
 
         println!("apply cmd:{:?}", duration);
         Ok(duration)
+    }
+
+    async fn play_bgm(&self, bgm: String) -> Result<(), EngineError> {
+        let weak = self.weak.clone();
+
+        if let Some(window) = weak.upgrade() {
+            let bgm_player = self.bgm_player.borrow_mut();
+            let volume = window.get_main_volume() / 100.0;
+            let bgm_volume = window.get_bgm_volume() / 100.0;
+            bgm_player.play_loop(
+                &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
+                volume * bgm_volume,
+            );
+        }
+
+        Ok(())
+    }
+
+    async fn show_bg(&self, bg: String) -> Result<(), EngineError> {
+        let weak = self.weak.clone();
+
+        if let Some(window) = weak.upgrade() {
+            let image = Image::load_from_path(Path::new(&format!(
+                "{}{}.png",
+                ENGINE_CONFIG.background_path(),
+                bg
+            )))
+            .unwrap();
+            window.set_bg(image);
+        }
+
+        Ok(())
+    }
+
+    async fn show_fg(&self, fg: &Command) -> Result<Duration, EngineError> {
+        let weak = self.weak.clone();
+        let Command::Figure {
+            name,
+            distance,
+            body,
+            face,
+            position,
+            delay,
+        } = fg
+        else {
+            unreachable!()
+        };
+
+        if let Some(window) = weak.upgrade() {
+            if let Some(_) = delay {
+                let tx = self.delay_tx.clone().unwrap();
+                tx.send(fg.clone()).await?;
+                return Ok(Duration::from_secs(0));
+            }
+            if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
+                let body = if !body.is_empty() {
+                    window.set_rate(*body_para.get(body).unwrap());
+                    Image::load_from_path(Path::new(&format!(
+                        "{}{}/{}/{}.png",
+                        ENGINE_CONFIG.figure_path(),
+                        name,
+                        distance,
+                        body
+                    )))
+                    .unwrap()
+                } else {
+                    window.get_fg_body_0()
+                };
+                let face = if !face.is_empty() {
+                    let (face_x, face_y) = face_para.get(face).unwrap();
+                    window.set_face_x(*face_x);
+                    window.set_face_y(*face_y);
+                    Image::load_from_path(Path::new(&format!(
+                        "{}{}/{}/{}.png",
+                        ENGINE_CONFIG.figure_path(),
+                        name,
+                        distance,
+                        face
+                    )))
+                    .unwrap()
+                } else {
+                    window.get_fg_face_0()
+                };
+                match &position[..] {
+                    "0" => {
+                        window.set_fg_body_0(body);
+                        window.set_fg_face_0(face);
+                    }
+                    _ => (),
+                }
+            }
+        }
+
+        Ok(Duration::from_secs(0))
+    }
+
+    async fn clean_fg(&self, position: &str) -> Result<(), EngineError> {
+        let weak = self.weak.clone();
+        if let Some(window) = weak.upgrade() {
+            match position {
+                "0" => {
+                    window.set_fg_body_0(Image::default());
+                    window.set_fg_face_0(Image::default());
+                }
+                _ => (),
+            }
+        }
+
+        Ok(())
     }
 }

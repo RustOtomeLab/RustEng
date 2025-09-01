@@ -1,10 +1,10 @@
 use crate::executor::executor::Executor;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 use std::sync::mpsc::Receiver;
-use tokio::time::{Sleep, sleep, Duration};
+use std::sync::Arc;
 use tokio::sync::mpsc::{channel, Sender};
+use tokio::time::{Duration, Sleep};
 
 pub struct AutoExecutor {
     timer: slint::Timer,
@@ -16,7 +16,7 @@ pub struct AutoExecutor {
 impl AutoExecutor {
     pub fn new(executor: Executor) -> (Self, Sender<bool>, Sender<Duration>) {
         let (tx, mut rx) = channel::<bool>(10);
-        let (delay_tx, mut delay_rx) = channel::<Duration>(10);
+        let (auto_delay_tx, mut auto_delay_rx) = channel::<Duration>(10);
         let (auto_tx, auto_rx) = std::sync::mpsc::channel::<bool>();
         let is_auto = Arc::new(AtomicBool::new(false));
 
@@ -55,34 +55,34 @@ impl AutoExecutor {
 
             loop {
                 tokio::select! {
-            Some(delay) = delay_rx.recv() => {
-                println!("设置新的延迟: {:?}", delay);
-                current_delay = Some(tokio::time::sleep(delay));
-            }
+                    Some(delay) = auto_delay_rx.recv() => {
+                        println!("设置新的延迟: {:?}", delay);
+                        current_delay = Some(tokio::time::sleep(delay));
+                    }
 
-            // 延迟完成
-            _ = async {
-                if let Some(sleep) = current_delay {
-                    sleep.await
-                } else {
-                    std::future::pending::<()>().await
+                    // 延迟完成
+                    _ = async {
+                        if let Some(sleep) = current_delay {
+                            sleep.await
+                        } else {
+                            std::future::pending::<()>().await
+                        }
+                    } => {
+                        println!("准备自动");
+                        auto_tx.send(true).unwrap();
+                        current_delay = None;
+                    }
+
+                    // 重置请求
+                    _ = reset_rx.recv() => {
+                        println!("reset");
+                        current_delay = None;
+                    }
                 }
-            } => {
-                println!("准备自动");
-                auto_tx.send(true).unwrap();
-                current_delay = None;
-            }
-
-            // 重置请求
-            _ = reset_rx.recv() => {
-                println!("reset");
-                current_delay = None;
-            }
-        }
             }
         });
 
-        (executor, tx, delay_tx)
+        (executor, tx, auto_delay_tx)
     }
 
     pub fn start_timer(&mut self) {

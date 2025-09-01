@@ -1,8 +1,6 @@
 use crate::error::EngineError;
 use crate::script::{Label, Script};
-use std::collections::{BTreeMap, HashMap};
-use crate::error::EngineError::ParseError;
-use crate::parser::parser::ParserError::TooShort;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum Commands {
@@ -15,7 +13,7 @@ pub enum Commands {
 pub enum Command {
     SetBackground(String),
     PlayBgm(String),
-    PlayVoice { 
+    PlayVoice {
         name: String,
         voice: String,
     },
@@ -36,6 +34,49 @@ pub enum Command {
     Jump(Label),
     Label(String),
     Empty,
+}
+
+impl Command {
+    fn latest_fg(&self, index: &usize, pos: &str, script: &Script) -> Option<Command> {
+        if let Command::Figure {
+            name,
+            distance,
+            body,
+            face,
+            position,
+            delay,
+            ..
+        } = self
+        {
+            return match (!body.is_empty(), delay.is_some()) {
+                (false, true) => {
+                    let (body, face) = script.find_latest_fg(index, pos);
+                    Some(Command::Figure {
+                        name: name.clone(),
+                        distance: distance.clone(),
+                        body,
+                        face,
+                        position: position.clone(),
+                        delay: None,
+                    })
+                },
+                (false, false) => {
+                    let (body, _) = script.find_latest_fg(index, pos);
+                    Some(Command::Figure {
+                        name: name.clone(),
+                        distance: distance.clone(),
+                        body,
+                        face: face.clone(),
+                        position: position.clone(),
+                        delay: None,
+                    })
+                },
+                (true, true) => None,
+                (true, false) => Some(self.clone()),
+            }
+        }
+        unreachable!()
+    }
 }
 
 #[derive(Debug)]
@@ -143,9 +184,9 @@ impl Script {
                                     voice: voice.to_string(),
                                 }
                             } else {
-                                return Err(EngineError::from(TooShort))
+                                return Err(EngineError::from(ParserError::TooShort));
                             }
-                        },
+                        }
                         "fg" => {
                             let mut parts = arg.split('|').map(str::trim);
                             match (
@@ -163,14 +204,23 @@ impl Script {
                                     Some(face),
                                     Some(position),
                                     delay,
-                                ) => Figure {
-                                    name: name.to_string(),
-                                    distance: distance.to_string(),
-                                    body: body.to_string(),
-                                    face: face.to_string(),
-                                    position: position.to_string(),
-                                    delay: delay.map(|d| d.to_string()),
-                                },
+                                ) => {
+                                    let command = Figure {
+                                        name: name.to_string(),
+                                        distance: distance.to_string(),
+                                        body: body.to_string(),
+                                        face: face.to_string(),
+                                        position: position.to_string(),
+                                        delay: delay.map(|d| d.to_string()),
+                                    };
+                                    if let Some(cmd) = command.latest_fg(block_index, position, self) {
+                                        self.figures
+                                            .entry(*block_index)
+                                            .or_insert_with(Vec::new)
+                                            .push(cmd);
+                                    }
+                                    command
+                                }
                                 _ => return Err(EngineError::from(ParserError::TooShort)),
                             }
                         }

@@ -1,10 +1,10 @@
 use rodio::{Decoder, OutputStream, Sink, Source};
+use std::time::Duration;
 use std::{
     fs::File,
     io::BufReader,
     sync::{Arc, Mutex},
 };
-use std::time::Duration;
 
 pub struct Player {
     sink: Arc<Mutex<Option<Sink>>>,

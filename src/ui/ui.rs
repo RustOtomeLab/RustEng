@@ -19,15 +19,16 @@ pub async fn ui(
 
     let mut executor = Executor::new(script, bgm_player, voice_player, weak);
 
-    let (delay_executor, delay_tx) = DelayExecutor::new(executor.clone());
+    let (delay_executor, delay_tx, figure_skip_tx) = DelayExecutor::new(executor.clone());
     delay_executor.start_timer();
 
     executor.set_delay_tx(delay_tx);
+    executor.set_fg_skip_tx(figure_skip_tx);
 
-    let (mut auto_executor, auto_tx, delay_tx) = AutoExecutor::new(executor.clone());
-    
-    executor.set_auto_tx(delay_tx.clone());
-    auto_executor.executor.set_auto_tx(delay_tx);
+    let (mut auto_executor, auto_tx, auto_delay_tx) = AutoExecutor::new(executor.clone());
+
+    executor.set_auto_tx(auto_delay_tx.clone());
+    auto_executor.executor.set_auto_tx(auto_delay_tx);
     auto_executor.start_timer();
 
     executor.load_save_data()?;
@@ -50,6 +51,7 @@ pub async fn ui(
     window.on_save({
         let executor = executor.clone();
         move |index| {
+            println!("准备存档");
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_save(index).await })
                 .expect("Save panicked");
@@ -59,6 +61,7 @@ pub async fn ui(
     window.on_load({
         let executor = executor.clone();
         move |name, index| {
+            println!("准备读档");
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_load(name.to_string(), index).await })
                 .expect("Load panicked");
@@ -107,7 +110,7 @@ pub async fn ui(
     window.on_backlog({
         let executor = executor.clone();
         move || {
-            let mut executor = executor.clone();
+            let executor = executor.clone();
             slint::spawn_local(async move { executor.execute_backlog().await })
                 .expect("Backlog panicked");
         }

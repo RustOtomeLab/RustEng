@@ -1,23 +1,24 @@
 use crate::executor::executor::Executor;
 use crate::parser::parser::Command;
-use crate::parser::parser::Command::Figure;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::RwLock;
-use tokio::time::{sleep, Duration};
 use tokio::sync::mpsc::Sender;
+use tokio::time::{sleep, Duration};
 
 pub struct DelayExecutor {
     timer: slint::Timer,
     executor: Executor,
-    command: Arc<RwLock<Command>>,
+    command: Arc<RwLock<VecDeque<Command>>>,
 }
 
 impl DelayExecutor {
-    pub fn new(executor: Executor) -> (Self, Sender<Command>) {
+    pub fn new(executor: Executor) -> (Self, Sender<Command>, Sender<()>) {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<Command>(10);
+        let (skip_tx, mut skip_rx) = tokio::sync::mpsc::channel::<()>(10);
 
         let timer = slint::Timer::default();
-        let command = Arc::new(RwLock::new(Command::Empty));
+        let command = Arc::new(RwLock::new(VecDeque::new()));
         let command_clone = command.clone();
 
         let executor = Self {
@@ -26,20 +27,41 @@ impl DelayExecutor {
             command,
         };
         tokio::spawn(async move {
-            while let Some(command) = rx.recv().await {
-                if let Command::Figure { delay, .. } = &command {
-                    println!("收到delay指令");
-                    sleep(Duration::from_millis(
-                        delay.clone().unwrap().parse::<u64>().unwrap_or(0),
-                    )).await;
-                    println!("delay结束");
-                    let mut cmd = command_clone.write().unwrap();
-                    *cmd = command;
+            let mut current_figure: VecDeque<Command> = VecDeque::new();
+
+            loop {
+                tokio::select! {
+                    Some(figure) = rx.recv()=> {
+                        println!("收到delay指令");
+                        current_figure.push_back(figure);
+                    }
+
+                    // 延迟完成
+                    _ = async {
+                        if let Some(Command::Figure {delay, ..}) = current_figure.front(){
+                            sleep(Duration::from_millis(
+                                delay.clone().unwrap().parse::<u64>().unwrap_or(0),
+                            )).await;
+                        } else {
+                            std::future::pending::<()>().await
+                        }
+                    } => {
+                        println!("delay结束");
+                        command_clone.write().unwrap().push_back(current_figure.pop_front().unwrap());
+                    }
+
+                    // 重置请求
+                    _ = skip_rx.recv() => {
+                        //println!("立刻完成延时立绘");
+                        while let Some(figure) = current_figure.pop_front() {
+                            command_clone.write().unwrap().push_back(figure);
+                        }
+                    }
                 }
             }
         });
 
-        (executor, tx)
+        (executor, tx, skip_tx)
     }
 
     pub fn start_timer(&self) {
@@ -48,23 +70,22 @@ impl DelayExecutor {
 
         self.timer.start(
             slint::TimerMode::Repeated,
-            std::time::Duration::from_millis(100),
+            Duration::from_millis(40),
             move || {
-                let mut cmd = command.write().unwrap();
-                if let Figure {
+                if let Some(Command::Figure {
                     name,
                     distance,
                     face,
                     body,
                     position,
                     ..
-                } = cmd.clone()
+                }) = command.write().unwrap().pop_front()
                 {
                     println!("准备执行");
                     let mut executor = executor.clone();
                     slint::spawn_local(async move {
                         executor
-                            .apply_command(Figure {
+                            .apply_command(Command::Figure {
                                 name,
                                 distance,
                                 face,
@@ -75,7 +96,6 @@ impl DelayExecutor {
                             .await
                     })
                     .expect("Delay panicked");
-                    *cmd = Command::Empty;
                 }
             },
         );
