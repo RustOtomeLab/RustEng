@@ -1,8 +1,8 @@
 use crate::config::ENGINE_CONFIG;
 use serde::{Deserialize, Deserializer, Serialize};
-use tokio::time::Duration;
 use std::collections::HashMap;
 use std::fs;
+use tokio::time::Duration;
 
 lazy_static::lazy_static! {
     pub static ref VOICE_CONFIG: VoiceConfig = load_voice();
@@ -26,10 +26,7 @@ pub struct VoiceConfig {
 }
 
 impl VoiceConfig {
-    pub fn find(
-        &self,
-        name: &str,
-    ) -> Option<&HashMap<String, Duration>> {
+    pub fn find(&self, name: &str) -> Option<&HashMap<String, Duration>> {
         self.voice_length.get(name)
     }
 }
@@ -37,9 +34,12 @@ impl VoiceConfig {
 fn load_voice() -> VoiceConfig {
     let mut voice_length = HashMap::new();
     for char in &ENGINE_CONFIG.character.list {
-        let content =
-            fs::read_to_string(format!("{}{}/length.toml", ENGINE_CONFIG.voice_path(), char))
-                .unwrap();
+        let content = fs::read_to_string(format!(
+            "{}{}/length.toml",
+            ENGINE_CONFIG.voice_path(),
+            char
+        ))
+        .unwrap();
         let item: LengthWrapper = toml::from_str(&content).unwrap();
         voice_length.insert(
             char.to_string(),
@@ -50,9 +50,7 @@ fn load_voice() -> VoiceConfig {
         );
     }
 
-    VoiceConfig {
-        voice_length
-    }
+    VoiceConfig { voice_length }
 }
 
 fn deserialize_duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>

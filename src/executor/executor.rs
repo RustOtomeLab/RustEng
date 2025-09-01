@@ -2,6 +2,7 @@ use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
 use crate::config::figure::FIGURE_CONFIG;
 use crate::config::save_load::SaveData;
+use crate::config::voice::VOICE_CONFIG;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
@@ -14,7 +15,6 @@ use std::path::Path;
 use std::rc::Rc;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use crate::config::voice::VOICE_CONFIG;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -77,7 +77,7 @@ impl Executor {
     pub fn set_auto_tx(&mut self, auto_tx: Sender<Duration>) {
         self.auto_tx = Some(auto_tx);
     }
-    
+
     pub fn set_fg_skip_tx(&mut self, fg_skip_tx: Sender<()>) {
         self.fg_skip_tx = Some(fg_skip_tx);
     }
@@ -167,7 +167,7 @@ impl Executor {
                 window.set_current_screen(2);
                 window.set_current_choose(0);
             }
-            self.execute_jump(volume, Jump::Index((name, index - 1)))
+            self.execute_jump(Jump::Index((name, index - 1)))
                 .await?;
             self.execute_script().await?;
         }
@@ -219,13 +219,17 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             if window.get_is_auto() {
                 println!("choose: 5s");
-                self.auto_tx.clone().unwrap().send(Duration::from_secs(5)).await?;
+                self.auto_tx
+                    .clone()
+                    .unwrap()
+                    .send(Duration::from_secs(5))
+                    .await?;
             }
         }
-        self.execute_jump(volume, Jump::Label(label)).await
+        self.execute_jump(Jump::Label(label)).await
     }
 
-    pub async fn execute_jump(&mut self, volume: f32, label: Jump) -> Result<(), EngineError> {
+    pub async fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
         let mut script = self.script.borrow_mut();
         let current_bgm = script.current_bgm().to_string();
         let mut pre_bg = None;
@@ -286,9 +290,12 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             if source {
                 println!("发送");
-                self.auto_tx.clone().unwrap().send(Duration::from_secs(1)).await?;
+                self.auto_tx
+                    .clone()
+                    .unwrap()
+                    .send(Duration::from_secs(1))
+                    .await?;
                 tx.send(true).await?;
-
             } else {
                 println!("准备停止");
                 if window.get_is_auto() {
@@ -304,6 +311,8 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
+        self.fg_skip_tx.clone().unwrap().send(()).await?;
+
         let mut duration = Duration::from_secs(5);
         if *self.choose_lock.borrow() {
             return Ok(());
@@ -320,11 +329,11 @@ impl Executor {
         match commands {
             Commands::EmptyCmd => unreachable!(),
             Commands::OneCmd(command) => {
-                 duration +=self.apply_command(command).await?;
+                duration += self.apply_command(command).await?;
             }
             Commands::VarCmds(vars) => {
                 for command in vars {
-                    duration +=self.apply_command(command).await?;
+                    duration += self.apply_command(command).await?;
                 }
             }
         }
@@ -397,7 +406,10 @@ impl Executor {
                     window.set_speaker(SharedString::from(speaker));
                     window.set_dialogue(SharedString::from(text));
                 }
-                Command::PlayVoice{ref name, ref voice} => {
+                Command::PlayVoice {
+                    ref name,
+                    ref voice,
+                } => {
                     if let Some(length) = VOICE_CONFIG.find(name) {
                         let voice_player = self.voice_player.borrow_mut();
                         let volume = window.get_main_volume() / 100.0;
@@ -409,15 +421,14 @@ impl Executor {
                         duration += length.get(voice).unwrap().clone();
                     }
                 }
-                Command::Figure {..} => {
+                Command::Figure { .. } => {
                     self.show_fg(&command).await?;
                 }
                 Command::Clear(position) => self.clean_fg(&position).await?,
                 Command::Jump(jump) => {
-                    let volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
-                    self.execute_jump(volume, Jump::Label(jump)).await?;
+                    self.execute_jump(Jump::Label(jump)).await?;
                 }
-                Command::Label(label) => (),
+                Command::Label(_) => (),
                 Command::Empty => (),
             }
         };
@@ -451,7 +462,7 @@ impl Executor {
                 ENGINE_CONFIG.background_path(),
                 bg
             )))
-                .unwrap();
+            .unwrap();
             window.set_bg(image);
         }
 
@@ -460,7 +471,17 @@ impl Executor {
 
     async fn show_fg(&self, fg: &Command) -> Result<Duration, EngineError> {
         let weak = self.weak.clone();
-        let Command::Figure {name, distance, body, face, position, delay} = fg else { unreachable!() };
+        let Command::Figure {
+            name,
+            distance,
+            body,
+            face,
+            position,
+            delay,
+        } = fg
+        else {
+            unreachable!()
+        };
 
         if let Some(window) = weak.upgrade() {
             if let Some(_) = delay {
@@ -478,7 +499,7 @@ impl Executor {
                         distance,
                         body
                     )))
-                        .unwrap()
+                    .unwrap()
                 } else {
                     window.get_fg_body_0()
                 };
@@ -493,7 +514,7 @@ impl Executor {
                         distance,
                         face
                     )))
-                        .unwrap()
+                    .unwrap()
                 } else {
                     window.get_fg_face_0()
                 };
@@ -513,7 +534,7 @@ impl Executor {
     async fn clean_fg(&self, position: &str) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         if let Some(window) = weak.upgrade() {
-            match position{
+            match position {
                 "0" => {
                     window.set_fg_body_0(Image::default());
                     window.set_fg_face_0(Image::default());

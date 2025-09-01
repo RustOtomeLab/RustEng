@@ -1,10 +1,10 @@
 use crate::executor::executor::Executor;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 use std::sync::mpsc::Receiver;
-use tokio::time::{Sleep, sleep, Duration};
+use std::sync::Arc;
 use tokio::sync::mpsc::{channel, Sender};
+use tokio::time::{Duration, Sleep};
 
 pub struct AutoExecutor {
     timer: slint::Timer,

@@ -26,7 +26,7 @@ pub async fn ui(
     executor.set_fg_skip_tx(figure_skip_tx);
 
     let (mut auto_executor, auto_tx, auto_delay_tx) = AutoExecutor::new(executor.clone());
-    
+
     executor.set_auto_tx(auto_delay_tx.clone());
     auto_executor.executor.set_auto_tx(auto_delay_tx);
     auto_executor.start_timer();
@@ -110,7 +110,7 @@ pub async fn ui(
     window.on_backlog({
         let executor = executor.clone();
         move || {
-            let mut executor = executor.clone();
+            let executor = executor.clone();
             slint::spawn_local(async move { executor.execute_backlog().await })
                 .expect("Backlog panicked");
         }

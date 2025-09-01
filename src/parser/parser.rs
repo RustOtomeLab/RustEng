@@ -1,6 +1,6 @@
 use crate::error::EngineError;
 use crate::script::{Label, Script};
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum Commands {
@@ -13,7 +13,7 @@ pub enum Commands {
 pub enum Command {
     SetBackground(String),
     PlayBgm(String),
-    PlayVoice { 
+    PlayVoice {
         name: String,
         voice: String,
     },
@@ -38,10 +38,18 @@ pub enum Command {
 
 impl Command {
     fn empty_body(&self, index: &usize, pos: &str, script: &Script) -> Command {
-        if let Command::Figure {name, distance, body, face, position, delay} = self {
-            if body.is_empty() {
+        if let Command::Figure {
+            name,
+            distance,
+            body,
+            face,
+            position,
+            delay,
+        } = self
+        {
+            return if body.is_empty() {
                 let body = script.find_latest_body(index, pos);
-                return Command::Figure {
+                Command::Figure {
                     name: name.clone(),
                     distance: distance.clone(),
                     body,
@@ -49,7 +57,9 @@ impl Command {
                     position: position.clone(),
                     delay: delay.clone(),
                 }
-            } else { return self.clone() }
+            } else {
+                self.clone()
+            }
         }
 
         unreachable!()
@@ -161,9 +171,9 @@ impl Script {
                                     voice: voice.to_string(),
                                 }
                             } else {
-                                return Err(EngineError::from(ParserError::TooShort))
+                                return Err(EngineError::from(ParserError::TooShort));
                             }
-                        },
+                        }
                         "fg" => {
                             let mut parts = arg.split('|').map(str::trim);
                             match (
@@ -191,11 +201,12 @@ impl Script {
                                         delay: delay.map(|d| d.to_string()),
                                     };
                                     let store_cmd = command.empty_body(block_index, position, self);
-                                    self.figures.entry(*block_index)
+                                    self.figures
+                                        .entry(*block_index)
                                         .or_insert_with(Vec::new)
                                         .push(store_cmd);
                                     command
-                                },
+                                }
                                 _ => return Err(EngineError::from(ParserError::TooShort)),
                             }
                         }

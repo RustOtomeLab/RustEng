@@ -2,7 +2,7 @@ use crate::audio::player::PreBgm;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
-use slint::{ModelExt, SharedString, ToSharedString};
+use slint::{SharedString, ToSharedString};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 
@@ -105,7 +105,7 @@ impl Script {
     pub fn set_pre_bg(&mut self, pre_bg: Option<String>) {
         self.pre_bg = pre_bg;
     }
-    
+
     pub fn set_pre_figures(&mut self, pre_figures: Option<Vec<Command>>) {
         self.pre_figures = pre_figures;
     }
@@ -172,13 +172,20 @@ impl Script {
         self.pre_bgm.clone()
     }
 
-    pub fn pre_figures(&mut self) -> Option<Vec<Command>> { self.pre_figures.take() }
+    pub fn pre_figures(&mut self) -> Option<Vec<Command>> {
+        self.pre_figures.take()
+    }
 
     pub fn find_latest_body(&self, index: &usize, position: &str) -> String {
         for i in (0..=*index - 1).rev() {
             if let Some(figures) = self.figures.get(&i) {
                 for figure in figures {
-                    if let Command::Figure {body, position: pos, ..} = figure {
+                    if let Command::Figure {
+                        body,
+                        position: pos,
+                        ..
+                    } = figure
+                    {
                         if pos == position && !body.is_empty() {
                             return body.clone();
                         }
@@ -205,7 +212,7 @@ impl Script {
     pub fn get_background(&self, index: usize) -> Option<(&usize, &String)> {
         self.backgrounds.range(..=index).next_back()
     }
-    
+
     pub fn get_figures(&self, index: usize) -> Option<(&usize, &Vec<Command>)> {
         self.figures.range(..=index).next_back()
     }
