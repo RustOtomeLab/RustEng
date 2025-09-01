@@ -1,6 +1,5 @@
 use crate::executor::executor::Executor;
 use crate::parser::parser::Command;
-use crate::parser::parser::Command::Figure;
 use std::sync::Arc;
 use std::sync::RwLock;
 use tokio::time::{sleep, Duration};
@@ -48,10 +47,10 @@ impl DelayExecutor {
 
         self.timer.start(
             slint::TimerMode::Repeated,
-            std::time::Duration::from_millis(100),
+            Duration::from_millis(100),
             move || {
                 let mut cmd = command.write().unwrap();
-                if let Figure {
+                if let Command::Figure {
                     name,
                     distance,
                     face,
@@ -64,7 +63,7 @@ impl DelayExecutor {
                     let mut executor = executor.clone();
                     slint::spawn_local(async move {
                         executor
-                            .apply_command(Figure {
+                            .apply_command(Command::Figure {
                                 name,
                                 distance,
                                 face,

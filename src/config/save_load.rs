@@ -52,6 +52,16 @@ impl Executor {
                     block_index as i32,
                     script.to_shared_string(),
                 ));
+            } else {
+                let sava_data = SaveData::new(
+                    "".to_string(),
+                    0,
+                    "空的".to_string(),
+                    "".to_string(),
+                );
+                let content = toml::to_string_pretty(&sava_data)?;
+                load_items.push((Image::default(), sava_data.explain.to_shared_string(), sava_data.block_index as i32, sava_data.script.to_shared_string()));
+                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), content)?;
             }
         }
 

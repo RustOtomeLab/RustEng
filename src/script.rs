@@ -2,7 +2,7 @@ use crate::audio::player::PreBgm;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
-use slint::{SharedString, ToSharedString};
+use slint::{ModelExt, SharedString, ToSharedString};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 
@@ -170,6 +170,24 @@ impl Script {
 
     pub fn pre_bgm(&mut self) -> PreBgm {
         self.pre_bgm.clone()
+    }
+
+    pub fn pre_figures(&mut self) -> Option<Vec<Command>> { self.pre_figures.take() }
+
+    pub fn find_latest_body(&self, index: &usize, position: &str) -> String {
+        for i in (0..=*index - 1).rev() {
+            if let Some(figures) = self.figures.get(&i) {
+                for figure in figures {
+                    if let Command::Figure {body, position: pos, ..} = figure {
+                        if pos == position && !body.is_empty() {
+                            return body.clone();
+                        }
+                    }
+                }
+            }
+        }
+
+        unreachable!()
     }
 
     pub fn find_label(&self, name: &str) -> Option<&usize> {

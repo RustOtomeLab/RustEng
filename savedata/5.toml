@@ -1,0 +1,4 @@
+script = "ky01"
+block_index = 2
+explain = "はじめまして..."
+image_path = "./source/background/bg022a.png"

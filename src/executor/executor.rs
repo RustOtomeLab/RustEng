@@ -263,6 +263,8 @@ impl Executor {
         }
         script.set_pre_bg(pre_bg);
         script.set_pre_bgm(pre_bgm);
+
+        self.clean_fg("0").await?;
         script.set_pre_figures(pre_figures);
         script.set_index(current_block);
 
@@ -335,19 +337,17 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             let pre_bg;
             let pre_bgm;
+            let pre_fg;
+
             {
                 let mut scr = self.script.borrow_mut();
                 pre_bg = scr.pre_bg();
                 pre_bgm = scr.pre_bgm();
+                pre_fg = scr.pre_figures();
             }
+
             if let Some(bg) = pre_bg {
-                let image = Image::load_from_path(Path::new(&format!(
-                    "{}{}.png",
-                    ENGINE_CONFIG.background_path(),
-                    bg
-                )))
-                .unwrap();
-                window.set_bg(image);
+                self.show_bg(bg).await?;
             }
             if let Play(bgm) = pre_bgm {
                 self.play_bgm(bgm).await?;
@@ -355,17 +355,14 @@ impl Executor {
                 let bgm_player = self.bgm_player.borrow_mut();
                 bgm_player.stop();
             }
+            if let Some(figures) = pre_fg {
+                for figure in figures {
+                    self.show_fg(&figure).await?;
+                }
+            }
 
             match command {
-                Command::SetBackground(bg) => {
-                    let image = Image::load_from_path(Path::new(&format!(
-                        "{}{}.png",
-                        ENGINE_CONFIG.background_path(),
-                        bg
-                    )))
-                    .unwrap();
-                    window.set_bg(image);
-                }
+                Command::SetBackground(bg) => self.show_bg(bg).await?,
                 Command::PlayBgm(bgm) => {
                     let mut script = self.script.borrow_mut();
                     if bgm != script.current_bgm() {
@@ -405,64 +402,10 @@ impl Executor {
                         duration += length.get(voice).unwrap().clone();
                     }
                 }
-                Command::Figure {
-                    ref name,
-                    ref distance,
-                    ref body,
-                    ref face,
-                    ref position,
-                    ref delay,
-                } => {
-                    if let Some(_) = delay {
-                        let tx = self.delay_tx.clone().unwrap();
-                        tx.send(command.clone()).await?;
-                        return Ok(Duration::from_secs(0));
-                    }
-                    if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
-                        let body = if !body.is_empty() {
-                            window.set_rate(*body_para.get(body).unwrap());
-                            Image::load_from_path(Path::new(&format!(
-                                "{}{}/{}/{}.png",
-                                ENGINE_CONFIG.figure_path(),
-                                name,
-                                distance,
-                                body
-                            )))
-                            .unwrap()
-                        } else {
-                            window.get_fg_body_0()
-                        };
-                        let face = if !face.is_empty() {
-                            let (face_x, face_y) = face_para.get(face).unwrap();
-                            window.set_face_x(*face_x);
-                            window.set_face_y(*face_y);
-                            Image::load_from_path(Path::new(&format!(
-                                "{}{}/{}/{}.png",
-                                ENGINE_CONFIG.figure_path(),
-                                name,
-                                distance,
-                                face
-                            )))
-                            .unwrap()
-                        } else {
-                            window.get_fg_face_0()
-                        };
-                        match &position[..] {
-                            "0" => {
-                                window.set_fg_body_0(body);
-                                window.set_fg_face_0(face);
-                            }
-                            _ => (),
-                        }
-                    }
+                Command::Figure {..} => {
+                    self.show_fg(&command).await?;
                 }
-                Command::Clear(position) => match &position[..] {
-                    "0" => {
-                        window.set_fg_body_0(Image::default());
-                        window.set_fg_face_0(Image::default());
-                    }
-                    _ => (),
-                },
+                Command::Clear(position) => self.clean_fg(&position).await?,
                 Command::Jump(jump) => {
                     let volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
                     self.execute_jump(volume, Jump::Label(jump)).await?;
@@ -488,6 +431,90 @@ impl Executor {
                 volume * bgm_volume,
             );
         }
+
+        Ok(())
+    }
+
+    async fn show_bg(&self, bg: String) -> Result<(), EngineError> {
+        let weak = self.weak.clone();
+
+        if let Some(window) = weak.upgrade() {
+            let image = Image::load_from_path(Path::new(&format!(
+                "{}{}.png",
+                ENGINE_CONFIG.background_path(),
+                bg
+            )))
+                .unwrap();
+            window.set_bg(image);
+        }
+
+        Ok(())
+    }
+
+    async fn show_fg(&self, fg: &Command) -> Result<Duration, EngineError> {
+        let weak = self.weak.clone();
+        let Command::Figure {name, distance, body, face, position, delay} = fg else { unreachable!() };
+
+        if let Some(window) = weak.upgrade() {
+            if let Some(_) = delay {
+                let tx = self.delay_tx.clone().unwrap();
+                tx.send(fg.clone()).await?;
+                return Ok(Duration::from_secs(0));
+            }
+            if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
+                let body = if !body.is_empty() {
+                    window.set_rate(*body_para.get(body).unwrap());
+                    Image::load_from_path(Path::new(&format!(
+                        "{}{}/{}/{}.png",
+                        ENGINE_CONFIG.figure_path(),
+                        name,
+                        distance,
+                        body
+                    )))
+                        .unwrap()
+                } else {
+                    window.get_fg_body_0()
+                };
+                let face = if !face.is_empty() {
+                    let (face_x, face_y) = face_para.get(face).unwrap();
+                    window.set_face_x(*face_x);
+                    window.set_face_y(*face_y);
+                    Image::load_from_path(Path::new(&format!(
+                        "{}{}/{}/{}.png",
+                        ENGINE_CONFIG.figure_path(),
+                        name,
+                        distance,
+                        face
+                    )))
+                        .unwrap()
+                } else {
+                    window.get_fg_face_0()
+                };
+                match &position[..] {
+                    "0" => {
+                        window.set_fg_body_0(body);
+                        window.set_fg_face_0(face);
+                    }
+                    _ => (),
+                }
+            }
+        }
+
+        Ok(Duration::from_secs(0))
+    }
+
+    async fn clean_fg(&self, position: &str) -> Result<(), EngineError> {
+        let weak = self.weak.clone();
+        if let Some(window) = weak.upgrade() {
+            match position{
+                "0" => {
+                    window.set_fg_body_0(Image::default());
+                    window.set_fg_face_0(Image::default());
+                }
+                _ => (),
+            }
+        }
+
         Ok(())
     }
 }

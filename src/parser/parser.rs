@@ -1,8 +1,6 @@
 use crate::error::EngineError;
 use crate::script::{Label, Script};
-use std::collections::{BTreeMap, HashMap};
-use crate::error::EngineError::ParseError;
-use crate::parser::parser::ParserError::TooShort;
+use std::collections::{HashMap};
 
 #[derive(Debug, Clone)]
 pub enum Commands {
@@ -36,6 +34,26 @@ pub enum Command {
     Jump(Label),
     Label(String),
     Empty,
+}
+
+impl Command {
+    fn empty_body(&self, index: &usize, pos: &str, script: &Script) -> Command {
+        if let Command::Figure {name, distance, body, face, position, delay} = self {
+            if body.is_empty() {
+                let body = script.find_latest_body(index, pos);
+                return Command::Figure {
+                    name: name.clone(),
+                    distance: distance.clone(),
+                    body,
+                    face: face.clone(),
+                    position: position.clone(),
+                    delay: delay.clone(),
+                }
+            } else { return self.clone() }
+        }
+
+        unreachable!()
+    }
 }
 
 #[derive(Debug)]
@@ -143,7 +161,7 @@ impl Script {
                                     voice: voice.to_string(),
                                 }
                             } else {
-                                return Err(EngineError::from(TooShort))
+                                return Err(EngineError::from(ParserError::TooShort))
                             }
                         },
                         "fg" => {
@@ -172,12 +190,13 @@ impl Script {
                                         position: position.to_string(),
                                         delay: delay.map(|d| d.to_string()),
                                     };
+                                    let store_cmd = command.empty_body(block_index, position, self);
                                     self.figures.entry(*block_index)
                                         .or_insert_with(Vec::new)
-                                        .push(command.clone());
+                                        .push(store_cmd);
                                     command
                                 },
-                                _ => return Err(EngineError::from(TooShort)),
+                                _ => return Err(EngineError::from(ParserError::TooShort)),
                             }
                         }
                         "clear" => Clear(arg.to_string()),
