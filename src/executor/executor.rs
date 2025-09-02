@@ -167,8 +167,7 @@ impl Executor {
                 window.set_current_screen(2);
                 window.set_current_choose(0);
             }
-            self.execute_jump(Jump::Index((name, index - 1)))
-                .await?;
+            self.execute_jump(Jump::Index((name, index - 1))).await?;
             self.execute_script().await?;
         }
 
@@ -282,11 +281,7 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_auto(
-        &mut self,
-        tx: Sender<bool>,
-        source: bool,
-    ) -> Result<(), EngineError> {
+    pub async fn execute_auto(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
                 println!("发送");
@@ -295,15 +290,34 @@ impl Executor {
                     .unwrap()
                     .send(Duration::from_secs(1))
                     .await?;
-                tx.send(true).await?;
+                tx.send(()).await?;
             } else {
                 println!("准备停止");
                 if window.get_is_auto() {
                     println!("正在自动");
-                    tx.send(true).await?;
+                    tx.send(()).await?;
                 }
                 window.set_is_auto(false);
                 println!("停止自动");
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn execute_skip(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
+        if let Some(window) = self.weak.upgrade() {
+            if source {
+                println!("发送");
+                tx.send(()).await?;
+            } else {
+                println!("准备停止");
+                if window.get_is_skip() {
+                    println!("正在快进");
+                    tx.send(()).await?;
+                }
+                window.set_is_skip(false);
+                println!("停止快进");
             }
         }
 
