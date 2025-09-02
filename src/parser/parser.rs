@@ -59,7 +59,7 @@ impl Command {
                         position: position.clone(),
                         delay: None,
                     })
-                },
+                }
                 (false, false) => {
                     let (body, _) = script.find_latest_fg(index, pos);
                     Some(Command::Figure {
@@ -70,10 +70,10 @@ impl Command {
                         position: position.clone(),
                         delay: None,
                     })
-                },
+                }
                 (true, true) => None,
                 (true, false) => Some(self.clone()),
-            }
+            };
         }
         unreachable!()
     }
@@ -213,7 +213,9 @@ impl Script {
                                         position: position.to_string(),
                                         delay: delay.map(|d| d.to_string()),
                                     };
-                                    if let Some(cmd) = command.latest_fg(block_index, position, self) {
+                                    if let Some(cmd) =
+                                        command.latest_fg(block_index, position, self)
+                                    {
                                         self.figures
                                             .entry(*block_index)
                                             .or_insert_with(Vec::new)

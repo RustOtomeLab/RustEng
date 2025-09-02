@@ -21,6 +21,7 @@ export component MainWindow inherits Window {
     in property<bool> is-fullscreen: false;
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
+    in-out property <bool> is-skip;
     in property<int> current-choose: 0;
     in property <float> rate;
     in property <float> face-x;
@@ -112,6 +113,7 @@ export component MainWindow inherits Window {
             backlogs <=> root.backlogs;
             is_backlog <=> root.is_backlog;
             is-auto <=> root.is-auto;
+            is-skip <=> root.is-skip;
             
             fg-body-0 <=> root.fg-body-0;
             fg-face-0 <=> root.fg-face-0;
@@ -119,9 +121,17 @@ export component MainWindow inherits Window {
             face-x <=> root.face-x;
             face-y <=> root.face-y;
 
-            auto-play(b) => { root.auto-play(b); }
+            auto-play(b) => {
+                root.auto-play(b);
+                root.skip-play(false);
+            }
+            skip-play(b) => {
+                root.skip-play(b);
+                root.auto-play(false);
+            }
             backlog => {
                 root.auto-play(false);
+                root.skip-play(false);
                 root.backlog();
             }
             backlog-change(i) => { root.backlog-change(i); }
@@ -130,15 +140,18 @@ export component MainWindow inherits Window {
             choose(text) => { root.choose(text); }
             save-game => {
                 root.auto-play(false);
+                root.skip-play(false);
                 root.current-screen = 3;
             }
             load-game => {
                 root.auto-play(false);
+                root.skip-play(false);
                 root.last-screen = 2;
                 root.current-screen = 4;
             }
             settings => {
                 root.auto-play(false);
+                root.skip-play(false);
                 root.last-screen = 2;
                 root.current-screen = 1;
             }
@@ -167,6 +180,7 @@ export component MainWindow inherits Window {
 
     // 回调函数保持不变
     callback auto-play(bool);
+    callback skip-play(bool);
     callback clicked();
     callback toggle-fullscreen();
     callback volume-changed();

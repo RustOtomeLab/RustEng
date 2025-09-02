@@ -3,6 +3,7 @@ use crate::error::EngineError;
 use crate::executor::auto_executor::AutoExecutor;
 use crate::executor::delay_executor::DelayExecutor;
 use crate::executor::executor::Executor;
+use crate::executor::skip_executor::SkipExecutor;
 use crate::script::Script;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -21,15 +22,16 @@ pub async fn ui(
 
     let (delay_executor, delay_tx, figure_skip_tx) = DelayExecutor::new(executor.clone());
     delay_executor.start_timer();
-
     executor.set_delay_tx(delay_tx);
     executor.set_fg_skip_tx(figure_skip_tx);
 
     let (mut auto_executor, auto_tx, auto_delay_tx) = AutoExecutor::new(executor.clone());
-
     executor.set_auto_tx(auto_delay_tx.clone());
     auto_executor.executor.set_auto_tx(auto_delay_tx);
     auto_executor.start_timer();
+
+    let (mut skip_executor, skip_tx) = SkipExecutor::new(executor.clone());
+    skip_executor.start_timer();
 
     executor.load_save_data()?;
 
@@ -152,6 +154,16 @@ pub async fn ui(
             let tx = auto_tx.clone();
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_auto(tx, source).await })
+                .expect("TODO: panic message");
+        }
+    });
+
+    window.on_skip_play({
+        let executor = executor.clone();
+        move |source| {
+            let tx = skip_tx.clone();
+            let mut executor = executor.clone();
+            slint::spawn_local(async move { executor.execute_skip(tx, source).await })
                 .expect("TODO: panic message");
         }
     });

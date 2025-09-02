@@ -10,14 +10,14 @@ pub struct AutoExecutor {
     timer: slint::Timer,
     pub executor: Executor,
     is_auto: Arc<AtomicBool>,
-    auto_rx: Option<Receiver<bool>>,
+    auto_rx: Option<Receiver<()>>,
 }
 
 impl AutoExecutor {
-    pub fn new(executor: Executor) -> (Self, Sender<bool>, Sender<Duration>) {
-        let (tx, mut rx) = channel::<bool>(10);
+    pub fn new(executor: Executor) -> (Self, Sender<()>, Sender<Duration>) {
+        let (tx, mut rx) = channel::<()>(10);
         let (auto_delay_tx, mut auto_delay_rx) = channel::<Duration>(10);
-        let (auto_tx, auto_rx) = std::sync::mpsc::channel::<bool>();
+        let (auto_tx, auto_rx) = std::sync::mpsc::channel::<()>();
         let is_auto = Arc::new(AtomicBool::new(false));
 
         let (reset_tx, mut reset_rx) = channel::<()>(10);
@@ -69,7 +69,7 @@ impl AutoExecutor {
                         }
                     } => {
                         println!("准备自动");
-                        auto_tx.send(true).unwrap();
+                        auto_tx.send(()).unwrap();
                         current_delay = None;
                     }
 

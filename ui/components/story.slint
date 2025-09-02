@@ -19,8 +19,10 @@ export component StoryView {
     in property <float> face-y;
     in-out property <bool> is_backlog;
     in-out property <bool> is-auto;
+    in-out property <bool> is-skip;
 
     callback auto-play(bool);
+    callback skip-play(bool);
     callback backlog();
     callback backlog-change(int);
     callback backlog-jump(string, int);
@@ -141,7 +143,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.79 - self.width;
+                x: parent.width * 0.73 - self.width;
                 y: 0;
                 text: "存档";
                 clicked => { root.save-game(); }
@@ -150,7 +152,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.85 - self.width;
+                x: parent.width * 0.79 - self.width;
                 y: 0;
                 text: "读档";
                 clicked => { root.load-game(); }
@@ -159,13 +161,26 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.91 - self.width;
+                x: parent.width * 0.85 - self.width;
                 y: 0;
                 text: "自动";
                 is-on: is-auto;
                 clicked => {
                     is-auto = !is-auto;
                     root.auto-play(true);
+                }
+            }
+
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.91 - self.width;
+                y: 0;
+                text: "快进";
+                is-on: is-skip;
+                clicked => {
+                    is-skip = !is-skip;
+                    root.skip-play(true);
                 }
             }
 
