@@ -53,7 +53,7 @@ fn load_voice() -> VoiceConfig {
     VoiceConfig { voice_length }
 }
 
-fn deserialize_duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub fn deserialize_duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'de>,
 {

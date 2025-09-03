@@ -7,9 +7,9 @@ export component SettingsView {
     in property <length> container-width;
     in property <length> container-height;
     in property <bool> is-fullscreen;
-    in-out property <float> main-volume: 100;
-    in-out property <float> bgm-volume: 100;
-    in-out property <float> voice-volume: 100;
+    in-out property <float> main-volume;
+    in-out property <float> bgm-volume;
+    in-out property <float> voice-volume;
 
     callback back();
     callback toggle-fullscreen();
