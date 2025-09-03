@@ -38,9 +38,9 @@ export component MainWindow inherits Window {
         {explain:"空的"},{explain:"空的"},{explain:"空的"},{explain:"空的"},
     ];
 
-    out property <float> main-volume: 100;
-    out property <float> bgm-volume: 100;
-    out property <float> voice-volume: 100;
+    in-out property <float> main-volume;
+    in-out property <float> bgm-volume;
+    in-out property <float> voice-volume;
 
     // 计算容器尺寸
     property <length> container-size: min(self.width, self.height * 16 / 9);
@@ -94,7 +94,10 @@ export component MainWindow inherits Window {
             bgm-volume <=> root.bgm-volume;
             voice-volume <=> root.voice-volume;
 
-            back => { root.current-screen = root.last-screen; }
+            back => { 
+                root.save-config();
+                root.current-screen = root.last-screen; 
+            }
             toggle-fullscreen => { root.toggle-fullscreen(); }
             volume-changed => { root.volume-changed(); }
             voice-volume-changed => { root.voice-volume-changed(); }
@@ -186,6 +189,7 @@ export component MainWindow inherits Window {
     callback volume-changed();
     callback bgm-volume-changed();
     callback voice-volume-changed();
+    callback save-config();
     callback backlog();
     callback backlog-change(int);
     callback backlog-jump(string, int);

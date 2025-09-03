@@ -2,7 +2,9 @@ use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
 use crate::config::figure::FIGURE_CONFIG;
 use crate::config::save_load::SaveData;
+use crate::config::script::SCRIPT_CONFIG;
 use crate::config::voice::VOICE_CONFIG;
+use crate::config::volume::save_volume;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
@@ -196,6 +198,19 @@ impl Executor {
         Ok(())
     }
 
+    pub async fn execute_save_config(&self) -> Result<(), EngineError> {
+        let weak = self.get_weak();
+        if let Some(window) = weak.upgrade() {
+            let main_volume = window.get_main_volume();
+            let bgm_volume = window.get_bgm_volume();
+            let voice_volume = window.get_voice_volume();
+
+            save_volume(main_volume, bgm_volume, voice_volume)?;
+        }
+
+        Ok(())
+    }
+
     pub async fn execute_choose(&mut self, choice: SharedString) -> Result<(), EngineError> {
         *self.choose_lock.borrow_mut() = false;
 
@@ -327,7 +342,7 @@ impl Executor {
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
         self.fg_skip_tx.clone().unwrap().send(()).await?;
 
-        let mut duration = Duration::from_secs(5);
+        let mut duration = SCRIPT_CONFIG.delay();
         if *self.choose_lock.borrow() {
             return Ok(());
         }
@@ -340,16 +355,20 @@ impl Executor {
                 commands = cmds.clone();
             }
         }
-        match commands {
+        let delay = match commands {
             Commands::EmptyCmd => unreachable!(),
-            Commands::OneCmd(command) => {
-                duration += self.apply_command(command).await?;
-            }
+            Commands::OneCmd(command) => self.apply_command(command).await?,
             Commands::VarCmds(vars) => {
+                let mut delay = Duration::default();
                 for command in vars {
-                    duration += self.apply_command(command).await?;
+                    delay += self.apply_command(command).await?;
                 }
+                delay
             }
+        };
+
+        if SCRIPT_CONFIG.is_wait() {
+            duration += delay;
         }
 
         if let Some(window) = self.weak.upgrade() {

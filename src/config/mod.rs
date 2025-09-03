@@ -1,4 +1,5 @@
 use crate::config::initialize::{Character, InitializeConfig};
+use crate::config::volume::VolumeConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -7,7 +8,9 @@ pub mod figure;
 pub mod initialize;
 pub mod save_load;
 
+pub mod script;
 pub mod voice;
+pub mod volume;
 
 lazy_static::lazy_static! {
     pub static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
@@ -17,6 +20,7 @@ lazy_static::lazy_static! {
 pub struct EngineConfig {
     initialize: InitializeConfig,
     character: Character,
+    volume: VolumeConfig,
 }
 
 impl EngineConfig {
@@ -42,6 +46,18 @@ impl EngineConfig {
 
     pub fn save_path(&self) -> &str {
         &self.initialize.save_path
+    }
+
+    pub fn main_volume(&self) -> f32 {
+        self.volume.main
+    }
+
+    pub fn bgm_volume(&self) -> f32 {
+        self.volume.bgm
+    }
+
+    pub fn voice_volume(&self) -> f32 {
+        self.volume.voice
     }
 }
 
