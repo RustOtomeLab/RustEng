@@ -161,11 +161,9 @@ impl Executor {
     }
 
     pub async fn execute_load(&mut self, name: String, index: i32) -> Result<(), EngineError> {
-        let mut volume = 0.0;
         if !name.is_empty() {
             let weak = self.weak.clone();
             if let Some(window) = weak.upgrade() {
-                volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
                 window.set_current_screen(2);
                 window.set_current_choose(0);
             }
@@ -221,13 +219,11 @@ impl Executor {
             label = scr.get_choice_label(&choice).unwrap().clone();
         }
 
-        let mut volume = 0.0;
         if let Some(window) = self.weak.upgrade() {
             window.set_choose_branch(Rc::new(VecModel::from(vec![])).into());
             window.set_current_choose(0);
             window.set_speaker("".into());
             window.set_dialogue(choice);
-            volume = window.get_main_volume() * window.get_bgm_volume() / 10000.0;
         }
 
         if let Some(window) = self.weak.upgrade() {
@@ -282,8 +278,8 @@ impl Executor {
                 pre_bgm = PreBgm::Stop;
             }
             {
-                pre_bg = script.get_background(index).map(|(i, bg)| bg.clone());
-                pre_figures = script.get_figures(index).map(|(i, fg)| fg.clone());
+                pre_bg = script.get_background(index).map(|(_, bg)| bg.clone());
+                pre_figures = script.get_figures(index).map(|(_, fg)| fg.clone());
             }
         }
         script.set_pre_bg(pre_bg);

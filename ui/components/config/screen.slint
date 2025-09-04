@@ -1,0 +1,40 @@
+import { Switch } from "std-widgets.slint";
+import { Colors } from "../../styles/colors.slint";
+
+export component ScreenConfig {
+    in property <bool> is-fullscreen;
+
+    callback toggle-fullscreen();
+
+    Rectangle {
+        Rectangle {
+            x: parent.width * 0.02;
+            y: 0;
+            height: parent.height * 0.03;
+
+            Text {
+                x: 0;
+                y: 0;
+                text: "全屏开关";
+                font-size: parent.height * 0.8;
+                color: Colors.text-light;
+                vertical-alignment: center;
+                width: parent.width * 0.12;
+            }
+
+            Rectangle {
+                x: parent.width * 0.08;
+                y: 0;
+                width: parent.width * 0.032;
+                height: parent.height;
+
+                Switch {
+                    checked: root.is-fullscreen;
+                    width: parent.width;
+                    height: parent.height;
+                    toggled => { root.toggle-fullscreen(); }
+                }
+            }
+        }
+    }
+}
