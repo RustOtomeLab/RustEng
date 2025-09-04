@@ -2,9 +2,8 @@ use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
 use crate::config::figure::FIGURE_CONFIG;
 use crate::config::save_load::SaveData;
-use crate::config::user::USER_CONFIG;
+use crate::config::user::save_user_config;
 use crate::config::voice::VOICE_CONFIG;
-use crate::config::volume::save_volume;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
@@ -198,13 +197,7 @@ impl Executor {
 
     pub async fn execute_save_config(&self) -> Result<(), EngineError> {
         let weak = self.get_weak();
-        if let Some(window) = weak.upgrade() {
-            let main_volume = window.get_main_volume();
-            let bgm_volume = window.get_bgm_volume();
-            let voice_volume = window.get_voice_volume();
-
-            save_volume(main_volume, bgm_volume, voice_volume)?;
-        }
+        save_user_config(weak)?;
 
         Ok(())
     }
@@ -338,7 +331,15 @@ impl Executor {
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
         self.fg_skip_tx.clone().unwrap().send(()).await?;
 
-        let mut duration = USER_CONFIG.delay();
+        let mut duration = Duration::default();
+        let mut is_wait = true;
+        let mut is_auto = false;
+        if let Some(window) = self.weak.upgrade() {
+            duration += Duration::from_millis((window.get_delay() * 1000.0) as u64);
+            is_wait = window.get_is_wait();
+            is_auto = window.get_is_auto();
+        }
+
         if *self.choose_lock.borrow() {
             return Ok(());
         }
@@ -363,16 +364,15 @@ impl Executor {
             }
         };
 
-        if USER_CONFIG.is_wait() {
+        if is_wait {
             duration += delay;
         }
 
-        if let Some(window) = self.weak.upgrade() {
-            if window.get_is_auto() {
-                println!("script:{:?}", duration);
-                self.auto_tx.clone().unwrap().send(duration).await?;
-            }
+        if is_auto {
+            println!("script:{:?}", duration);
+            self.auto_tx.clone().unwrap().send(duration).await?;
         }
+
         Ok(())
     }
 

@@ -1,5 +1,5 @@
 [auto]
-delay = 5
+delay = 5.0
 is_wait = true
 
 [volume]

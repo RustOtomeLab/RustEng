@@ -4,6 +4,7 @@ import { CustomRoundButton } from "common/round_button.slint";
 import { Colors } from "../styles/colors.slint";
 import { ScreenConfig } from "config/screen.slint";
 import { VolumeConfig } from "config/volume.slint";
+import { SystemConfig } from "config/system.slint";
 
 export component SettingsView {
     in property <length> container-width;
@@ -12,6 +13,8 @@ export component SettingsView {
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;
     in-out property <float> voice-volume;
+    in-out property <bool> is-wait;
+    in-out property <float> delay;
     property <int> config-view: 0;
 
     callback back();
@@ -50,13 +53,13 @@ export component SettingsView {
                     config-view = 0;
                 }
             }
-
+            
             CustomRoundButton {
                 width: parent.height * 0.75;
                 height: parent.height * 0.75;
                 x: parent.width * 0.26;
                 y: 0;
-                text: "文本";
+                text: "系统";
                 is-on: (config-view == 1) ? true : false;
                 clicked => {
                     config-view = 1;
@@ -68,10 +71,22 @@ export component SettingsView {
                 height: parent.height * 0.75;
                 x: parent.width * 0.32;
                 y: 0;
-                text: "音量";
+                text: "文本";
                 is-on: (config-view == 2) ? true : false;
                 clicked => {
                     config-view = 2;
+                }
+            }
+
+            CustomRoundButton {
+                width: parent.height * 0.75;
+                height: parent.height * 0.75;
+                x: parent.width * 0.38;
+                y: 0;
+                text: "音量";
+                is-on: (config-view == 3) ? true : false;
+                clicked => {
+                    config-view = 3;
                 }
             }
         }
@@ -90,11 +105,17 @@ export component SettingsView {
                 toggle-fullscreen() => { root.toggle-fullscreen(); }
             }
 
-            if config-view == 1: Rectangle {
-
+            if config-view == 1: SystemConfig {
+                x: 0;
+                y: 0;
+                height: parent.height;
+                width: parent.width;
+                
+                is-wait <=> root.is-wait;
+                delay <=> root.delay;
             }
 
-            if config-view == 2: VolumeConfig {
+            if config-view == 3: VolumeConfig {
                 x: 0;
                 y: 0;
                 height: parent.height;

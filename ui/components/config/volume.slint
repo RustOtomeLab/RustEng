@@ -19,6 +19,7 @@ export component VolumeConfig {
             height: parent.height * 0.035;
             label: "主音量";
             volume: root.main-volume;
+            texts: 4;
             volume-changed(value) => {
                 root.main-volume = value;
                 root.volume-changed();
@@ -31,6 +32,7 @@ export component VolumeConfig {
             width: parent.width * 0.35;
             height: parent.height * 0.035;
             label: "BGM音量";
+            texts: 4;
             volume: root.bgm-volume;
             volume-changed(value) => {
                 root.bgm-volume = value;
@@ -44,6 +46,7 @@ export component VolumeConfig {
             width: parent.width * 0.35;
             height: parent.height * 0.035;
             label: "语音音量";
+            texts: 4;
             volume: root.voice-volume;
             volume-changed(value) => {
                 root.voice-volume = value;
