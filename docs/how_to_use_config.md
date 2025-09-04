@@ -3,6 +3,13 @@
 ### 初始化配置文件
 
 ```
+source
+ini.toml
+```
+
+#### ini.toml
+
+```
 #ini.toml
 
 [initialize]
@@ -15,19 +22,12 @@ save_path = "./savedata/"
 
 [character]
 list = ["rir"]
-
-[volume]
-main = 20.0
-bgm = 100.0
-voice = 100.0
 ```
-在```source```文件夹下的```ini.toml```文件（**默认路径不可更改**）。
+```source```文件夹下的```ini.toml```文件（**默认路径不可更改**）：
 
-```initialize```里面可以定义的资源文件的路径。
+```initialize```里面可以定义的资源文件的路径；
 
-```character```中定义角色名标识。
-
-```volume```中可以定义默认的音量大小。
+```character```中定义角色名标识；
 
 ### 语音配置文件
 
@@ -36,6 +36,9 @@ voice
 --rir
   length.toml
 ```
+
+#### length.toml
+
 对于每个角色，都要为其配置**语音文件夹**以及**语音配置文件**。
 ```
 #length.toml
@@ -87,19 +90,55 @@ cast = [
 ```
 在```face.toml```中，定义立绘表情文件名，以及其相对于身体图片的位移。
 
-### 文本配置文件
+### 用户配置文件
 
 ```
-script
----auto.toml
+savedata
+1.toml
+2.toml
+...
+user.toml
+```
+在```savedata```文件夹中，储存着与用户相关的配置。
+
+#### 1.toml
+
+```
+#1.toml
+
+script = "ky01"
+block_index = 1
+explain = "壬戌之秋，七..."
+image_path = "./source/background/bg022a.png"
 ```
 
-#### auto.toml
+数字的```.toml```文件存储着存档相关的信息：
+
+```script```指的是脚本名；
+
+```block_index```指的是剧情快的块号；
+
+```explain```指的是文本的描述；
+
+```image_path```指的是背景图片存储的位置；
+
+#### user.toml
+
 ```
-#auto.toml
+#user.toml
 
 [auto]
 delay = 5
 is_wait = true
+
+[volume]
+main = 100.0
+bgm = 100.0
+voice = 100.0
 ```
-在```auto.toml```中，定义自动的默认等待时间，以及自动是否会等待语言播放完。
+
+```user.toml```中，存储的是用户的设置信息，这些信息会随着用户在**游戏设置**中的修改而修改：
+
+```auto```可以设定自动等待的时长（单位为**秒**），以及自动播放是否等待语音结束；
+
+```volume```是音量大小，可以调节各种音量大小；

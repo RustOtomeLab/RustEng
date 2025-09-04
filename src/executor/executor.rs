@@ -2,7 +2,7 @@ use crate::audio::player::PreBgm::Play;
 use crate::audio::player::{Player, PreBgm};
 use crate::config::figure::FIGURE_CONFIG;
 use crate::config::save_load::SaveData;
-use crate::config::script::SCRIPT_CONFIG;
+use crate::config::user::USER_CONFIG;
 use crate::config::voice::VOICE_CONFIG;
 use crate::config::volume::save_volume;
 use crate::config::ENGINE_CONFIG;
@@ -342,7 +342,7 @@ impl Executor {
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
         self.fg_skip_tx.clone().unwrap().send(()).await?;
 
-        let mut duration = SCRIPT_CONFIG.delay();
+        let mut duration = USER_CONFIG.delay();
         if *self.choose_lock.borrow() {
             return Ok(());
         }
@@ -367,7 +367,7 @@ impl Executor {
             }
         };
 
-        if SCRIPT_CONFIG.is_wait() {
+        if USER_CONFIG.is_wait() {
             duration += delay;
         }
 

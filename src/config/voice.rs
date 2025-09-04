@@ -1,5 +1,5 @@
 use crate::config::ENGINE_CONFIG;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fs;
 use tokio::time::Duration;
@@ -59,4 +59,11 @@ where
 {
     let seconds = u64::deserialize(deserializer)?;
     Ok(Duration::from_secs(seconds))
+}
+
+pub fn serialize_duration_as_secs<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_u64(duration.as_secs())
 }

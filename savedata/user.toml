@@ -1,0 +1,8 @@
+[auto]
+delay = 5
+is_wait = true
+
+[volume]
+main = 100.0
+bgm = 100.0
+voice = 100.0
