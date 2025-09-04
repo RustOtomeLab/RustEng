@@ -1,7 +1,7 @@
 import { MainMenu } from "components/main_menu.slint";
 import { SaveView } from "components/save.slint";
 import { LoadView } from "components/load.slint";
-import { SettingsView } from "components/settings.slint";
+import { SettingsView } from "components/main_config.slint";
 import { StoryView } from "components/story.slint";
 
 export component MainWindow inherits Window {
@@ -21,6 +21,8 @@ export component MainWindow inherits Window {
     in property<bool> is-fullscreen: false;
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
+    in-out property <bool> is-wait;
+    in-out property <float> delay;
     in-out property <bool> is-skip;
     in property<int> current-choose: 0;
     in property <float> rate;
@@ -93,6 +95,8 @@ export component MainWindow inherits Window {
             main-volume <=> root.main-volume;
             bgm-volume <=> root.bgm-volume;
             voice-volume <=> root.voice-volume;
+            is-wait <=> root.is-wait;
+            delay <=> root.delay;
 
             back => { 
                 root.save-config();

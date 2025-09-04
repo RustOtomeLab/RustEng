@@ -1,0 +1,132 @@
+import { Switch } from "std-widgets.slint";
+import { CustomButton } from "common/button.slint";
+import { CustomRoundButton } from "common/round_button.slint";
+import { Colors } from "../styles/colors.slint";
+import { ScreenConfig } from "config/screen.slint";
+import { VolumeConfig } from "config/volume.slint";
+import { SystemConfig } from "config/system.slint";
+
+export component SettingsView {
+    in property <length> container-width;
+    in property <length> container-height;
+    in property <bool> is-fullscreen;
+    in-out property <float> main-volume;
+    in-out property <float> bgm-volume;
+    in-out property <float> voice-volume;
+    in-out property <bool> is-wait;
+    in-out property <float> delay;
+    property <int> config-view: 0;
+
+    callback back();
+    callback toggle-fullscreen();
+    callback volume-changed();
+    callback voice-volume-changed();
+
+    Rectangle {
+        width: container-width;
+        height: container-height;
+        background: Colors.overlay-background;
+
+        //上方按钮
+        Rectangle {
+            y: parent.height * 0.04;
+            height: parent.height * 0.06;
+            // 返回按钮
+            CustomButton {
+                x: parent.width * 0.06;
+                y: 0;
+                text: "返回游戏";
+                button-width: parent.width * 0.10;
+                button-height: parent.height;
+                font-size: parent.height * 0.4;
+                clicked => { root.back(); }
+            }
+
+            CustomRoundButton {
+                width: parent.height * 0.75;
+                height: parent.height * 0.75;
+                x: parent.width * 0.2;
+                y: 0;
+                text: "画面";
+                is-on: (config-view == 0) ? true : false;
+                clicked => {
+                    config-view = 0;
+                }
+            }
+            
+            CustomRoundButton {
+                width: parent.height * 0.75;
+                height: parent.height * 0.75;
+                x: parent.width * 0.26;
+                y: 0;
+                text: "系统";
+                is-on: (config-view == 1) ? true : false;
+                clicked => {
+                    config-view = 1;
+                }
+            }
+
+            CustomRoundButton {
+                width: parent.height * 0.75;
+                height: parent.height * 0.75;
+                x: parent.width * 0.32;
+                y: 0;
+                text: "文本";
+                is-on: (config-view == 2) ? true : false;
+                clicked => {
+                    config-view = 2;
+                }
+            }
+
+            CustomRoundButton {
+                width: parent.height * 0.75;
+                height: parent.height * 0.75;
+                x: parent.width * 0.38;
+                y: 0;
+                text: "音量";
+                is-on: (config-view == 3) ? true : false;
+                clicked => {
+                    config-view = 3;
+                }
+            }
+        }
+
+        // 设置面板
+        Rectangle {
+            y: parent.height * 0.12;
+            height: parent.height * 0.88;
+            width: parent.width;
+            if config-view == 0: ScreenConfig {
+                x: 0;
+                y: 0;
+                height: parent.height;
+                width: parent.width;
+                is-fullscreen: root.is-fullscreen;
+                toggle-fullscreen() => { root.toggle-fullscreen(); }
+            }
+
+            if config-view == 1: SystemConfig {
+                x: 0;
+                y: 0;
+                height: parent.height;
+                width: parent.width;
+                
+                is-wait <=> root.is-wait;
+                delay <=> root.delay;
+            }
+
+            if config-view == 3: VolumeConfig {
+                x: 0;
+                y: 0;
+                height: parent.height;
+                width: parent.width;
+                main-volume <=> root.main-volume;
+                bgm-volume <=> root.bgm-volume;
+                voice-volume <=> root.voice-volume;
+
+                volume-changed => { root.volume-changed(); }
+                voice-volume-changed => { root.voice-volume-changed(); }
+            }
+        }
+    }
+}

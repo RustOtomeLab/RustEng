@@ -5,6 +5,9 @@ export component VolumeSlider {
     in property <string> label;
     in-out property <float> volume: 100;
     in property <length> font-size;
+    in property <float> min: 0;
+    in property <float> max: 100;
+    in property <float> texts;
 
     callback volume-changed(float);
 
@@ -20,16 +23,17 @@ export component VolumeSlider {
         }
 
         Rectangle {
-            x: parent.width * 0.2;
+            x: parent.height * 1.2 * texts;
             y: 0;
             width: parent.width * 0.8;
             height: parent.height;
-            background: Colors.slider-background;
 
             Slider {
                 width: parent.width;
                 height: parent.height;
                 value: root.volume;
+                maximum: max;
+                minimum: min;
                 changed value => {
                     root.volume = self.value;
                     root.volume-changed(self.value);

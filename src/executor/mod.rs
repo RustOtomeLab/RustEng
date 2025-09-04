@@ -43,7 +43,8 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     skip_executor.start_timer();
 
     executor.load_save_data()?;
-    executor.load_volume()?;
+    executor.load_volume();
+    executor.load_auto();
 
     Ok(ExecutorTX {
         auto_tx,

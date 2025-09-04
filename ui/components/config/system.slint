@@ -1,0 +1,55 @@
+import { Switch } from "std-widgets.slint";
+import { VolumeSlider } from "../common/volume_slider.slint";
+import { Colors } from "../../styles/colors.slint";
+
+export component SystemConfig {
+    in-out property <bool> is-wait;
+    in-out property <float> delay;
+
+    Rectangle {
+        Rectangle {
+            x: parent.width * 0.02;
+            y: 0;
+            height: parent.height * 0.035;
+
+            Text {
+                x: 0;
+                y: 0;
+                text: "自动等待语音";
+                font-size: parent.height * 0.8;
+                color: Colors.text-light;
+                vertical-alignment: center;
+                width: parent.width * 0.12;
+            }
+
+            Rectangle {
+                x: parent.height * 1.2 * 5.5;
+                y: 0;
+                width: parent.width * 0.032;
+                height: parent.height;
+
+                Switch {
+                    checked: root.is-wait;
+                    width: parent.width;
+                    height: parent.height;
+                    toggled => { root.is-wait = !root.is-wait }
+                }
+            }
+        }
+
+        VolumeSlider {
+            y: parent.height * 0.05;
+            x: parent.width * 0.02;
+            width: parent.width * 0.35;
+            height: parent.height * 0.035;
+            max: 5.0;
+            min: 1.0;
+            label: "自动等待时长";
+            texts: 5.5;
+            volume: root.delay;
+            volume-changed(value) => {
+                root.delay = value;
+            }
+        }
+    }
+}

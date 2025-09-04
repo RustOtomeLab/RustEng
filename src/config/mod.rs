@@ -6,7 +6,7 @@ pub mod figure;
 pub mod initialize;
 pub mod save_load;
 
-pub mod script;
+pub mod system;
 pub mod user;
 pub mod voice;
 pub mod volume;
