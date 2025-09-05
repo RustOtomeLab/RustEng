@@ -11,14 +11,11 @@ export component StoryView {
     in property <[{ index: int, text: string }]> choose-branch;
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
     in property <image> bg;
-    in property <image> fg-z1-body-0;
-    in property <image> fg-z1-face-0;
-    in property <image> fg-z2-body-0;
-    in property <image> fg-z2-face-0;
+    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-no-0;
+    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1-0;
+    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1-2;
+    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1--2;
     in property <int> current-choose: 0;
-    in property <float> rate;
-    in property <float> face-x;
-    in property <float> face-y;
     in-out property <bool> is_backlog;
     in-out property <bool> is-auto;
     in-out property <bool> is-skip;
@@ -70,37 +67,73 @@ export component StoryView {
 
         // 角色立绘 居中远距离
         Image {
-            source: root.fg-z1-body-0;
+            source: fg-no-0.body;
             width: parent.width * 0.25;
-            height: self.width / rate;
+            height: self.width / fg-no-0.rate;
             x: parent.width * 0.375;
             y: parent.height / 6;
 
             // 角色表情
             Image {
-                source: root.fg-z1-face-0;
-                width: root.fg-z1-face-0.width * parent.width / root.fg-z1-body-0.width;
-                height: root.fg-z1-face-0.height * parent.height / root.fg-z1-body-0.height;
-                x: parent.width * face-x;
-                y: parent.height * face-y;
+                source: fg-no-0.face;
+                width: self.source.width * parent.width / parent.source.width;
+                height: self.source.height * parent.height / parent.source.height;
+                x: parent.width * fg-no-0.face-x;
+                y: parent.height * fg-no-0.face-y;
             }
         }
         
         // 角色立绘 居中近距离
         Image {
-            source: root.fg-z2-body-0;
+            source: fg-z1-0.body;
             width: parent.width * 0.34;
-            height: self.width / rate;
+            height: self.width / fg-z1-0.rate;
             x: parent.width * 0.33;
             y: parent.height / 8;
 
             // 角色表情
             Image {
-                source: root.fg-z2-face-0;
-                width: root.fg-z2-face-0.width * parent.width / root.fg-z2-body-0.width;
-                height: root.fg-z2-face-0.height * parent.height / root.fg-z2-body-0.height;
-                x: parent.width * face-x;
-                y: parent.height * face-y;
+                source: fg-z1-0.face;
+                width: self.source.width * parent.width / parent.source.width;
+                height: self.source.height * parent.height / parent.source.height;
+                x: parent.width * fg-z1-0.face-x;
+                y: parent.height * fg-z1-0.face-y;
+            }
+        }
+
+        // 角色立绘 左侧面近距离
+        Image {
+            source: fg-z1--2.body;
+            width: parent.width * 0.34;
+            height: self.width / fg-z1--2.rate;
+            x: parent.width * 0.16;
+            y: parent.height / 8;
+
+            // 角色表情
+            Image {
+                source: fg-z1--2.face;
+                width: self.source.width * parent.width / parent.source.width;
+                height: self.source.height * parent.height / parent.source.height;
+                x: parent.width * fg-z1--2.face-x;
+                y: parent.height * fg-z1--2.face-y;
+            }
+        }
+
+        // 角色立绘 右侧面近距离
+        Image {
+            source: fg-z1-2.body;
+            width: parent.width * 0.34;
+            height: self.width / fg-z1-2.rate;
+            x: parent.width * 0.5;
+            y: parent.height / 8;
+
+            // 角色表情
+            Image {
+                source: fg-z1-2.face;
+                width: self.source.width * parent.width / parent.source.width;
+                height: self.source.height * parent.height / parent.source.height;
+                x: parent.width * fg-z1-2.face-x;
+                y: parent.height * fg-z1-2.face-y;
             }
         }
 

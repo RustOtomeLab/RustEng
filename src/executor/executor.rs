@@ -22,6 +22,10 @@ pub(crate) enum Jump {
     Index((String, i32)),
 }
 
+fn figure_default() -> (Image, Image, f32, f32, f32) {
+    (Image::default(), Image::default(), 0.0, 0.0, 0.0)
+}
+
 pub struct Executor {
     script: Rc<RefCell<Script>>,
     bgm_player: Rc<RefCell<Player>>,
@@ -278,7 +282,7 @@ impl Executor {
         script.set_pre_bg(pre_bg);
         script.set_pre_bgm(pre_bgm);
 
-        self.clean_fg("0").await?;
+        self.clean_fg("All", "All").await?;
         script.set_pre_figures(pre_figures);
         script.set_index(current_block);
 
@@ -453,7 +457,7 @@ impl Executor {
                 Command::Figure { .. } => {
                     self.show_fg(&command).await?;
                 }
-                Command::Clear(position) => self.clean_fg(&position).await?,
+                Command::Clear(distance, position) => self.clean_fg(&distance, &position).await?,
                 Command::Jump(jump) => {
                     self.execute_jump(Jump::Label(jump)).await?;
                 }
@@ -519,8 +523,9 @@ impl Executor {
                 return Ok(Duration::from_secs(0));
             }
             if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
+                let mut rate = body_para.get(body).unwrap_or(&0.0);
+                let (face_x, face_y) = face_para.get(face).unwrap();
                 let body = if !body.is_empty() {
-                    window.set_rate(*body_para.get(body).unwrap());
                     Image::load_from_path(Path::new(&format!(
                         "{}{}/{}/{}.png",
                         ENGINE_CONFIG.figure_path(),
@@ -530,40 +535,31 @@ impl Executor {
                     )))
                     .unwrap()
                 } else {
-                    match &distance[..] {
-                        "z1" => window.get_fg_z1_body_0(),
-                        "z2" => window.get_fg_z2_body_0(),
-                        _ => unreachable!()
-                    }
-                };
-                let face = if !face.is_empty() {
-                    let (face_x, face_y) = face_para.get(face).unwrap();
-                    window.set_face_x(*face_x);
-                    window.set_face_y(*face_y);
+                    let script = self.script.borrow();
+                    let (body, _) = script.find_latest_fg(&script.index(), &distance, &position);
+                    rate = body_para.get(&body).unwrap();
                     Image::load_from_path(Path::new(&format!(
                         "{}{}/{}/{}.png",
                         ENGINE_CONFIG.figure_path(),
                         name,
                         distance,
-                        face
+                        body
                     )))
                     .unwrap()
-                } else {
-                    match &distance[..] {
-                        "z1" => window.get_fg_z1_face_0(),
-                        "z2" => window.get_fg_z2_face_0(),
-                        _ => unreachable!()
-                    }
                 };
+                let face = Image::load_from_path(Path::new(&format!(
+                    "{}{}/{}/{}.png",
+                    ENGINE_CONFIG.figure_path(),
+                    name,
+                    distance,
+                    face
+                )))
+                .unwrap();
                 match (&position[..], &distance[..]) {
-                    ("0", "z1") => {
-                        window.set_fg_z1_body_0(body);
-                        window.set_fg_z1_face_0(face);
-                    }
-                    ("0", "z2") => {
-                        window.set_fg_z2_body_0(body);
-                        window.set_fg_z2_face_0(face);
-                    }
+                    ("-2", "z1") => window.set_fg_z1__2((body, face, *face_x, *face_y, *rate)),
+                    ("0", "z1") => window.set_fg_z1_0((body, face, *face_x, *face_y, *rate)),
+                    ("2", "z1") => window.set_fg_z1_2((body, face, *face_x, *face_y, *rate)),
+                    ("0", "no") => window.set_fg_no_0((body, face, *face_x, *face_y, *rate)),
                     _ => unreachable!(),
                 }
             }
@@ -572,17 +568,21 @@ impl Executor {
         Ok(Duration::from_secs(0))
     }
 
-    async fn clean_fg(&self, position: &str) -> Result<(), EngineError> {
+    async fn clean_fg(&self, distance: &str, position: &str) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         if let Some(window) = weak.upgrade() {
-            match position {
-                "0" => {
-                    window.set_fg_z1_body_0(Image::default());
-                    window.set_fg_z1_face_0(Image::default());
-                    window.set_fg_z2_body_0(Image::default());
-                    window.set_fg_z2_face_0(Image::default());
+            match (&position[..], &distance[..]) {
+                ("-2", "z1") => window.set_fg_z1__2(figure_default()),
+                ("2", "z1") => window.set_fg_z1_2(figure_default()),
+                ("0", "z1") => window.set_fg_z1_0(figure_default()),
+                ("0", "no") => window.set_fg_no_0(figure_default()),
+                ("All", "All") => {
+                    window.set_fg_z1__2(figure_default());
+                    window.set_fg_z1_0(figure_default());
+                    window.set_fg_z1_2(figure_default());
+                    window.set_fg_no_0(figure_default());
                 }
-                _ => (),
+                _ => unreachable!(),
             }
         }
 

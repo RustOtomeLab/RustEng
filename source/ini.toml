@@ -7,4 +7,4 @@ figure_path = "./source/figure/"
 save_path = "./savedata/"
 
 [character]
-list = ["rir"]
+list = ["rir", "rar"]
