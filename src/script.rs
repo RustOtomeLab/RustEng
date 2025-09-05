@@ -62,7 +62,9 @@ impl Script {
         self.name = name.to_string();
         let path = format!("{}{}.reg", ENGINE_CONFIG.script_path(), name);
         let script = fs::read_to_string(&path)?;
-        self.parse_script(&script)
+        self.parse_script(&script)?;
+        //println!("{:#?}", self.commands);
+        Ok(())
     }
 
     pub fn next_command(&mut self) -> Option<&Commands> {
@@ -169,14 +171,16 @@ impl Script {
     }
 
     pub fn pre_bgm(&mut self) -> PreBgm {
-        self.pre_bgm.clone()
+        let bgm = self.pre_bgm.clone();
+        self.pre_bgm = PreBgm::None;
+        bgm
     }
 
     pub fn pre_figures(&mut self) -> Option<Vec<Command>> {
         self.pre_figures.take()
     }
 
-    pub fn find_latest_fg(&self, index: &usize, position: &str) -> (String, String) {
+    pub fn find_latest_fg(&self, index: &usize, dis: &str, pos: &str) -> (String, String) {
         let (mut latest_body, mut latest_face) = (String::new(), String::new());
         for i in (0..=*index - 1).rev() {
             if let Some(figures) = self.figures.get(&i) {
@@ -184,14 +188,19 @@ impl Script {
                     if let Command::Figure {
                         body,
                         face,
-                        position: pos,
+                        distance,
+                        position,
                         ..
                     } = figure
                     {
-                        if pos == position && latest_face.is_empty() {
+                        if dis == distance && pos == position && latest_face.is_empty() {
                             latest_face = face.clone();
                         }
-                        if pos == position && !body.is_empty() && latest_body.is_empty() {
+                        if dis == distance
+                            && pos == position
+                            && !body.is_empty()
+                            && latest_body.is_empty()
+                        {
                             latest_body = body.clone();
                         }
                     }

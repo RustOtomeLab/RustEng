@@ -32,7 +32,7 @@ impl DelayExecutor {
             loop {
                 tokio::select! {
                     Some(figure) = rx.recv()=> {
-                        println!("收到delay指令");
+                        //println!("收到delay指令");
                         current_figure.push_back(figure);
                     }
 
@@ -46,7 +46,7 @@ impl DelayExecutor {
                             std::future::pending::<()>().await
                         }
                     } => {
-                        println!("delay结束");
+                        //println!("delay结束");
                         command_clone.write().unwrap().push_back(current_figure.pop_front().unwrap());
                     }
 
@@ -81,7 +81,7 @@ impl DelayExecutor {
                     ..
                 }) = command.write().unwrap().pop_front()
                 {
-                    println!("准备执行");
+                    //println!("准备执行");
                     let mut executor = executor.clone();
                     slint::spawn_local(async move {
                         executor

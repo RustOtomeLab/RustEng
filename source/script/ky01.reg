@@ -5,19 +5,20 @@
 旁白“壬戌之秋，七月既望”
 
 @voice rir|fem_rir_50520
-@fg rir|z1|rir_z1b0200|b0050|0
+@fg rir|no|rir_nob0200|nob0010|0
 莉々子“はじめまして、聖です。智宏さんがご兄妹の話をよくされるので、私もお噂はかねがね……とても仲の良いご様子で”
 
 @voice rir|fem_rir_50521
-@fg rir|z1||b0059|0
+@fg rir|no||nob0031|0
 莉々子“え、ええ、喜んでいただけたのなら何よりです。祖母の畑で採れたものですが、私もほんの少し収穫の手伝いをしたもので”
 
 @bgm bgm36
-@choose 3
+@choose 4
 test
 选择1 :start
 选择2 ky02
 选择3 ky01:test
+选择4 ky03
 
 @bg bg024c
 @bgm bgm37

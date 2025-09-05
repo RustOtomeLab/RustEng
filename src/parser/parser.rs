@@ -29,7 +29,7 @@ pub enum Command {
         position: String,
         delay: Option<String>,
     },
-    Clear(String),
+    Clear(String, String),
     Choice((String, HashMap<String, Label>)),
     Jump(Label),
     Label(String),
@@ -37,7 +37,7 @@ pub enum Command {
 }
 
 impl Command {
-    fn latest_fg(&self, index: &usize, pos: &str, script: &Script) -> Option<Command> {
+    fn latest_fg(&self, index: &usize, dis: &str, pos: &str, script: &Script) -> Option<Command> {
         if let Command::Figure {
             name,
             distance,
@@ -50,7 +50,7 @@ impl Command {
         {
             return match (!body.is_empty(), delay.is_some()) {
                 (false, true) => {
-                    let (body, face) = script.find_latest_fg(index, pos);
+                    let (body, face) = script.find_latest_fg(index, dis, pos);
                     Some(Command::Figure {
                         name: name.clone(),
                         distance: distance.clone(),
@@ -61,7 +61,7 @@ impl Command {
                     })
                 }
                 (false, false) => {
-                    let (body, _) = script.find_latest_fg(index, pos);
+                    let (body, _) = script.find_latest_fg(index, dis, pos);
                     Some(Command::Figure {
                         name: name.clone(),
                         distance: distance.clone(),
@@ -214,7 +214,7 @@ impl Script {
                                         delay: delay.map(|d| d.to_string()),
                                     };
                                     if let Some(cmd) =
-                                        command.latest_fg(block_index, position, self)
+                                        command.latest_fg(block_index, distance, position, self)
                                     {
                                         self.figures
                                             .entry(*block_index)
@@ -226,7 +226,20 @@ impl Script {
                                 _ => return Err(EngineError::from(ParserError::TooShort)),
                             }
                         }
-                        "clear" => Clear(arg.to_string()),
+                        "clear" => {
+                            if let Some((dis, pos)) = arg.split_once("|") {
+                                Clear(dis.to_string(), pos.to_string())
+                            } else {
+                                if arg == "All" {
+                                    Clear(arg.to_string(), arg.to_string())
+                                } else {
+                                    return Err(EngineError::from(ParserError::InvalidCommand {
+                                        line: *line_num,
+                                        content: line.to_string(),
+                                    }));
+                                }
+                            }
+                        }
                         "jump" => match arg.split_once(":") {
                             Some((name, label)) if !name.is_empty() && !label.is_empty() => {
                                 Jump((name.to_string(), label.to_string()))

@@ -16,8 +16,10 @@ export component MainWindow inherits Window {
     in property<[{ index: int, text: string }]> choose-branch;
     in property<image> bg;
     in property<string> pre-bg;
-    in property<image> fg-body-0;
-    in property<image> fg-face-0;
+    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-no-0;
+    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1-0;
+    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1-2;
+    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1--2;
     in property<bool> is-fullscreen: false;
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
@@ -25,9 +27,6 @@ export component MainWindow inherits Window {
     in-out property <float> delay;
     in-out property <bool> is-skip;
     in property<int> current-choose: 0;
-    in property <float> rate;
-    in property <float> face-x;
-    in property <float> face-y;
     property <bool> has-focus: true;
 
     in-out property <int> current-screen: 0;
@@ -116,17 +115,15 @@ export component MainWindow inherits Window {
             choose-branch: root.choose-branch;
             bg: root.bg;
             current-choose: root.current-choose;
+            fg-no-0: root.fg-no-0;
+            fg-z1--2: root.fg-z1--2;
+            fg-z1-0: root.fg-z1-0;
+            fg-z1-2: root.fg-z1-2;
 
             backlogs <=> root.backlogs;
             is_backlog <=> root.is_backlog;
             is-auto <=> root.is-auto;
             is-skip <=> root.is-skip;
-            
-            fg-body-0 <=> root.fg-body-0;
-            fg-face-0 <=> root.fg-face-0;
-            rate <=> root.rate;
-            face-x <=> root.face-x;
-            face-y <=> root.face-y;
 
             auto-play(b) => {
                 root.auto-play(b);

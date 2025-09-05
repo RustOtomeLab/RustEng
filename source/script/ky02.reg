@@ -2,16 +2,16 @@
 
 @label start
 @bg bg026a
-@clear 0
+@clear All
 旁白“换个场景”
 
 旁白“11454”
 
-@fg rir|z1|rir_z1b0200|b0050|0
+@fg rir|z1|rir_z1b0200|z1b0050|0
 旁白“11414”
 
-@fg rir|z1||b0059|0|2000
-@fg rir|z1||b0058|0|2000
+@fg rir|z1||z1b0059|0|2000
+@fg rir|z1||z1b0058|0|2000
 旁白“14514”
 
 旁白“666”
