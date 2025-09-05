@@ -2,4 +2,7 @@ cast = [
     {name = "rir_z1a0200", rate = 0.363},
     {name = "rir_z1b0200", rate = 0.389},
     {name = "rir_z1b0210", rate = 0.389},
+    {name = "rir_z2a0200", rate = 0.363},
+    {name = "rir_z2b0200", rate = 0.389},
+    {name = "rir_z2b0210", rate = 0.389},
 ]

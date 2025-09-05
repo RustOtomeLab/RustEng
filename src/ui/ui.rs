@@ -38,7 +38,7 @@ pub async fn ui(
     window.on_save({
         let executor = executor.clone();
         move |index| {
-            println!("准备存档");
+            //println!("准备存档");
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_save(index).await })
                 .expect("Save panicked");
@@ -48,7 +48,7 @@ pub async fn ui(
     window.on_load({
         let executor = executor.clone();
         move |name, index| {
-            println!("准备读档");
+            //println!("准备读档");
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_load(name.to_string(), index).await })
                 .expect("Load panicked");

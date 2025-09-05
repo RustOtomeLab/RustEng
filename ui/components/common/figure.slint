@@ -1,0 +1,46 @@
+export component FigureZ1 {
+    in property <image> fg-body;
+    in property <image> fg-face;
+    in property <float> rate;
+    in property <float> face-x;
+    in property <float> face-y;
+
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: parent.width * 0.25;
+        height: self.width / rate;
+        Image {
+            source: fg-body;
+            width: parent.width * 0.25;
+            height: self.width / rate;
+            x: 0;
+            y: 0;
+
+            // 角色表情
+            Image {
+                source: fg-face;
+                width: fg-face.width * parent.width / fg-body.width;
+                height: fg-face.height * parent.height / fg-body.height;
+                x: parent.width * face-x;
+                y: parent.height * face-y;
+            }
+        }
+    }
+//    if position == 0 && zoom == 2: Image {
+//        source: fg-body;
+//        width: parent.width * 0.32;
+//        height: self.width / rate;
+//        x: parent.width * 0.34;
+//        y: parent.height / 7;
+//
+//        // 角色表情
+//        Image {
+//            source: fg-face;
+//            width: fg-face.width * parent.width / fg-body.width;
+//            height: fg-face.height * parent.height / fg-body.height;
+//            x: parent.width * face-x;
+//            y: parent.height * face-y;
+//        }
+//    }
+}

@@ -16,8 +16,10 @@ export component MainWindow inherits Window {
     in property<[{ index: int, text: string }]> choose-branch;
     in property<image> bg;
     in property<string> pre-bg;
-    in property<image> fg-body-0;
-    in property<image> fg-face-0;
+    in property<image> fg-z1-body-0;
+    in property<image> fg-z1-face-0;
+    in property <image> fg-z2-body-0;
+    in property <image> fg-z2-face-0;
     in property<bool> is-fullscreen: false;
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
@@ -122,8 +124,10 @@ export component MainWindow inherits Window {
             is-auto <=> root.is-auto;
             is-skip <=> root.is-skip;
             
-            fg-body-0 <=> root.fg-body-0;
-            fg-face-0 <=> root.fg-face-0;
+            fg-z1-body-0 <=> root.fg-z1-body-0;
+            fg-z1-face-0 <=> root.fg-z1-face-0;
+            fg-z2-body-0 <=> root.fg-z2-body-0;
+            fg-z2-face-0 <=> root.fg-z2-face-0;
             rate <=> root.rate;
             face-x <=> root.face-x;
             face-y <=> root.face-y;

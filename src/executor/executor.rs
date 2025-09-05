@@ -221,7 +221,7 @@ impl Executor {
 
         if let Some(window) = self.weak.upgrade() {
             if window.get_is_auto() {
-                println!("choose: 5s");
+                //println!("choose: 5s");
                 self.auto_tx
                     .clone()
                     .unwrap()
@@ -288,7 +288,7 @@ impl Executor {
     pub async fn execute_auto(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
-                println!("发送");
+                //println!("发送");
                 self.auto_tx
                     .clone()
                     .unwrap()
@@ -296,13 +296,13 @@ impl Executor {
                     .await?;
                 tx.send(()).await?;
             } else {
-                println!("准备停止");
+                //println!("准备停止");
                 if window.get_is_auto() {
-                    println!("正在自动");
+                    //println!("正在自动");
                     tx.send(()).await?;
                 }
                 window.set_is_auto(false);
-                println!("停止自动");
+                //println!("停止自动");
             }
         }
 
@@ -312,16 +312,16 @@ impl Executor {
     pub async fn execute_skip(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
-                println!("发送");
+                //println!("发送");
                 tx.send(()).await?;
             } else {
-                println!("准备停止");
+                //println!("准备停止");
                 if window.get_is_skip() {
-                    println!("正在快进");
+                    //println!("正在快进");
                     tx.send(()).await?;
                 }
                 window.set_is_skip(false);
-                println!("停止快进");
+                //println!("停止快进");
             }
         }
 
@@ -369,7 +369,7 @@ impl Executor {
         }
 
         if is_auto {
-            println!("script:{:?}", duration);
+            //println!("script:{:?}", duration);
             self.auto_tx.clone().unwrap().send(duration).await?;
         }
 
@@ -462,7 +462,7 @@ impl Executor {
             }
         };
 
-        println!("apply cmd:{:?}", duration);
+        //println!("apply cmd:{:?}", duration);
         Ok(duration)
     }
 
@@ -530,7 +530,11 @@ impl Executor {
                     )))
                     .unwrap()
                 } else {
-                    window.get_fg_body_0()
+                    match &distance[..] {
+                        "z1" => window.get_fg_z1_body_0(),
+                        "z2" => window.get_fg_z2_body_0(),
+                        _ => unreachable!()
+                    }
                 };
                 let face = if !face.is_empty() {
                     let (face_x, face_y) = face_para.get(face).unwrap();
@@ -545,14 +549,22 @@ impl Executor {
                     )))
                     .unwrap()
                 } else {
-                    window.get_fg_face_0()
-                };
-                match &position[..] {
-                    "0" => {
-                        window.set_fg_body_0(body);
-                        window.set_fg_face_0(face);
+                    match &distance[..] {
+                        "z1" => window.get_fg_z1_face_0(),
+                        "z2" => window.get_fg_z2_face_0(),
+                        _ => unreachable!()
                     }
-                    _ => (),
+                };
+                match (&position[..], &distance[..]) {
+                    ("0", "z1") => {
+                        window.set_fg_z1_body_0(body);
+                        window.set_fg_z1_face_0(face);
+                    }
+                    ("0", "z2") => {
+                        window.set_fg_z2_body_0(body);
+                        window.set_fg_z2_face_0(face);
+                    }
+                    _ => unreachable!(),
                 }
             }
         }
@@ -565,8 +577,10 @@ impl Executor {
         if let Some(window) = weak.upgrade() {
             match position {
                 "0" => {
-                    window.set_fg_body_0(Image::default());
-                    window.set_fg_face_0(Image::default());
+                    window.set_fg_z1_body_0(Image::default());
+                    window.set_fg_z1_face_0(Image::default());
+                    window.set_fg_z2_body_0(Image::default());
+                    window.set_fg_z2_face_0(Image::default());
                 }
                 _ => (),
             }
