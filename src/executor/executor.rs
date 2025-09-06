@@ -35,6 +35,7 @@ pub struct Executor {
     delay_tx: Option<Sender<Command>>,
     auto_tx: Option<Sender<Duration>>,
     fg_skip_tx: Option<Sender<()>>,
+    fg_clear_tx: Option<Sender<()>>,
 }
 
 impl Clone for Executor {
@@ -48,6 +49,7 @@ impl Clone for Executor {
             delay_tx: self.delay_tx.clone(),
             auto_tx: self.auto_tx.clone(),
             fg_skip_tx: self.fg_skip_tx.clone(),
+            fg_clear_tx: self.fg_clear_tx.clone(),
         }
     }
 }
@@ -68,6 +70,7 @@ impl Executor {
             delay_tx: None,
             auto_tx: None,
             fg_skip_tx: None,
+            fg_clear_tx: None,
         }
     }
 
@@ -85,6 +88,10 @@ impl Executor {
 
     pub fn set_fg_skip_tx(&mut self, fg_skip_tx: Sender<()>) {
         self.fg_skip_tx = Some(fg_skip_tx);
+    }
+
+    pub fn set_fg_clear_tx(&mut self, fg_clear_tx: Sender<()>) {
+        self.fg_clear_tx = Some(fg_clear_tx);
     }
 
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
@@ -333,7 +340,15 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
-        self.fg_skip_tx.clone().unwrap().send(()).await?;
+        {
+            let scr = self.script.clone();
+            let scr = scr.borrow();
+            if scr.clear.get(&scr.index()).is_some() {
+                self.fg_clear_tx.clone().unwrap().send(()).await?;
+            } else {
+                self.fg_skip_tx.clone().unwrap().send(()).await?;
+            }
+        }
 
         let mut duration = Duration::default();
         let mut is_wait = true;

@@ -227,6 +227,7 @@ impl Script {
                             }
                         }
                         "clear" => {
+                            self.clear.insert(*block_index);
                             if let Some((dis, pos)) = arg.split_once("|") {
                                 Clear(dis.to_string(), pos.to_string())
                             } else {

@@ -13,9 +13,10 @@ pub struct DelayExecutor {
 }
 
 impl DelayExecutor {
-    pub fn new(executor: Executor) -> (Self, Sender<Command>, Sender<()>) {
+    pub fn new(executor: Executor) -> (Self, Sender<Command>, Sender<()>, Sender<()>) {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<Command>(10);
         let (skip_tx, mut skip_rx) = tokio::sync::mpsc::channel::<()>(10);
+        let (clear_tx, mut clear_rx) = tokio::sync::mpsc::channel::<()>(10);
 
         let timer = slint::Timer::default();
         let command = Arc::new(RwLock::new(VecDeque::new()));
@@ -57,11 +58,16 @@ impl DelayExecutor {
                             command_clone.write().unwrap().push_back(figure);
                         }
                     }
+                    
+                    // 清空请求
+                    _ = clear_rx.recv() => {
+                        current_figure.clear();
+                    }
                 }
             }
         });
 
-        (executor, tx, skip_tx)
+        (executor, tx, skip_tx, clear_tx)
     }
 
     pub fn start_timer(&self) {

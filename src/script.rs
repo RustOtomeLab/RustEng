@@ -3,7 +3,7 @@ use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
 use slint::{SharedString, ToSharedString};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 
 pub type Label = (String, String);
@@ -32,6 +32,7 @@ pub struct Script {
     pub(crate) backgrounds: BTreeMap<usize, String>,
     pre_bg: Option<String>,
     pub(crate) figures: BTreeMap<usize, Vec<Command>>,
+    pub(crate) clear: HashSet<usize>,
     pre_figures: Option<Vec<Command>>,
     pub(crate) choices: HashMap<String, Label>,
     pub(crate) labels: HashMap<String, usize>,
@@ -52,6 +53,7 @@ impl Script {
             backgrounds: BTreeMap::new(),
             pre_bg: None,
             figures: BTreeMap::new(),
+            clear: HashSet::new(),
             pre_figures: None,
             choices: HashMap::new(),
             labels: HashMap::new(),
