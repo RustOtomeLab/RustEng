@@ -11,10 +11,17 @@ export component StoryView {
     in property <[{ index: int, text: string }]> choose-branch;
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
     in property <image> bg;
-    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-no-0;
-    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1-0;
-    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1-2;
-    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1--2;
+    in property <{ body: image, rate: float }> fg-no-0;
+    in property <{ face: image, face-x: float, face-y: float }> face-no-0;
+    in property <{ body: image, rate: float }> fg-z1-0;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1-0;
+    in property <{ x_offset: length, y_offset: length }> offset-z1-0;
+    in property <{ body: image, rate: float }> fg-z1-2;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1-2;
+    in property <{ x_offset: length, y_offset: length }> offset-z1-2;
+    in property <{ body: image, rate: float }> fg-z1--2;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1--2;
+    in property <{ x_offset: length, y_offset: length }> offset-z1--2;
     in property <int> current-choose: 0;
     in-out property <bool> is_backlog;
     in-out property <bool> is-auto;
@@ -30,7 +37,6 @@ export component StoryView {
     callback settings();
     callback save-game();
     callback load-game();
-    
 
     TouchArea {
         width: parent.width;
@@ -75,65 +81,89 @@ export component StoryView {
 
             // 角色表情
             Image {
-                source: fg-no-0.face;
+                source: face-no-0.face;
                 width: self.source.width * parent.width / parent.source.width;
                 height: self.source.height * parent.height / parent.source.height;
-                x: parent.width * fg-no-0.face-x;
-                y: parent.height * fg-no-0.face-y;
+                x: parent.width * face-no-0.face-x;
+                y: parent.height * face-no-0.face-y;
             }
         }
         
         // 角色立绘 居中近距离
         Image {
+            in-out property <length> x-offset: offset-z1-0.x-offset;
+            in-out property <length> y-offset: offset-z1-0.y-offset;
+
+            animate x-offset, y-offset {
+                 duration: 150ms;
+                 easing: ease-in-out;
+            }
+        
             source: fg-z1-0.body;
             width: parent.width * 0.34;
             height: self.width / fg-z1-0.rate;
-            x: parent.width * 0.33;
-            y: parent.height / 8;
+            x: parent.width * 0.33 + x-offset;
+            y: parent.height / 8 + y-offset;
 
             // 角色表情
             Image {
-                source: fg-z1-0.face;
+                source: face-z1-0.face;
                 width: self.source.width * parent.width / parent.source.width;
                 height: self.source.height * parent.height / parent.source.height;
-                x: parent.width * fg-z1-0.face-x;
-                y: parent.height * fg-z1-0.face-y;
+                x: parent.width * face-z1-0.face-x;
+                y: parent.height * face-z1-0.face-y;
             }
         }
 
         // 角色立绘 左侧面近距离
         Image {
+            in-out property <length> x-offset: offset-z1--2.x-offset;
+            in-out property <length> y-offset: offset-z1--2.y-offset;
+
+            animate x-offset, y-offset {
+                 duration: 150ms;
+                 easing: ease-in-out;
+            }
+        
             source: fg-z1--2.body;
             width: parent.width * 0.34;
             height: self.width / fg-z1--2.rate;
-            x: parent.width * 0.16;
-            y: parent.height / 8;
+            x: parent.width * 0.16 + x-offset;
+            y: parent.height / 8 + y-offset;
 
             // 角色表情
             Image {
-                source: fg-z1--2.face;
+                source: face-z1--2.face;
                 width: self.source.width * parent.width / parent.source.width;
                 height: self.source.height * parent.height / parent.source.height;
-                x: parent.width * fg-z1--2.face-x;
-                y: parent.height * fg-z1--2.face-y;
+                x: parent.width * face-z1--2.face-x;
+                y: parent.height * face-z1--2.face-y;
             }
         }
 
         // 角色立绘 右侧面近距离
         Image {
+            in-out property <length> x-offset: offset-z1-2.x-offset;
+            in-out property <length> y-offset: offset-z1-2.y-offset;
+
+            animate x-offset, y-offset {
+                 duration: 150ms;
+                 easing: ease-in-out;
+            }
+        
             source: fg-z1-2.body;
             width: parent.width * 0.34;
             height: self.width / fg-z1-2.rate;
-            x: parent.width * 0.5;
-            y: parent.height / 8;
+            x: parent.width * 0.5 + x-offset;
+            y: parent.height / 8 + y-offset;
 
             // 角色表情
             Image {
-                source: fg-z1-2.face;
+                source: face-z1-2.face;
                 width: self.source.width * parent.width / parent.source.width;
                 height: self.source.height * parent.height / parent.source.height;
-                x: parent.width * fg-z1-2.face-x;
-                y: parent.height * fg-z1-2.face-y;
+                x: parent.width * face-z1-2.face-x;
+                y: parent.height * face-z1-2.face-y;
             }
         }
 

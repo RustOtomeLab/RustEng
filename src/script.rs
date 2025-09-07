@@ -3,7 +3,7 @@ use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::parser::parser::{Command, Commands};
 use slint::{SharedString, ToSharedString};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 
 pub type Label = (String, String);
@@ -31,8 +31,9 @@ pub struct Script {
     pre_bgm: PreBgm,
     pub(crate) backgrounds: BTreeMap<usize, String>,
     pre_bg: Option<String>,
-    pub(crate) figures: BTreeMap<usize, Vec<Command>>,
-    pre_figures: Option<Vec<Command>>,
+    figures: BTreeMap<usize, Figure>,
+    pub(crate) clear: HashSet<usize>,
+    pre_figures: Option<Figure>,
     pub(crate) choices: HashMap<String, Label>,
     pub(crate) labels: HashMap<String, usize>,
 }
@@ -52,6 +53,7 @@ impl Script {
             backgrounds: BTreeMap::new(),
             pre_bg: None,
             figures: BTreeMap::new(),
+            clear: HashSet::new(),
             pre_figures: None,
             choices: HashMap::new(),
             labels: HashMap::new(),
@@ -108,8 +110,21 @@ impl Script {
         self.pre_bg = pre_bg;
     }
 
-    pub fn set_pre_figures(&mut self, pre_figures: Option<Vec<Command>>) {
+    pub fn set_pre_figures(&mut self, pre_figures: Option<Figure>) {
         self.pre_figures = pre_figures;
+    }
+
+    pub fn update_figures(
+        &mut self,
+        index: usize,
+        distance: &str,
+        position: &str,
+        command: Command,
+    ) {
+        self.figures
+            .entry(index)
+            .or_insert_with(Figure::default)
+            .push(distance, position, command);
     }
 
     pub fn set_backlog(&mut self, backlog: Vec<BackLog>) {
@@ -176,39 +191,8 @@ impl Script {
         bgm
     }
 
-    pub fn pre_figures(&mut self) -> Option<Vec<Command>> {
+    pub fn pre_figures(&mut self) -> Option<Figure> {
         self.pre_figures.take()
-    }
-
-    pub fn find_latest_fg(&self, index: &usize, dis: &str, pos: &str) -> (String, String) {
-        let (mut latest_body, mut latest_face) = (String::new(), String::new());
-        for i in (0..=*index - 1).rev() {
-            if let Some(figures) = self.figures.get(&i) {
-                for figure in figures {
-                    if let Command::Figure {
-                        body,
-                        face,
-                        distance,
-                        position,
-                        ..
-                    } = figure
-                    {
-                        if dis == distance && pos == position && latest_face.is_empty() {
-                            latest_face = face.clone();
-                        }
-                        if dis == distance
-                            && pos == position
-                            && !body.is_empty()
-                            && latest_body.is_empty()
-                        {
-                            latest_body = body.clone();
-                        }
-                    }
-                }
-            }
-        }
-
-        (latest_body, latest_face)
     }
 
     pub fn find_label(&self, name: &str) -> Option<&usize> {
@@ -227,7 +211,37 @@ impl Script {
         self.backgrounds.range(..=index).next_back()
     }
 
-    pub fn get_figures(&self, index: usize) -> Option<(&usize, &Vec<Command>)> {
+    pub fn get_figures(&self, index: usize) -> Option<(&usize, &Figure)> {
         self.figures.range(..=index).next_back()
+    }
+
+    pub fn change_figure(&mut self, index: usize, distance: &str, position: &str) -> Command {
+        let pos = format!("{}{}", distance, position);
+        let mut idx = 0;
+        for i in (0..=index).rev() {
+            if let Some(fg) = self.figures.get(&i) {
+                if fg.0.get(&pos).is_some() {
+                    idx = i;
+                    break;
+                }
+            }
+        }
+        let figure = self.figures.get_mut(&idx).unwrap();
+        figure.0.remove(&pos).unwrap()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Figure(pub HashMap<String, Command>);
+
+impl Default for Figure {
+    fn default() -> Self {
+        Figure(HashMap::new())
+    }
+}
+
+impl Figure {
+    fn push(&mut self, distance: &str, position: &str, command: Command) {
+        self.0.insert(format!("{}{}", distance, position), command);
     }
 }

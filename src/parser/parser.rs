@@ -29,6 +29,15 @@ pub enum Command {
         position: String,
         delay: Option<String>,
     },
+    Move {
+        name: String,
+        distance: String,
+        body: String,
+        face: String,
+        position: String,
+        action: String,
+        delay: Option<String>,
+    },
     Clear(String, String),
     Choice((String, HashMap<String, Label>)),
     Jump(Label),
@@ -37,45 +46,16 @@ pub enum Command {
 }
 
 impl Command {
-    fn latest_fg(&self, index: &usize, dis: &str, pos: &str, script: &Script) -> Option<Command> {
-        if let Command::Figure {
-            name,
-            distance,
-            body,
-            face,
-            position,
-            delay,
-            ..
-        } = self
-        {
-            return match (!body.is_empty(), delay.is_some()) {
-                (false, true) => {
-                    let (body, face) = script.find_latest_fg(index, dis, pos);
-                    Some(Command::Figure {
-                        name: name.clone(),
-                        distance: distance.clone(),
-                        body,
-                        face,
-                        position: position.clone(),
-                        delay: None,
-                    })
-                }
-                (false, false) => {
-                    let (body, _) = script.find_latest_fg(index, dis, pos);
-                    Some(Command::Figure {
-                        name: name.clone(),
-                        distance: distance.clone(),
-                        body,
-                        face: face.clone(),
-                        position: position.clone(),
-                        delay: None,
-                    })
-                }
-                (true, true) => None,
-                (true, false) => Some(self.clone()),
-            };
+    pub fn delete_delay(&mut self) {
+        if let Command::Figure { delay, .. } | Command::Move { delay, .. } = self {
+            delay.take();
         }
-        unreachable!()
+    }
+
+    pub fn change_position(&mut self, pos: &str) {
+        if let Command::Figure { position, .. } | Command::Move { position, .. } = self {
+            *position = pos.to_string();
+        }
     }
 }
 
@@ -211,15 +191,56 @@ impl Script {
                                         body: body.to_string(),
                                         face: face.to_string(),
                                         position: position.to_string(),
+                                        delay: None,
+                                    };
+                                    self.update_figures(*block_index, distance, position, command);
+                                    Figure {
+                                        name: name.to_string(),
+                                        distance: distance.to_string(),
+                                        body: body.to_string(),
+                                        face: face.to_string(),
+                                        position: position.to_string(),
+                                        delay: delay.map(|d| d.to_string()),
+                                    }
+                                }
+                                _ => return Err(EngineError::from(ParserError::TooShort)),
+                            }
+                        }
+                        "move" => {
+                            let mut parts = arg.split('|').map(str::trim);
+                            match (
+                                parts.next(),
+                                parts.next(),
+                                parts.next(),
+                                parts.next(),
+                                parts.next(),
+                                parts.next(),
+                                parts.next(),
+                            ) {
+                                (
+                                    Some(name),
+                                    Some(distance),
+                                    Some(body),
+                                    Some(face),
+                                    Some(position),
+                                    Some(action),
+                                    delay,
+                                ) => {
+                                    let command = Move {
+                                        name: name.to_string(),
+                                        distance: distance.to_string(),
+                                        body: body.to_string(),
+                                        face: face.to_string(),
+                                        position: position.to_string(),
+                                        action: action.to_string(),
                                         delay: delay.map(|d| d.to_string()),
                                     };
-                                    if let Some(cmd) =
-                                        command.latest_fg(block_index, distance, position, self)
-                                    {
-                                        self.figures
-                                            .entry(*block_index)
-                                            .or_insert_with(Vec::new)
-                                            .push(cmd);
+                                    if action.contains("to") {
+                                        let mut cmd =
+                                            self.change_figure(*block_index, distance, position);
+                                        cmd.change_position(position);
+                                        let (_, pos) = action.split_once('o').unwrap();
+                                        self.update_figures(*block_index, distance, pos, cmd);
                                     }
                                     command
                                 }
@@ -227,6 +248,7 @@ impl Script {
                             }
                         }
                         "clear" => {
+                            self.clear.insert(*block_index);
                             if let Some((dis, pos)) = arg.split_once("|") {
                                 Clear(dis.to_string(), pos.to_string())
                             } else {

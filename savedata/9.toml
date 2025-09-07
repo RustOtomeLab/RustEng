@@ -1,4 +1,4 @@
-script = ""
-block_index = 0
-explain = "空的"
-image_path = ""
+script = "ky03"
+block_index = 8
+explain = "ありがとうご..."
+image_path = "./source/background/bg037a.png"

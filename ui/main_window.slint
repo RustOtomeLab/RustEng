@@ -16,10 +16,17 @@ export component MainWindow inherits Window {
     in property<[{ index: int, text: string }]> choose-branch;
     in property<image> bg;
     in property<string> pre-bg;
-    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-no-0;
-    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1-0;
-    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1-2;
-    in property <{ body: image, face: image, rate: float, face-x: float, face-y: float }> fg-z1--2;
+    in property <{ body: image, rate: float }> fg-no-0;
+    in property <{ face: image, face-x: float, face-y: float }> face-no-0;
+    in property <{ body: image, rate: float }> fg-z1-0;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1-0;
+    in property <{ x_offset: length, y_offset: length }> offset-z1-0;
+    in property <{ body: image, rate: float }> fg-z1-2;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1-2;
+    in property <{ x_offset: length, y_offset: length }> offset-z1-2;
+    in property <{ body: image, rate: float }> fg-z1--2;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1--2;
+    in property <{ x_offset: length, y_offset: length }> offset-z1--2;
     in property<bool> is-fullscreen: false;
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
@@ -45,8 +52,8 @@ export component MainWindow inherits Window {
 
     // 计算容器尺寸
     property <length> container-size: min(self.width, self.height * 16 / 9);
-    property <length> container-width: container-size;
-    property <length> container-height: container-size * 9 / 16;
+    out property <length> container-width: container-size;
+    out property <length> container-height: container-size * 9 / 16;
 
     FocusScope {
         width: parent.width;
@@ -116,9 +123,16 @@ export component MainWindow inherits Window {
             bg: root.bg;
             current-choose: root.current-choose;
             fg-no-0: root.fg-no-0;
+            face-no-0: root.face-no-0;
             fg-z1--2: root.fg-z1--2;
+            face-z1--2: root.face-z1--2;
+            offset-z1--2: root.offset-z1--2;
             fg-z1-0: root.fg-z1-0;
+            face-z1-0: root.face-z1-0;
+            offset-z1-0: root.offset-z1-0;
             fg-z1-2: root.fg-z1-2;
+            face-z1-2: root.face-z1-2;
+            offset-z1-2: root.offset-z1-2;
 
             backlogs <=> root.backlogs;
             is_backlog <=> root.is_backlog;
