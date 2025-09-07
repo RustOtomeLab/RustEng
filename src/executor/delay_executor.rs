@@ -8,7 +8,7 @@ use tokio::time::{sleep, Duration};
 
 pub struct DelayExecutor {
     timer: slint::Timer,
-    executor: Executor,
+    pub(crate) executor: Executor,
     command: Arc<RwLock<VecDeque<Command>>>,
 }
 
@@ -39,7 +39,8 @@ impl DelayExecutor {
 
                     // 延迟完成
                     _ = async {
-                        if let Some(Command::Figure {delay, ..}) = current_figure.front(){
+                        if let Some(Command::Figure {delay, ..})
+                        | Some(Command::Move {delay, ..}) = current_figure.front(){
                             sleep(Duration::from_millis(
                                 delay.clone().unwrap().parse::<u64>().unwrap_or(0),
                             )).await;
@@ -58,7 +59,7 @@ impl DelayExecutor {
                             command_clone.write().unwrap().push_back(figure);
                         }
                     }
-                    
+
                     // 清空请求
                     _ = clear_rx.recv() => {
                         current_figure.clear();
@@ -76,32 +77,14 @@ impl DelayExecutor {
 
         self.timer.start(
             slint::TimerMode::Repeated,
-            Duration::from_millis(40),
+            Duration::from_millis(20),
             move || {
-                if let Some(Command::Figure {
-                    name,
-                    distance,
-                    face,
-                    body,
-                    position,
-                    ..
-                }) = command.write().unwrap().pop_front()
-                {
+                if let Some(mut cmd) = command.write().unwrap().pop_front() {
                     //println!("准备执行");
+                    cmd.delete_delay();
                     let mut executor = executor.clone();
-                    slint::spawn_local(async move {
-                        executor
-                            .apply_command(Command::Figure {
-                                name,
-                                distance,
-                                face,
-                                body,
-                                position,
-                                delay: None,
-                            })
-                            .await
-                    })
-                    .expect("Delay panicked");
+                    slint::spawn_local(async move { executor.apply_command(cmd).await })
+                        .expect("Delay panicked");
                 }
             },
         );

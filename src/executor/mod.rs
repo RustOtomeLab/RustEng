@@ -16,6 +16,7 @@ pub struct ExecutorTX {
     _auto_executor: AutoExecutor,
     _skip_executor: SkipExecutor,
     _delay_executor: DelayExecutor,
+    _delay_move_executor: DelayExecutor,
 }
 
 impl ExecutorTX {
@@ -29,11 +30,22 @@ impl ExecutorTX {
 }
 
 pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
-    let (delay_executor, delay_tx, figure_skip_tx, figure_clear_tx) = DelayExecutor::new(executor.clone());
+    let (delay_executor, delay_tx, figure_skip_tx, figure_clear_tx) =
+        DelayExecutor::new(executor.clone());
     delay_executor.start_timer();
     executor.set_delay_tx(delay_tx);
     executor.set_fg_skip_tx(figure_skip_tx);
     executor.set_fg_clear_tx(figure_clear_tx);
+
+    let (mut delay_move_executor, delay_move_tx, move_skip_tx, move_clear_tx) =
+        DelayExecutor::new(executor.clone());
+    executor.set_delay_move_tx(delay_move_tx.clone());
+    delay_move_executor
+        .executor
+        .set_delay_move_tx(delay_move_tx);
+    executor.set_move_skip_tx(move_skip_tx);
+    executor.set_move_clear_tx(move_clear_tx);
+    delay_move_executor.start_timer();
 
     let (mut auto_executor, auto_tx, auto_delay_tx) = AutoExecutor::new(executor.clone());
     executor.set_auto_tx(auto_delay_tx.clone());
@@ -53,5 +65,6 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
         _auto_executor: auto_executor,
         _skip_executor: skip_executor,
         _delay_executor: delay_executor,
+        _delay_move_executor: delay_move_executor,
     })
 }
