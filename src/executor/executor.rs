@@ -6,6 +6,7 @@ use crate::config::user::save_user_config;
 use crate::config::voice::VOICE_CONFIG;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
+use crate::executor::text_executor::DisplayText;
 use crate::parser::parser::{Command, Commands};
 use crate::script::{Label, Script};
 use crate::ui::ui::MainWindow;
@@ -17,7 +18,6 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use crate::executor::text_executor::DisplayText;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -98,7 +98,7 @@ impl Executor {
     pub fn get_weak(&self) -> Weak<MainWindow> {
         self.weak.clone()
     }
-    
+
     pub fn set_text_tx(&mut self, text_tx: Sender<Arc<RwLock<DisplayText>>>) {
         self.text_tx = Some(text_tx);
     }
@@ -391,7 +391,7 @@ impl Executor {
             let mut text = self.text.write().unwrap();
             if text.is_running {
                 text.end();
-                return Ok(())
+                return Ok(());
             }
         }
 
@@ -499,7 +499,7 @@ impl Executor {
                     window.set_speaker(SharedString::from(speaker));
                     {
                         let mut send_text = self.text.write().unwrap();
-                        send_text.start_animation(text);
+                        send_text.start_animation(text, window.get_text_speed());
                     }
                     let tx = self.text_tx.clone().unwrap();
                     tx.send(self.text.clone()).await?;

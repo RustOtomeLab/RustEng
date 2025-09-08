@@ -1,4 +1,5 @@
 use crate::config::system::AutoConfig;
+use crate::config::text::TextConfig;
 use crate::config::volume::VolumeConfig;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
@@ -14,6 +15,7 @@ lazy_static::lazy_static! {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UserConfig {
     auto: AutoConfig,
+    text: TextConfig,
     volume: VolumeConfig,
 }
 
@@ -38,9 +40,18 @@ impl UserConfig {
         self.volume.voice()
     }
 
+    pub fn speed(&self) -> f32 {
+        self.text.speed()
+    }
+
+    pub fn opacity(&self) -> f32 {
+        self.text.opacity()
+    }
+
     pub fn from_weak(weak: Weak<MainWindow>) -> Self {
         UserConfig {
             auto: AutoConfig::from_weak(weak.clone()),
+            text: TextConfig::from_weak(weak.clone()),
             volume: VolumeConfig::from_weak(weak),
         }
     }

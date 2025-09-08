@@ -3,8 +3,8 @@ use crate::executor::auto_executor::AutoExecutor;
 use crate::executor::delay_executor::DelayExecutor;
 use crate::executor::executor::Executor;
 use crate::executor::skip_executor::SkipExecutor;
-use tokio::sync::mpsc::Sender;
 use crate::executor::text_executor::TextExecutor;
+use tokio::sync::mpsc::Sender;
 
 pub mod auto_executor;
 pub mod delay_executor;
@@ -65,6 +65,7 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     executor.load_save_data()?;
     executor.load_volume();
     executor.load_auto();
+    executor.load_text();
 
     Ok(ExecutorTX {
         auto_tx,

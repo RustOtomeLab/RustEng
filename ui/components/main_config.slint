@@ -5,6 +5,7 @@ import { Colors } from "../styles/colors.slint";
 import { ScreenConfig } from "config/screen.slint";
 import { VolumeConfig } from "config/volume.slint";
 import { SystemConfig } from "config/system.slint";
+import { TextConfig } from "config/text.slint";
 
 export component SettingsView {
     in property <length> container-width;
@@ -15,6 +16,8 @@ export component SettingsView {
     in-out property <float> voice-volume;
     in-out property <bool> is-wait;
     in-out property <float> delay;
+    in-out property <float> text-speed;
+    in-out property <float> dialogue-opacity;
     property <int> config-view: 0;
 
     callback back();
@@ -113,6 +116,16 @@ export component SettingsView {
                 
                 is-wait <=> root.is-wait;
                 delay <=> root.delay;
+            }
+            
+            if config-view == 2: TextConfig {
+                x: 0;
+                y: 0;
+                height: parent.height;
+                width: parent.width;
+                
+                dialogue-opacity <=> root.dialogue-opacity;
+                text-speed <=> root.text-speed;
             }
 
             if config-view == 3: VolumeConfig {
