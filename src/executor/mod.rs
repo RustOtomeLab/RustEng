@@ -3,16 +3,19 @@ use crate::executor::auto_executor::AutoExecutor;
 use crate::executor::delay_executor::DelayExecutor;
 use crate::executor::executor::Executor;
 use crate::executor::skip_executor::SkipExecutor;
+use crate::executor::text_executor::TextExecutor;
 use tokio::sync::mpsc::Sender;
 
 pub mod auto_executor;
 pub mod delay_executor;
 pub mod executor;
 pub mod skip_executor;
+pub mod text_executor;
 
 pub struct ExecutorTX {
     auto_tx: Sender<()>,
     skip_tx: Sender<()>,
+    _text_executor: TextExecutor,
     _auto_executor: AutoExecutor,
     _skip_executor: SkipExecutor,
     _delay_executor: DelayExecutor,
@@ -30,6 +33,10 @@ impl ExecutorTX {
 }
 
 pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
+    let (mut text_executor, text_tx) = TextExecutor::new(executor.clone());
+    text_executor.start_timer();
+    executor.set_text_tx(text_tx);
+
     let (delay_executor, delay_tx, figure_skip_tx, figure_clear_tx) =
         DelayExecutor::new(executor.clone());
     delay_executor.start_timer();
@@ -58,10 +65,12 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     executor.load_save_data()?;
     executor.load_volume();
     executor.load_auto();
+    executor.load_text();
 
     Ok(ExecutorTX {
         auto_tx,
         skip_tx,
+        _text_executor: text_executor,
         _auto_executor: auto_executor,
         _skip_executor: skip_executor,
         _delay_executor: delay_executor,

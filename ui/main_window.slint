@@ -32,6 +32,8 @@ export component MainWindow inherits Window {
     in-out property <bool> is-auto;
     in-out property <bool> is-wait;
     in-out property <float> delay;
+    in-out property <float> text-speed;
+    in-out property <float> dialogue-opacity;
     in-out property <bool> is-skip;
     in property<int> current-choose: 0;
     property <bool> has-focus: true;
@@ -103,6 +105,8 @@ export component MainWindow inherits Window {
             voice-volume <=> root.voice-volume;
             is-wait <=> root.is-wait;
             delay <=> root.delay;
+            dialogue-opacity <=> root.dialogue-opacity;
+            text-speed <=> root.text-speed;
 
             back => { 
                 root.save-config();
@@ -133,6 +137,7 @@ export component MainWindow inherits Window {
             fg-z1-2: root.fg-z1-2;
             face-z1-2: root.face-z1-2;
             offset-z1-2: root.offset-z1-2;
+            dialogue-opacity: root.dialogue-opacity;
 
             backlogs <=> root.backlogs;
             is_backlog <=> root.is_backlog;

@@ -7,6 +7,7 @@ pub mod initialize;
 pub mod save_load;
 
 pub mod system;
+pub mod text;
 pub mod user;
 pub mod voice;
 pub mod volume;

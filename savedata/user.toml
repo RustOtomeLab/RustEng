@@ -2,7 +2,11 @@
 delay = 2.5382617
 is_wait = true
 
+[text]
+speed = 0.0
+opacity = 0.5
+
 [volume]
-main = 39.81449
+main = 0.0
 bgm = 100.0
 voice = 100.0

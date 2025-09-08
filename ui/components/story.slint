@@ -26,6 +26,7 @@ export component StoryView {
     in-out property <bool> is_backlog;
     in-out property <bool> is-auto;
     in-out property <bool> is-skip;
+    in property <float> dialogue-opacity;
 
     callback auto-play(bool);
     callback skip-play(bool);
@@ -172,7 +173,7 @@ export component StoryView {
             y: parent.height * 0.75;
             width: parent.width;
             height: parent.height * 0.25;
-            background: Colors.overlay-background;
+            background: rgba(0, 0, 0, dialogue-opacity);
 
             Text {
                 text: root.speaker;

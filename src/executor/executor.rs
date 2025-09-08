@@ -6,6 +6,7 @@ use crate::config::user::save_user_config;
 use crate::config::voice::VOICE_CONFIG;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
+use crate::executor::text_executor::DisplayText;
 use crate::parser::parser::{Command, Commands};
 use crate::script::{Label, Script};
 use crate::ui::ui::MainWindow;
@@ -14,6 +15,7 @@ use std::cell::RefCell;
 use std::fs;
 use std::path::Path;
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 
@@ -35,7 +37,9 @@ pub struct Executor {
     bgm_player: Rc<RefCell<Player>>,
     voice_player: Rc<RefCell<Player>>,
     weak: Weak<MainWindow>,
+    text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
+    text_tx: Option<Sender<Arc<RwLock<DisplayText>>>>,
     delay_tx: Option<Sender<Command>>,
     auto_tx: Option<Sender<Duration>>,
     fg_skip_tx: Option<Sender<()>>,
@@ -52,7 +56,9 @@ impl Clone for Executor {
             bgm_player: self.bgm_player.clone(),
             voice_player: self.voice_player.clone(),
             weak: self.weak.clone(),
+            text: self.text.clone(),
             choose_lock: self.choose_lock.clone(),
+            text_tx: self.text_tx.clone(),
             delay_tx: self.delay_tx.clone(),
             auto_tx: self.auto_tx.clone(),
             fg_skip_tx: self.fg_skip_tx.clone(),
@@ -76,7 +82,9 @@ impl Executor {
             bgm_player,
             voice_player,
             weak,
+            text: Arc::new(RwLock::new(DisplayText::new())),
             choose_lock: Rc::new(RefCell::new(false)),
+            text_tx: None,
             delay_tx: None,
             auto_tx: None,
             fg_skip_tx: None,
@@ -89,6 +97,10 @@ impl Executor {
 
     pub fn get_weak(&self) -> Weak<MainWindow> {
         self.weak.clone()
+    }
+
+    pub fn set_text_tx(&mut self, text_tx: Sender<Arc<RwLock<DisplayText>>>) {
+        self.text_tx = Some(text_tx);
     }
 
     pub fn set_delay_tx(&mut self, delay_tx: Sender<Command>) {
@@ -375,6 +387,14 @@ impl Executor {
             }
         }
 
+        {
+            let mut text = self.text.write().unwrap();
+            if text.is_running {
+                text.end();
+                return Ok(());
+            }
+        }
+
         let mut duration = Duration::default();
         let mut is_wait = true;
         let mut is_auto = false;
@@ -477,7 +497,12 @@ impl Executor {
                     script.set_explain(&text);
                     script.push_backlog(speaker.to_shared_string(), text.to_shared_string());
                     window.set_speaker(SharedString::from(speaker));
-                    window.set_dialogue(SharedString::from(text));
+                    {
+                        let mut send_text = self.text.write().unwrap();
+                        send_text.start_animation(text, window.get_text_speed());
+                    }
+                    let tx = self.text_tx.clone().unwrap();
+                    tx.send(self.text.clone()).await?;
                 }
                 Command::PlayVoice {
                     ref name,

@@ -1,0 +1,42 @@
+import { CustomButton } from "../common/button.slint";
+import { VolumeSlider } from "../common/volume_slider.slint";
+import { Colors } from "../../styles/colors.slint";
+
+export component TextConfig {
+    in-out property <float> text-speed;
+    in-out property <float> dialogue-opacity;
+    
+    callback volume-changed();
+    callback voice-volume-changed();
+
+    // 设置面板
+    Rectangle {
+        VolumeSlider {
+            y: 0;
+            x: parent.width * 0.02;
+            width: parent.width * 0.35;
+            height: parent.height * 0.035;
+            label: "文本速度";
+            volume: root.text-speed;
+            texts: 6;
+            volume-changed(value) => {
+                root.text-speed = value;
+            }
+        }
+
+        VolumeSlider {
+            y: parent.height * 0.08;
+            x: parent.width * 0.02;
+            width: parent.width * 0.35;
+            height: parent.height * 0.035;
+            label: "对话框透明度";
+            texts: 6;
+            min: 0;
+            max: 1;
+            volume: root.dialogue-opacity;
+            volume-changed(value) => {
+                root.dialogue-opacity = value;
+            }
+        }
+    }
+}
