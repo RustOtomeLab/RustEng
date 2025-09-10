@@ -382,8 +382,10 @@ impl Executor {
             let scr = scr.borrow();
             if scr.clear.get(&scr.index()).is_some() {
                 self.fg_clear_tx.clone().unwrap().send(()).await?;
+                self.move_clear_tx.clone().unwrap().send(()).await?;
             } else {
                 self.fg_skip_tx.clone().unwrap().send(()).await?;
+                self.move_skip_tx.clone().unwrap().send(()).await?;
             }
         }
 
@@ -662,7 +664,7 @@ impl Executor {
 
         if let Some(window) = weak.upgrade() {
             if let Some(_) = delay {
-                let tx = self.delay_move_tx.clone().unwrap();
+                let tx = self.delay_tx.clone().unwrap();
                 tx.send(fg_move.clone()).await?;
                 return Ok(());
             }

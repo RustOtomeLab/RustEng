@@ -56,7 +56,13 @@ impl DelayExecutor {
                     _ = skip_rx.recv() => {
                         //println!("立刻完成延时立绘");
                         while let Some(figure) = current_figure.pop_front() {
-                            command_clone.write().unwrap().push_back(figure);
+                            if let Command::Figure {..} = figure {
+                                command_clone.write().unwrap().push_back(figure);
+                            } else if let Command::Move {..} = figure {
+                                if figure.action() != "nod" {
+                                    command_clone.write().unwrap().push_back(figure)
+                                }
+                            }
                         }
                     }
 
