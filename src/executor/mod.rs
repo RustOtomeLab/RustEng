@@ -45,7 +45,9 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     let (mut delay_move_executor, delay_move_tx, move_skip_tx, move_clear_tx) =
         DelayExecutor::new(executor.clone());
     executor.set_delay_move_tx(delay_move_tx.clone());
-    delay_executor.executor.set_delay_move_tx(delay_move_tx.clone());
+    delay_executor
+        .executor
+        .set_delay_move_tx(delay_move_tx.clone());
     delay_move_executor
         .executor
         .set_delay_move_tx(delay_move_tx);

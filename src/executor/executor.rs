@@ -24,8 +24,8 @@ pub(crate) enum Jump {
     Index((String, i32)),
 }
 
-fn figure_default() -> (Image, f32) {
-    (Image::default(), 0.0)
+fn figure_default() -> (Image, f32, f32) {
+    (Image::default(), 0.0, 0.0)
 }
 
 fn face_default() -> (Image, f32, f32) {
@@ -592,7 +592,7 @@ impl Executor {
                 tx.send(fg.clone()).await?;
                 return Ok(());
             }
-            if let (Some(body_para), Some(face_para)) = FIGURE_CONFIG.find(&name) {
+            if let (Some(body_para), Some(face_para), Some(offset)) = FIGURE_CONFIG.find(&name) {
                 let body_exist = match (&position[..], &distance[..]) {
                     ("-2", "z1") => window.get_fg_z1__2(),
                     ("0", "z1") => window.get_fg_z1_0(),
@@ -618,10 +618,10 @@ impl Executor {
                     let rate = body_para.get(body).unwrap();
                     let body = Image::load_from_path(Path::new(&ready_body)).unwrap();
                     match (&position[..], &distance[..]) {
-                        ("-2", "z1") => window.set_fg_z1__2((body, *rate)),
-                        ("0", "z1") => window.set_fg_z1_0((body, *rate)),
-                        ("2", "z1") => window.set_fg_z1_2((body, *rate)),
-                        ("0", "no") => window.set_fg_no_0((body, *rate)),
+                        ("-2", "z1") => window.set_fg_z1__2((body, *offset, *rate)),
+                        ("0", "z1") => window.set_fg_z1_0((body, *offset, *rate)),
+                        ("2", "z1") => window.set_fg_z1_2((body, *offset, *rate)),
+                        ("0", "no") => window.set_fg_no_0((body, *offset, *rate)),
                         _ => unreachable!(),
                     }
                 }

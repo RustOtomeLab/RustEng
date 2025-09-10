@@ -11,15 +11,15 @@ export component StoryView {
     in property <[{ index: int, text: string }]> choose-branch;
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
     in property <image> bg;
-    in property <{ body: image, rate: float }> fg-no-0;
+    in property <{ body: image, rate: float, offset: float }> fg-no-0;
     in property <{ face: image, face-x: float, face-y: float }> face-no-0;
-    in property <{ body: image, rate: float }> fg-z1-0;
+    in property <{ body: image, rate: float, offset: float }> fg-z1-0;
     in property <{ face: image, face-x: float, face-y: float }> face-z1-0;
     in property <{ x_offset: length, y_offset: length }> offset-z1-0;
-    in property <{ body: image, rate: float }> fg-z1-2;
+    in property <{ body: image, rate: float, offset: float }> fg-z1-2;
     in property <{ face: image, face-x: float, face-y: float }> face-z1-2;
     in property <{ x_offset: length, y_offset: length }> offset-z1-2;
-    in property <{ body: image, rate: float }> fg-z1--2;
+    in property <{ body: image, rate: float, offset: float }> fg-z1--2;
     in property <{ face: image, face-x: float, face-y: float }> face-z1--2;
     in property <{ x_offset: length, y_offset: length }> offset-z1--2;
     in property <int> current-choose: 0;
@@ -78,7 +78,7 @@ export component StoryView {
             width: parent.width * 0.25;
             height: self.width / fg-no-0.rate;
             x: parent.width * 0.375;
-            y: parent.height / 6;
+            y: parent.height / 6 - self.height * fg-no-0.offset;
 
             // 角色表情
             Image {
@@ -104,7 +104,7 @@ export component StoryView {
             width: parent.width * 0.34;
             height: self.width / fg-z1-0.rate;
             x: parent.width * 0.33 + x-offset;
-            y: parent.height / 8 + y-offset;
+            y: parent.height / 8 + y-offset - self.height * fg-z1-0.offset;
 
             // 角色表情
             Image {
@@ -130,7 +130,7 @@ export component StoryView {
             width: parent.width * 0.34;
             height: self.width / fg-z1--2.rate;
             x: parent.width * 0.16 + x-offset;
-            y: parent.height / 8 + y-offset;
+            y: parent.height / 8 + y-offset - self.height * fg-z1--2.offset;
 
             // 角色表情
             Image {
@@ -156,7 +156,7 @@ export component StoryView {
             width: parent.width * 0.34;
             height: self.width / fg-z1-2.rate;
             x: parent.width * 0.5 + x-offset;
-            y: parent.height / 8 + y-offset;
+            y: parent.height / 8 + y-offset - self.height * fg-z1-2.offset;
 
             // 角色表情
             Image {
