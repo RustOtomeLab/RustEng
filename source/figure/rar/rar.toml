@@ -1,3 +1,10 @@
+[body]
+cast = [
+    {name = "rar_noa0200", rate = 0.412},
+    {name = "rar_z1a0200", rate = 0.414},
+]
+
+[face]
 cast = [
     {name = "noa0002", x = 0.361, y = 0.0825},
     {name = "noa0015", x = 0.357, y = 0.0907},
@@ -14,3 +21,6 @@ cast = [
     {name = "z1a0053", x = 0.355, y = 0.0873},
     {name = "z1a0054", x = 0.363, y = 0.0895},
 ]
+
+[offset]
+offset = 0.0298

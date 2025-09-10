@@ -57,6 +57,14 @@ impl Command {
             *position = pos.to_string();
         }
     }
+
+    pub fn action(&self) -> &String {
+        if let Command::Move { action, .. } = self {
+            action
+        } else {
+            unreachable!()
+        }
+    }
 }
 
 #[derive(Debug)]
