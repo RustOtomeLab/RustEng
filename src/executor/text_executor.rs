@@ -1,9 +1,6 @@
 use crate::executor::executor::Executor;
-use crate::parser::parser::Command;
 use crate::ui::ui::MainWindow;
 use slint::{ToSharedString, Weak};
-use std::collections::VecDeque;
-use std::sync::atomic::Ordering;
 use std::sync::mpsc::Receiver;
 use std::sync::Arc;
 use std::sync::RwLock;
@@ -58,7 +55,7 @@ impl TextExecutor {
     pub fn start_timer(&mut self) {
         //println!("定时器打开");
         let weak = self.weak.clone();
-        let mut rx = self.text_rx.take().unwrap();
+        let rx = self.text_rx.take().unwrap();
 
         self.timer.start(
             slint::TimerMode::Repeated,

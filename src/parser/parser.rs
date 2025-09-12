@@ -36,6 +36,7 @@ pub enum Command {
         face: String,
         position: String,
         action: String,
+        repeat: i32,
         delay: Option<String>,
     },
     Clear(String, String),
@@ -64,6 +65,38 @@ impl Command {
         } else {
             unreachable!()
         }
+    }
+
+    pub fn back(&self) -> Command {
+        if let Command::Move { name, distance, body, face, position, ..} = self {
+            Command::Move {
+                name: name.to_string(),
+                distance: distance.to_string(),
+                body: body.to_string(),
+                face: face.to_string(),
+                position: position.to_string(),
+                action: "back".to_string(),
+                repeat: 1,
+                delay: Some("150".to_string()),
+            }
+        }
+        else { unreachable!() }
+    }
+
+    pub fn back_and_clean(&self) -> Command {
+        if let Command::Move { name, distance, body, face, position, ..} = self {
+            Command::Move {
+                name: name.to_string(),
+                distance: distance.to_string(),
+                body: body.to_string(),
+                face: face.to_string(),
+                position: position.to_string(),
+                action: "back_and_clean".to_string(),
+                repeat: 1,
+                delay: Some("1".to_string()),
+            }
+        }
+        else { unreachable!() }
     }
 }
 
@@ -224,6 +257,7 @@ impl Script {
                                 parts.next(),
                                 parts.next(),
                                 parts.next(),
+                                parts.next(),
                             ) {
                                 (
                                     Some(name),
@@ -232,6 +266,7 @@ impl Script {
                                     Some(face),
                                     Some(position),
                                     Some(action),
+                                    Some(repeat),
                                     delay,
                                 ) => {
                                     let command = Move {
@@ -241,6 +276,7 @@ impl Script {
                                         face: face.to_string(),
                                         position: position.to_string(),
                                         action: action.to_string(),
+                                        repeat: repeat.parse::<i32>()?,
                                         delay: delay.map(|d| d.to_string()),
                                     };
                                     if action.contains("to") {

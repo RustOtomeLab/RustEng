@@ -20,6 +20,7 @@ pub struct ExecutorTX {
     _skip_executor: SkipExecutor,
     _delay_executor: DelayExecutor,
     _delay_move_executor: DelayExecutor,
+    _loop_move_executor: DelayExecutor,
 }
 
 impl ExecutorTX {
@@ -36,14 +37,11 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     let (mut text_executor, text_tx) = TextExecutor::new(executor.clone());
     executor.set_text_tx(text_tx);
 
-    let (mut delay_executor, delay_tx, figure_skip_tx, figure_clear_tx) =
-        DelayExecutor::new(executor.clone());
-    executor.set_delay_tx(delay_tx);
-    executor.set_fg_skip_tx(figure_skip_tx);
-    executor.set_fg_clear_tx(figure_clear_tx);
+    let (mut delay_executor, delay_tx) = DelayExecutor::new(executor.clone());
+    executor.set_delay_tx(delay_tx.clone());
+    delay_executor.executor.set_delay_tx(delay_tx);
 
-    let (mut delay_move_executor, delay_move_tx, move_skip_tx, move_clear_tx) =
-        DelayExecutor::new(executor.clone());
+    let (mut delay_move_executor, delay_move_tx) = DelayExecutor::new(executor.clone());
     executor.set_delay_move_tx(delay_move_tx.clone());
     delay_executor
         .executor
@@ -51,8 +49,16 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     delay_move_executor
         .executor
         .set_delay_move_tx(delay_move_tx);
-    executor.set_move_skip_tx(move_skip_tx);
-    executor.set_move_clear_tx(move_clear_tx);
+
+    let (mut loop_move_executor, loop_move_tx) = DelayExecutor::new(executor.clone());
+    executor.set_loop_move_tx(loop_move_tx.clone());
+    delay_executor
+        .executor
+        .set_loop_move_tx(loop_move_tx.clone());
+    delay_move_executor
+        .executor
+        .set_loop_move_tx(loop_move_tx.clone());
+    loop_move_executor.executor.set_loop_move_tx(loop_move_tx);
 
     let (mut auto_executor, auto_tx, auto_delay_tx) = AutoExecutor::new(executor.clone());
     executor.set_auto_tx(auto_delay_tx.clone());
@@ -63,6 +69,7 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     text_executor.start_timer();
     delay_executor.start_timer();
     delay_move_executor.start_timer();
+    loop_move_executor.start_timer();
     auto_executor.start_timer();
     skip_executor.start_timer();
 
@@ -79,5 +86,6 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
         _skip_executor: skip_executor,
         _delay_executor: delay_executor,
         _delay_move_executor: delay_move_executor,
+        _loop_move_executor: loop_move_executor,
     })
 }

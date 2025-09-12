@@ -6,6 +6,7 @@ use crate::config::user::save_user_config;
 use crate::config::voice::VOICE_CONFIG;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
+use crate::executor::delay_executor::DelayTX;
 use crate::executor::text_executor::DisplayText;
 use crate::parser::parser::{Command, Commands};
 use crate::script::{Label, Script};
@@ -40,13 +41,10 @@ pub struct Executor {
     text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
     text_tx: Option<Sender<Arc<RwLock<DisplayText>>>>,
-    delay_tx: Option<Sender<Command>>,
     auto_tx: Option<Sender<Duration>>,
-    fg_skip_tx: Option<Sender<()>>,
-    fg_clear_tx: Option<Sender<()>>,
-    delay_move_tx: Option<Sender<Command>>,
-    move_skip_tx: Option<Sender<()>>,
-    move_clear_tx: Option<Sender<()>>,
+    delay_tx: Option<DelayTX>,
+    delay_move_tx: Option<DelayTX>,
+    loop_move_tx: Option<DelayTX>,
 }
 
 impl Clone for Executor {
@@ -59,13 +57,10 @@ impl Clone for Executor {
             text: self.text.clone(),
             choose_lock: self.choose_lock.clone(),
             text_tx: self.text_tx.clone(),
-            delay_tx: self.delay_tx.clone(),
             auto_tx: self.auto_tx.clone(),
-            fg_skip_tx: self.fg_skip_tx.clone(),
-            fg_clear_tx: self.fg_clear_tx.clone(),
+            delay_tx: self.delay_tx.clone(),
             delay_move_tx: self.delay_move_tx.clone(),
-            move_skip_tx: self.move_skip_tx.clone(),
-            move_clear_tx: self.move_clear_tx.clone(),
+            loop_move_tx: self.loop_move_tx.clone(),
         }
     }
 }
@@ -87,11 +82,8 @@ impl Executor {
             text_tx: None,
             delay_tx: None,
             auto_tx: None,
-            fg_skip_tx: None,
-            fg_clear_tx: None,
             delay_move_tx: None,
-            move_skip_tx: None,
-            move_clear_tx: None,
+            loop_move_tx: None,
         }
     }
 
@@ -103,7 +95,7 @@ impl Executor {
         self.text_tx = Some(text_tx);
     }
 
-    pub fn set_delay_tx(&mut self, delay_tx: Sender<Command>) {
+    pub fn set_delay_tx(&mut self, delay_tx: DelayTX) {
         self.delay_tx = Some(delay_tx);
     }
 
@@ -111,24 +103,12 @@ impl Executor {
         self.auto_tx = Some(auto_tx);
     }
 
-    pub fn set_fg_skip_tx(&mut self, fg_skip_tx: Sender<()>) {
-        self.fg_skip_tx = Some(fg_skip_tx);
-    }
-
-    pub fn set_fg_clear_tx(&mut self, fg_clear_tx: Sender<()>) {
-        self.fg_clear_tx = Some(fg_clear_tx);
-    }
-
-    pub fn set_delay_move_tx(&mut self, delay_move_tx: Sender<Command>) {
+    pub fn set_delay_move_tx(&mut self, delay_move_tx: DelayTX) {
         self.delay_move_tx = Some(delay_move_tx);
     }
 
-    pub fn set_move_skip_tx(&mut self, move_skip_tx: Sender<()>) {
-        self.move_skip_tx = Some(move_skip_tx);
-    }
-
-    pub fn set_move_clear_tx(&mut self, move_clear_tx: Sender<()>) {
-        self.move_clear_tx = Some(move_clear_tx);
+    pub fn set_loop_move_tx(&mut self, loop_move_tx: DelayTX) {
+        self.loop_move_tx = Some(loop_move_tx);
     }
 
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
@@ -168,7 +148,6 @@ impl Executor {
             let mut save_items = Vec::with_capacity(16);
             let exists_save_items = window.get_save_items();
             for (i, item) in exists_save_items.iter().enumerate() {
-                let mut content = String::default();
                 let mut sava_data = SaveData::new(
                     item.3.to_string(),
                     item.2 as usize,
@@ -196,8 +175,7 @@ impl Executor {
                         SharedString::from(script.name()),
                     ));
                 }
-                content = toml::to_string_pretty(&sava_data)?;
-                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), content)?;
+                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), toml::to_string_pretty(&sava_data)?)?;
             }
             window.set_save_items(Rc::new(VecModel::from(save_items)).into());
 
@@ -377,15 +355,18 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
+        println!("执行点击");
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
             if scr.clear.get(&scr.index()).is_some() {
-                self.fg_clear_tx.clone().unwrap().send(()).await?;
-                self.move_clear_tx.clone().unwrap().send(()).await?;
+                DelayTX::clear_tx(&self.delay_tx).send(()).await?;
+                DelayTX::clear_tx(&self.delay_move_tx).send(()).await?;
+                DelayTX::clear_tx(&self.loop_move_tx).send(()).await?;
             } else {
-                self.fg_skip_tx.clone().unwrap().send(()).await?;
-                self.move_skip_tx.clone().unwrap().send(()).await?;
+                DelayTX::skip_tx(&self.delay_tx).send(()).await?;
+                DelayTX::skip_tx(&self.delay_move_tx).send(()).await?;
+                DelayTX::skip_tx(&self.loop_move_tx).send(()).await?;
             }
         }
 
@@ -572,7 +553,7 @@ impl Executor {
         Ok(())
     }
 
-    async fn show_fg(&self, fg: &Command) -> Result<(), EngineError> {
+    pub(crate) async fn show_fg(&self, fg: &Command) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         let Command::Figure {
             name,
@@ -588,8 +569,7 @@ impl Executor {
 
         if let Some(window) = weak.upgrade() {
             if let Some(_) = delay {
-                let tx = self.delay_tx.clone().unwrap();
-                tx.send(fg.clone()).await?;
+                DelayTX::delay_tx(&self.delay_tx).send(fg.clone()).await?;
                 return Ok(());
             }
             if let (Some(body_para), Some(face_para), Some(offset)) = FIGURE_CONFIG.find(&name) {
@@ -647,7 +627,7 @@ impl Executor {
         Ok(())
     }
 
-    async fn show_move(&self, fg_move: &Command) -> Result<(), EngineError> {
+    pub(crate) async fn show_move(&self, fg_move: &Command) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         let Command::Move {
             name,
@@ -656,6 +636,7 @@ impl Executor {
             face,
             position,
             action,
+            repeat,
             delay,
         } = fg_move
         else {
@@ -664,41 +645,50 @@ impl Executor {
 
         if let Some(window) = weak.upgrade() {
             if let Some(_) = delay {
-                let tx = self.delay_tx.clone().unwrap();
-                tx.send(fg_move.clone()).await?;
+                DelayTX::delay_tx(&self.delay_tx)
+                    .send(fg_move.clone())
+                    .await?;
                 return Ok(());
             }
 
             let offset: (f32, f32) = match &action[..] {
                 "to2" => {
-                    let tx = self.delay_move_tx.clone().unwrap();
-                    tx.send(Command::Figure {
-                        name: name.to_string(),
-                        distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: "2".to_string(),
-                        delay: Some("150".to_string()),
-                    })
-                    .await?;
-                    tx.send(Command::Move {
-                        name: name.to_string(),
-                        distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: position.to_string(),
-                        action: "back_and_clean".to_string(),
-                        delay: Some("1".to_string()),
-                    })
-                    .await?;
-
+                    if *repeat != 1 {
+                        let tx = DelayTX::delay_tx(&self.loop_move_tx);
+                        let back = fg_move.back();
+                        let action = Command::Move {
+                            name: name.to_string(),
+                            distance: distance.to_string(),
+                            body: body.to_string(),
+                            face: face.to_string(),
+                            position: position.to_string(),
+                            action: "to2".to_string(),
+                            repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
+                            delay: Some("301".to_string()),
+                        };
+                        send_loop(tx.clone(), back);
+                        send_loop(tx, action);
+                    } else {
+                        let tx = DelayTX::delay_tx(&self.delay_move_tx);
+                        tx.send(Command::Figure {
+                            name: name.to_string(),
+                            distance: distance.to_string(),
+                            body: body.to_string(),
+                            face: face.to_string(),
+                            position: "2".to_string(),
+                            delay: Some("150".to_string()),
+                        })
+                            .await?;
+                        tx.send(fg_move.back_and_clean())
+                            .await?;
+                    }
                     match (&position[..], &distance[..]) {
                         ("0", "z1") => (window.get_container_width() * 0.17, 0.0),
                         _ => unreachable!(),
                     }
                 }
                 "to0" => {
-                    let tx = self.delay_move_tx.clone().unwrap();
+                    let tx = DelayTX::delay_tx(&self.delay_move_tx);
                     tx.send(Command::Figure {
                         name: name.to_string(),
                         distance: distance.to_string(),
@@ -708,15 +698,7 @@ impl Executor {
                         delay: Some("150".to_string()),
                     })
                     .await?;
-                    tx.send(Command::Move {
-                        name: name.to_string(),
-                        distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: position.to_string(),
-                        action: "back_and_clean".to_string(),
-                        delay: Some("1".to_string()),
-                    })
+                    tx.send(fg_move.back())
                     .await?;
 
                     match (&position[..], &distance[..]) {
@@ -725,20 +707,43 @@ impl Executor {
                     }
                 }
                 "nod" => {
-                    let tx = self.delay_move_tx.clone().unwrap();
-                    tx.send(Command::Move {
-                        name: name.to_string(),
-                        distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: position.to_string(),
-                        action: "back".to_string(),
-                        delay: Some("150".to_string()),
-                    })
-                    .await?;
+                    if *repeat != 1 {
+                        //println!("发送循环，循环还剩{}次", repeat);
+                        let tx = DelayTX::delay_tx(&self.loop_move_tx);
+                        let back = fg_move.back();
+                        let nod = Command::Move {
+                                name: name.to_string(),
+                                distance: distance.to_string(),
+                                body: body.to_string(),
+                                face: face.to_string(),
+                                position: position.to_string(),
+                                action: "nod".to_string(),
+                                repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
+                                delay: Some("301".to_string()),
+                        };
+                        send_loop(tx.clone(), back);
+                        send_loop(tx, nod);
+                    } else {
+                        let tx = DelayTX::delay_tx(&self.delay_move_tx);
+                        tx.send(Command::Move {
+                            name: name.to_string(),
+                            distance: distance.to_string(),
+                            body: body.to_string(),
+                            face: face.to_string(),
+                            position: position.to_string(),
+                            action: "back".to_string(),
+                            repeat: *repeat,
+                            delay: Some("150".to_string()),
+                        })
+                            .await?;
+                        //println!("点头");
+                    }
                     (0.0, window.get_container_height() / 40.0)
                 }
-                "back" => (0.0, 0.0),
+                "back" => {
+                    //println!("归位");
+                    (0.0, 0.0)
+                },
                 "back_and_clean" => {
                     match (&position[..], &distance[..]) {
                         ("-2", "z1") => {
@@ -810,5 +815,23 @@ impl Executor {
         }
 
         Ok(())
+    }
+}
+
+fn send_loop(tx: Sender<Command>, cmd: Command) {
+    match tx.try_send(cmd) {
+        Ok(_) => {}
+        Err(tokio::sync::mpsc::error::TrySendError::Full(cmd)) => {
+            // 通道满了：把发送任务交给 tokio 等待
+            let tx_clone = tx.clone();
+            tokio::spawn(async move {
+                if let Err(e) = tx_clone.send(cmd).await {
+                    eprintln!("delay tx send failed: {:?}", e);
+                }
+            });
+        }
+        Err(e) => {
+            eprintln!("try_send other error: {:?}", e);
+        }
     }
 }

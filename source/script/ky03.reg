@@ -15,10 +15,10 @@
 
 @voice rar|fem_rar_50055
 @fg rir|z1|rir_z1b0200|z1b0008|0
-@move rir|z1|rir_z1b0200|z1b0008|0|to2
+@move rir|z1|rir_z1b0200|z1b0008|0|to2|-1
 @fg rar|z1|rar_z1a0200|z1a0054|-2
 @fg rar|z1|rar_z1a0200|z1a0041|-2|4200
-@move rar|z1|rar_z1a0200|z1a0041|-2|nod|1
+@move rar|z1|rar_z1a0200|z1a0041|-2|nod|-1|1
 礼良“おととい和泉さんの家までお送りしたとき、うっかり話しちゃいました。てへっ☆”
 
 “メイドさんが頭をこっつんこしながらフォローを入れてくれた。聖会長が不審に思わないよう配慮してくれたのか。救いのないこの状況で助かる。”
@@ -34,10 +34,10 @@
 
 @clear z1|-2
 @voice rir|fem_rir_50238
-@move rir|z1|rir_z1a0200|z1a0039|2|to0|0
+@move rir|z1|rir_z1a0200|z1a0039|2|to0|1|0
 @fg rir|z1|rir_z1a0200|z1a0038|0|1900
 @fg rir|z1|rir_z1a0200|z1a0002|0|5300
-@move rir|z1|rir_z1a0200|z1a0002|0|nod|7200
+@move rir|z1|rir_z1a0200|z1a0002|0|nod|1|7200
 莉々子“ありがとうございます、和泉会長から贈り物をいただけるなんて考えてもいなかったもので……ええ、本当に驚きました”
 
 @voice rir|fem_rir_50239
