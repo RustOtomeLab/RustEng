@@ -148,7 +148,6 @@ impl Executor {
             let mut save_items = Vec::with_capacity(16);
             let exists_save_items = window.get_save_items();
             for (i, item) in exists_save_items.iter().enumerate() {
-                let mut content = String::default();
                 let mut sava_data = SaveData::new(
                     item.3.to_string(),
                     item.2 as usize,
@@ -176,8 +175,7 @@ impl Executor {
                         SharedString::from(script.name()),
                     ));
                 }
-                content = toml::to_string_pretty(&sava_data)?;
-                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), content)?;
+                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), toml::to_string_pretty(&sava_data)?)?;
             }
             window.set_save_items(Rc::new(VecModel::from(save_items)).into());
 
@@ -357,6 +355,7 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
+        println!("执行点击");
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
@@ -654,28 +653,35 @@ impl Executor {
 
             let offset: (f32, f32) = match &action[..] {
                 "to2" => {
-                    let tx = DelayTX::delay_tx(&self.delay_move_tx);
-                    tx.send(Command::Figure {
-                        name: name.to_string(),
-                        distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: "2".to_string(),
-                        delay: Some("150".to_string()),
-                    })
-                    .await?;
-                    tx.send(Command::Move {
-                        name: name.to_string(),
-                        distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: position.to_string(),
-                        action: "back_and_clean".to_string(),
-                        repeat: *repeat,
-                        delay: Some("1".to_string()),
-                    })
-                    .await?;
-
+                    if *repeat != 1 {
+                        let tx = DelayTX::delay_tx(&self.loop_move_tx);
+                        let back = fg_move.back();
+                        let action = Command::Move {
+                            name: name.to_string(),
+                            distance: distance.to_string(),
+                            body: body.to_string(),
+                            face: face.to_string(),
+                            position: position.to_string(),
+                            action: "to2".to_string(),
+                            repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
+                            delay: Some("301".to_string()),
+                        };
+                        send_loop(tx.clone(), back);
+                        send_loop(tx, action);
+                    } else {
+                        let tx = DelayTX::delay_tx(&self.delay_move_tx);
+                        tx.send(Command::Figure {
+                            name: name.to_string(),
+                            distance: distance.to_string(),
+                            body: body.to_string(),
+                            face: face.to_string(),
+                            position: "2".to_string(),
+                            delay: Some("150".to_string()),
+                        })
+                            .await?;
+                        tx.send(fg_move.back_and_clean())
+                            .await?;
+                    }
                     match (&position[..], &distance[..]) {
                         ("0", "z1") => (window.get_container_width() * 0.17, 0.0),
                         _ => unreachable!(),
@@ -692,16 +698,7 @@ impl Executor {
                         delay: Some("150".to_string()),
                     })
                     .await?;
-                    tx.send(Command::Move {
-                        name: name.to_string(),
-                        distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: position.to_string(),
-                        action: "back_and_clean".to_string(),
-                        repeat: *repeat,
-                        delay: Some("1".to_string()),
-                    })
+                    tx.send(fg_move.back())
                     .await?;
 
                     match (&position[..], &distance[..]) {
@@ -711,8 +708,10 @@ impl Executor {
                 }
                 "nod" => {
                     if *repeat != 1 {
-                        DelayTX::delay_tx(&self.loop_move_tx)
-                            .send(Command::Move {
+                        //println!("发送循环，循环还剩{}次", repeat);
+                        let tx = DelayTX::delay_tx(&self.loop_move_tx);
+                        let back = fg_move.back();
+                        let nod = Command::Move {
                                 name: name.to_string(),
                                 distance: distance.to_string(),
                                 body: body.to_string(),
@@ -720,26 +719,31 @@ impl Executor {
                                 position: position.to_string(),
                                 action: "nod".to_string(),
                                 repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
-                                delay: Some("330".to_string()),
-                            })
+                                delay: Some("301".to_string()),
+                        };
+                        send_loop(tx.clone(), back);
+                        send_loop(tx, nod);
+                    } else {
+                        let tx = DelayTX::delay_tx(&self.delay_move_tx);
+                        tx.send(Command::Move {
+                            name: name.to_string(),
+                            distance: distance.to_string(),
+                            body: body.to_string(),
+                            face: face.to_string(),
+                            position: position.to_string(),
+                            action: "back".to_string(),
+                            repeat: *repeat,
+                            delay: Some("150".to_string()),
+                        })
                             .await?;
+                        //println!("点头");
                     }
-
-                    let tx = DelayTX::delay_tx(&self.delay_move_tx);
-                    tx.send(Command::Move {
-                        name: name.to_string(),
-                        distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: position.to_string(),
-                        action: "back".to_string(),
-                        repeat: *repeat,
-                        delay: Some("150".to_string()),
-                    })
-                    .await?;
                     (0.0, window.get_container_height() / 40.0)
                 }
-                "back" => (0.0, 0.0),
+                "back" => {
+                    //println!("归位");
+                    (0.0, 0.0)
+                },
                 "back_and_clean" => {
                     match (&position[..], &distance[..]) {
                         ("-2", "z1") => {
@@ -811,5 +815,23 @@ impl Executor {
         }
 
         Ok(())
+    }
+}
+
+fn send_loop(tx: Sender<Command>, cmd: Command) {
+    match tx.try_send(cmd) {
+        Ok(_) => {}
+        Err(tokio::sync::mpsc::error::TrySendError::Full(cmd)) => {
+            // 通道满了：把发送任务交给 tokio 等待
+            let tx_clone = tx.clone();
+            tokio::spawn(async move {
+                if let Err(e) = tx_clone.send(cmd).await {
+                    eprintln!("delay tx send failed: {:?}", e);
+                }
+            });
+        }
+        Err(e) => {
+            eprintln!("try_send other error: {:?}", e);
+        }
     }
 }

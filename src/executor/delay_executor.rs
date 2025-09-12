@@ -6,8 +6,6 @@ use std::sync::RwLock;
 use tokio::sync::mpsc::Sender;
 use tokio::time::{sleep, Duration};
 
-//static mut DNF: i32 = 1;
-
 #[derive(Clone)]
 pub struct DelayTX {
     delay_tx: Sender<Command>,
@@ -132,13 +130,9 @@ impl DelayExecutor {
                     cmd.delete_delay();
                     let executor = executor.clone();
                     slint::spawn_local(async move {
-                        if let Command::Figure { .. } = cmd {
+                        if let Command::Figure { .. } = &cmd {
                             executor.show_fg(&cmd).await.unwrap();
-                        } else if let Command::Move { .. } = cmd {
-                            // unsafe {
-                            //     println!("{}",DNF);
-                            //     DNF += 1;
-                            // }
+                        } else if let Command::Move { .. } = &cmd {
                             executor.show_move(&cmd).await.unwrap();
                         }
                     })

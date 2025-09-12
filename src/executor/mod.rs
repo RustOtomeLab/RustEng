@@ -1,6 +1,6 @@
 use crate::error::EngineError;
 use crate::executor::auto_executor::AutoExecutor;
-use crate::executor::delay_executor::{DelayExecutor, DelayTX};
+use crate::executor::delay_executor::DelayExecutor;
 use crate::executor::executor::Executor;
 use crate::executor::skip_executor::SkipExecutor;
 use crate::executor::text_executor::TextExecutor;
