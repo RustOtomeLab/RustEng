@@ -136,7 +136,7 @@ pub async fn ui(
     window.on_clicked({
         let executor = executor.clone();
         move || {
-            println!("检测到点击");
+            //println!("检测到点击");
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_script().await })
                 .expect("Clicked panicked");

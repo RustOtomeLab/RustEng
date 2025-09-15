@@ -10,7 +10,9 @@ export component MainWindow inherits Window {
     title: "RustEng";
 
     // 所有原有的属性保持不变
-    in property<string> dialogue;
+    in property <string> dialogue-1;
+    in property <string> dialogue-2;
+    in property <string> dialogue-3;
     in property<string> speaker;
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
     in property<[{ index: int, text: string }]> choose-branch;
@@ -121,7 +123,9 @@ export component MainWindow inherits Window {
         if root.current-screen == 2: StoryView {
             container-width: parent.width;
             container-height: parent.height;
-            dialogue: root.dialogue;
+            dialogue-1: root.dialogue-1;
+            dialogue-2: root.dialogue-2;
+            dialogue-3: root.dialogue-3;
             speaker: root.speaker;
             choose-branch: root.choose-branch;
             bg: root.bg;

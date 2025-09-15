@@ -68,7 +68,15 @@ impl Command {
     }
 
     pub fn back(&self) -> Command {
-        if let Command::Move { name, distance, body, face, position, ..} = self {
+        if let Command::Move {
+            name,
+            distance,
+            body,
+            face,
+            position,
+            ..
+        } = self
+        {
             Command::Move {
                 name: name.to_string(),
                 distance: distance.to_string(),
@@ -79,12 +87,21 @@ impl Command {
                 repeat: 1,
                 delay: Some("150".to_string()),
             }
+        } else {
+            unreachable!()
         }
-        else { unreachable!() }
     }
 
     pub fn back_and_clean(&self) -> Command {
-        if let Command::Move { name, distance, body, face, position, ..} = self {
+        if let Command::Move {
+            name,
+            distance,
+            body,
+            face,
+            position,
+            ..
+        } = self
+        {
             Command::Move {
                 name: name.to_string(),
                 distance: distance.to_string(),
@@ -95,8 +112,9 @@ impl Command {
                 repeat: 1,
                 delay: Some("1".to_string()),
             }
+        } else {
+            unreachable!()
         }
-        else { unreachable!() }
     }
 }
 
