@@ -6,7 +6,9 @@ import { Colors } from "../styles/colors.slint";
 export component StoryView {
     in property <length> container-width;
     in property <length> container-height;
-    in property <string> dialogue;
+    in property <string> dialogue-1;
+    in property <string> dialogue-2;
+    in property <string> dialogue-3;
     in property <string> speaker;
     in property <[{ index: int, text: string }]> choose-branch;
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
@@ -186,9 +188,29 @@ export component StoryView {
             }
 
             Text {
-                text: root.dialogue;
+                text: root.dialogue-1;
                 x: parent.width / 64;
                 y: parent.height * 0.2;
+                font-size: parent.height * 2 / 15;
+                color: Colors.text-light;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
+            
+            Text {
+                text: root.dialogue-2;
+                x: parent.width / 64;
+                y: parent.height * 0.35;
+                font-size: parent.height * 2 / 15;
+                color: Colors.text-light;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
+            
+            Text {
+                text: root.dialogue-3;
+                x: parent.width / 64;
+                y: parent.height * 0.5;
                 font-size: parent.height * 2 / 15;
                 color: Colors.text-light;
                 wrap: word-wrap;

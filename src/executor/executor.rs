@@ -175,7 +175,10 @@ impl Executor {
                         SharedString::from(script.name()),
                     ));
                 }
-                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), toml::to_string_pretty(&sava_data)?)?;
+                fs::write(
+                    format!("{}{}.toml", ENGINE_CONFIG.save_path(), i),
+                    toml::to_string_pretty(&sava_data)?,
+                )?;
             }
             window.set_save_items(Rc::new(VecModel::from(save_items)).into());
 
@@ -242,7 +245,9 @@ impl Executor {
             window.set_choose_branch(Rc::new(VecModel::from(vec![])).into());
             window.set_current_choose(0);
             window.set_speaker("".into());
-            window.set_dialogue(choice);
+            window.set_dialogue_1(choice);
+            window.set_dialogue_2(SharedString::default());
+            window.set_dialogue_3(SharedString::default());
         }
 
         if let Some(window) = self.weak.upgrade() {
@@ -355,7 +360,7 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
-        println!("执行点击");
+        //println!("执行点击");
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
@@ -374,6 +379,15 @@ impl Executor {
             let mut text = self.text.write().unwrap();
             if text.is_running {
                 text.end();
+                if let Some(window) = self.weak.upgrade() {
+                    if window.get_is_auto() {
+                        self.auto_tx
+                            .clone()
+                            .unwrap()
+                            .send(Duration::from_secs(2))
+                            .await?;
+                    }
+                }
                 return Ok(());
             }
         }
@@ -678,9 +692,8 @@ impl Executor {
                             position: "2".to_string(),
                             delay: Some("150".to_string()),
                         })
-                            .await?;
-                        tx.send(fg_move.back_and_clean())
-                            .await?;
+                        .await?;
+                        tx.send(fg_move.back_and_clean()).await?;
                     }
                     match (&position[..], &distance[..]) {
                         ("0", "z1") => (window.get_container_width() * 0.17, 0.0),
@@ -698,8 +711,7 @@ impl Executor {
                         delay: Some("150".to_string()),
                     })
                     .await?;
-                    tx.send(fg_move.back())
-                    .await?;
+                    tx.send(fg_move.back()).await?;
 
                     match (&position[..], &distance[..]) {
                         ("2", "z1") => (-window.get_container_width() * 0.17, 0.0),
@@ -712,14 +724,14 @@ impl Executor {
                         let tx = DelayTX::delay_tx(&self.loop_move_tx);
                         let back = fg_move.back();
                         let nod = Command::Move {
-                                name: name.to_string(),
-                                distance: distance.to_string(),
-                                body: body.to_string(),
-                                face: face.to_string(),
-                                position: position.to_string(),
-                                action: "nod".to_string(),
-                                repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
-                                delay: Some("301".to_string()),
+                            name: name.to_string(),
+                            distance: distance.to_string(),
+                            body: body.to_string(),
+                            face: face.to_string(),
+                            position: position.to_string(),
+                            action: "nod".to_string(),
+                            repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
+                            delay: Some("301".to_string()),
                         };
                         send_loop(tx.clone(), back);
                         send_loop(tx, nod);
@@ -735,7 +747,7 @@ impl Executor {
                             repeat: *repeat,
                             delay: Some("150".to_string()),
                         })
-                            .await?;
+                        .await?;
                         //println!("点头");
                     }
                     (0.0, window.get_container_height() / 40.0)
@@ -743,7 +755,7 @@ impl Executor {
                 "back" => {
                     //println!("归位");
                     (0.0, 0.0)
-                },
+                }
                 "back_and_clean" => {
                     match (&position[..], &distance[..]) {
                         ("-2", "z1") => {

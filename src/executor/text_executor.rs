@@ -62,8 +62,16 @@ impl TextExecutor {
             Duration::from_millis(20),
             move || {
                 if let Ok(text) = rx.try_recv() {
+                    let mut parts = text.split("{nns}").map(str::trim);
+                    let (t1, t2, t3) = (
+                        parts.next().unwrap_or(""),
+                        parts.next().unwrap_or(""),
+                        parts.next().unwrap_or(""),
+                    );
                     if let Some(window) = weak.upgrade() {
-                        window.set_dialogue(text.to_shared_string());
+                        window.set_dialogue_1(t1.to_shared_string());
+                        window.set_dialogue_2(t2.to_shared_string());
+                        window.set_dialogue_3(t3.to_shared_string());
                     }
                 }
             },
@@ -110,6 +118,11 @@ impl DisplayText {
         }
 
         let chars: Vec<char> = self.full_text.chars().collect();
+        if self.current_index + 5 <= self.full_text.chars().count()
+            && chars[self.current_index..self.current_index + 5] == ['{', 'n', 'n', 's', '}']
+        {
+            self.current_index += 5;
+        }
         let displayed_text: String = chars[..=self.current_index].iter().collect();
         self.current_index += 1;
 
