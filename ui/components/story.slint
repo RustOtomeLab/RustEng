@@ -12,7 +12,7 @@ export component StoryView {
     in property <string> speaker;
     in property <[{ index: int, text: string }]> choose-branch;
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
-    in property <image> bg;
+    in property <{ img: image, x_offset: float, y_offset: float, zoom: float }> bg;
     in property <{ body: image, rate: float, offset: float }> fg-no-0;
     in property <{ face: image, face-x: float, face-y: float }> face-no-0;
     in property <{ body: image, rate: float, offset: float }> fg-z1-0;
@@ -69,9 +69,11 @@ export component StoryView {
 
         // 背景图片
         Image {
-            source: root.bg;
-            width: parent.width;
-            height: parent.height;
+            source: bg.img;
+            x: -self.width * bg.x-offset;
+            y: -self.height * bg.y-offset;
+            width: parent.width * bg.zoom;
+            height: parent.height * bg.zoom;
         }
 
         // 角色立绘 居中远距离

@@ -166,10 +166,10 @@ impl Executor {
                         script.name.clone(),
                         script.index(),
                         script.explain().to_string(),
-                        bg.path().unwrap().to_str().unwrap().to_string(),
+                        bg.0.path().unwrap().to_str().unwrap().to_string(),
                     );
                     save_items.push((
-                        bg.clone(),
+                        bg.0.clone(),
                         SharedString::from(script.explain()),
                         script.index() as i32,
                         SharedString::from(script.name()),
@@ -453,7 +453,7 @@ impl Executor {
             }
 
             if let Some(bg) = pre_bg {
-                self.show_bg(bg).await?;
+                self.show_bg(&bg).await?;
             }
             if let Play(bgm) = pre_bgm {
                 self.play_bgm(bgm).await?;
@@ -468,7 +468,7 @@ impl Executor {
             }
 
             match command {
-                Command::SetBackground(bg) => self.show_bg(bg).await?,
+                Command::Background { .. } => self.show_bg(&command).await?,
                 Command::PlayBgm(bgm) => {
                     let mut script = self.script.borrow_mut();
                     if bgm != script.current_bgm() {
@@ -551,17 +551,31 @@ impl Executor {
         Ok(())
     }
 
-    async fn show_bg(&self, bg: String) -> Result<(), EngineError> {
+    async fn show_bg(&self, bg: &Command) -> Result<(), EngineError> {
         let weak = self.weak.clone();
+        let Command::Background {
+            name,
+            x_offset,
+            y_offset,
+            zoom,
+        } = bg
+        else {
+            unreachable!()
+        };
 
         if let Some(window) = weak.upgrade() {
             let image = Image::load_from_path(Path::new(&format!(
                 "{}{}.png",
                 ENGINE_CONFIG.background_path(),
-                bg
+                name
             )))
             .unwrap();
-            window.set_bg(image);
+            window.set_bg((
+                image,
+                x_offset.unwrap_or(0.0),
+                y_offset.unwrap_or(0.0),
+                zoom.unwrap_or(0.0),
+            ));
         }
 
         Ok(())

@@ -1,7 +1,7 @@
 %version 1
 
 @label start
-@bg bg022a
+@bg bg022a|0.1|0.2|1.5
 旁白“壬戌之秋，七月既望”
 
 @voice rir|fem_rir_50520

@@ -29,8 +29,8 @@ pub struct Script {
     pub(crate) bgms: BTreeMap<usize, String>,
     current_bgm: String,
     pre_bgm: PreBgm,
-    pub(crate) backgrounds: BTreeMap<usize, String>,
-    pre_bg: Option<String>,
+    pub(crate) backgrounds: BTreeMap<usize, Command>,
+    pre_bg: Option<Command>,
     figures: BTreeMap<usize, Figure>,
     pub(crate) clear: HashSet<usize>,
     pre_figures: Option<Figure>,
@@ -106,7 +106,7 @@ impl Script {
         self.pre_bgm = pre_bgm;
     }
 
-    pub fn set_pre_bg(&mut self, pre_bg: Option<String>) {
+    pub fn set_pre_bg(&mut self, pre_bg: Option<Command>) {
         self.pre_bg = pre_bg;
     }
 
@@ -181,7 +181,7 @@ impl Script {
         &self.current_bgm
     }
 
-    pub fn pre_bg(&mut self) -> Option<String> {
+    pub fn pre_bg(&mut self) -> Option<Command> {
         self.pre_bg.take()
     }
 
@@ -207,7 +207,7 @@ impl Script {
         self.bgms.range(..=index).next_back()
     }
 
-    pub fn get_background(&self, index: usize) -> Option<(&usize, &String)> {
+    pub fn get_background(&self, index: usize) -> Option<(&usize, &Command)> {
         self.backgrounds.range(..=index).next_back()
     }
 
