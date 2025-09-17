@@ -16,8 +16,7 @@ export component MainWindow inherits Window {
     in property<string> speaker;
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
     in property<[{ index: int, text: string }]> choose-branch;
-    in property<image> bg;
-    in property<string> pre-bg;
+    in property <{ img: image, x_offset: float, y_offset: float, zoom: float }> bg;
     in property <{ body: image, rate: float, offset: float }> fg-no-0;
     in property <{ face: image, face-x: float, face-y: float }> face-no-0;
     in property <{ body: image, rate: float, offset: float }> fg-z1-0;

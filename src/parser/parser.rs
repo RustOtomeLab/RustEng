@@ -11,7 +11,12 @@ pub enum Commands {
 
 #[derive(Debug, Clone)]
 pub enum Command {
-    SetBackground(String),
+    Background {
+        name: String,
+        x_offset: Option<f32>,
+        y_offset: Option<f32>,
+        zoom: Option<f32>,
+    },
     PlayBgm(String),
     PlayVoice {
         name: String,
@@ -168,9 +173,16 @@ impl Script {
             if let Some(line) = line.strip_prefix('@') {
                 if let Some((cmd, arg)) = line.split_once(' ') {
                     let cmd = match cmd {
-                        "bg" => {
-                            self.backgrounds.insert(*block_index, arg.to_string());
-                            SetBackground(arg.to_string())
+                        "bg" | "cg" => {
+                            let mut parts = arg.split('|').map(str::trim);
+                            let bg = Background {
+                                name: parts.next().unwrap_or("").to_string(),
+                                x_offset: parts.next().and_then(|s| s.parse::<f32>().ok()),
+                                y_offset: parts.next().and_then(|s| s.parse::<f32>().ok()),
+                                zoom: parts.next().and_then(|s| s.parse::<f32>().ok()),
+                            };
+                            self.backgrounds.insert(*block_index, bg.clone());
+                            bg
                         }
                         "bgm" => {
                             self.bgms.insert(*block_index, arg.to_string());
