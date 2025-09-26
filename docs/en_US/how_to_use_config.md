@@ -1,5 +1,8 @@
 # About Configuration Files
 
+> [!IMPORTANT]
+> This document has been translated from Chinese to English by the DeepSeek large language model.
+
 ### Initialization Configuration File
 
 ```

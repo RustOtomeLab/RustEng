@@ -1,5 +1,8 @@
 # Scene Script
 
+> [!IMPORTANT]
+> This document has been translated from Chinese to English by the DeepSeek large language model.
+
 ---
 
 ## Definition

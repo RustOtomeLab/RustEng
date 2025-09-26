@@ -2,6 +2,8 @@
 
 # ❤️RustEng —— 一款基于rust的GalGame游戏引擎
 
+简体中文 | [English](README_en.md) | [日本語](README_ja.md)
+
 ![Rust](https://img.shields.io/badge/编程语言-Rust-orange)
 ![License](https://img.shields.io/badge/协议-待定-green)
 ![Status](https://img.shields.io/badge/状态-开发中-yellow)
