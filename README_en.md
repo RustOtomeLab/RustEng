@@ -31,8 +31,8 @@ As the name suggests, this is a **GalGame** game engine based on **Rust**, provi
 
 ## 📘Documentation (How to Use RustEng)
 
-* [Scene Script Documentation](docs/how_to_use_script.md)
-* [Configuration File Documentation](docs/how_to_use_config.md)
+* [Scene Script Documentation](docs/en_US/how_to_use_script.md)
+* [Configuration File Documentation](docs/en_US/how_to_use_config.md)
 
 > [!IMPORTANT]
 > This repository includes two test script files and other test resources. You can also prepare your own test files. Please refer to the two documents above for file requirements.
