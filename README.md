@@ -33,8 +33,8 @@
 
 ## 📘文档（如何使用RustEng）
 
-* [场景脚本（script）文档](docs/how_to_use_script.md)
-* [配置文件文档](docs/how_to_use_config.md)
+* [场景脚本（script）文档](docs/zh_CN/how_to_use_script.md)
+* [配置文件文档](docs/zh_CN/how_to_use_config.md)
 
 > [!IMPORTANT]
 > 本项目仓库中包含两个场景脚本测试文件以及其他测试文件，当然你也可以自己准备各种测试文件，对于文件的要求请查看上述两个文档
