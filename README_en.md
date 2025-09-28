@@ -2,6 +2,8 @@
 
 # ❤️RustEng —— A Rust-based GalGame Engine
 
+[简体中文](README.md) | English | [日本語](README_ja.md)
+
 ![Rust](https://img.shields.io/badge/Language-Rust-orange)
 ![License](https://img.shields.io/badge/License-TBD-green)
 ![Status](https://img.shields.io/badge/Status-InDevelopment-yellow)
