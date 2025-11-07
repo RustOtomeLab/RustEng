@@ -40,3 +40,7 @@ As the name suggests, this is a **GalGame** game engine based on **Rust**, provi
 > This repository includes two test script files and other test resources. You can also prepare your own test files. Please refer to the two documents above for file requirements.
 
 #### *🌟 Give it a star if you like it!*
+
+## 📈Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=RustOtomeLab/RustEng&type=date&legend=top-left)](https://www.star-history.com/#RustOtomeLab/RustEng&type=date&legend=top-left)
