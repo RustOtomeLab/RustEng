@@ -41,3 +41,7 @@
 > このリポジトリには2つのテスト用シーンスクリプトファイルとその他のテストファイルが含まれています。もちろん独自のテストファイルを準備することも可能です。ファイルの要件については上記の2つのドキュメントを参照してください。
 
 #### *🌟 応援としてスターをお願いします！*
+
+## 📈Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=RustOtomeLab/RustEng&type=date&legend=top-left)](https://www.star-history.com/#RustOtomeLab/RustEng&type=date&legend=top-left)
