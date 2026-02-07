@@ -18,6 +18,12 @@ export component StoryView {
     in property <{ body: image, rate: float, offset: float }> fg-z1-0;
     in property <{ face: image, face-x: float, face-y: float }> face-z1-0;
     in property <{ x_offset: length, y_offset: length }> offset-z1-0;
+    in property <{ body: image, rate: float, offset: float }> fg-z1-1;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1-1;
+    in property <{ x_offset: length, y_offset: length }> offset-z1-1;
+    in property <{ body: image, rate: float, offset: float }> fg-z1--1;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1--1;
+    in property <{ x_offset: length, y_offset: length }> offset-z1--1;
     in property <{ body: image, rate: float, offset: float }> fg-z1-2;
     in property <{ face: image, face-x: float, face-y: float }> face-z1-2;
     in property <{ x_offset: length, y_offset: length }> offset-z1-2;
@@ -122,6 +128,58 @@ export component StoryView {
 
         // 角色立绘 左侧面近距离
         Image {
+            in-out property <length> x-offset: offset-z1--1.x-offset;
+            in-out property <length> y-offset: offset-z1--1.y-offset;
+
+            animate x-offset, y-offset {
+                 duration: 150ms;
+                 easing: ease-in-out;
+            }
+
+            source: fg-z1--1.body;
+            width: parent.width * 0.34;
+            height: self.width / fg-z1--1.rate;
+            x: x-offset;
+            y: parent.height / 8 + y-offset - self.height * fg-z1--1.offset;
+
+            // 角色表情
+            Image {
+                source: face-z1--1.face;
+                width: self.source.width * parent.width / parent.source.width;
+                height: self.source.height * parent.height / parent.source.height;
+                x: parent.width * face-z1--1.face-x;
+                y: parent.height * face-z1--1.face-y;
+            }
+        }
+
+        // 角色立绘 右侧面近距离
+        Image {
+            in-out property <length> x-offset: offset-z1-1.x-offset;
+            in-out property <length> y-offset: offset-z1-1.y-offset;
+
+            animate x-offset, y-offset {
+                 duration: 150ms;
+                 easing: ease-in-out;
+            }
+
+            source: fg-z1-1.body;
+            width: parent.width * 0.34;
+            height: self.width / fg-z1-1.rate;
+            x: parent.width * 0.66 + x-offset;
+            y: parent.height / 8 + y-offset - self.height * fg-z1-1.offset;
+
+            // 角色表情
+            Image {
+                source: face-z1-1.face;
+                width: self.source.width * parent.width / parent.source.width;
+                height: self.source.height * parent.height / parent.source.height;
+                x: parent.width * face-z1-1.face-x;
+                y: parent.height * face-z1-1.face-y;
+            }
+        }
+
+        // 角色立绘 双人位左侧面近距离
+        Image {
             in-out property <length> x-offset: offset-z1--2.x-offset;
             in-out property <length> y-offset: offset-z1--2.y-offset;
 
@@ -146,7 +204,7 @@ export component StoryView {
             }
         }
 
-        // 角色立绘 右侧面近距离
+        // 角色立绘 双人位右侧面近距离
         Image {
             in-out property <length> x-offset: offset-z1-2.x-offset;
             in-out property <length> y-offset: offset-z1-2.y-offset;

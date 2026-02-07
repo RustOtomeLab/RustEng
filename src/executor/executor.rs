@@ -574,7 +574,7 @@ impl Executor {
                 image,
                 x_offset.unwrap_or(0.0),
                 y_offset.unwrap_or(0.0),
-                zoom.unwrap_or(0.0),
+                zoom.unwrap_or(1.0),
             ));
         }
 
@@ -602,9 +602,11 @@ impl Executor {
             }
             if let (Some(body_para), Some(face_para), Some(offset)) = FIGURE_CONFIG.find(&name) {
                 let body_exist = match (&position[..], &distance[..]) {
+                    ("-1", "z1") => window.get_fg_z1__1(),
                     ("-2", "z1") => window.get_fg_z1__2(),
                     ("0", "z1") => window.get_fg_z1_0(),
                     ("2", "z1") => window.get_fg_z1_2(),
+                    ("1", "z1") => window.get_fg_z1_1(),
                     ("0", "no") => window.get_fg_no_0(),
                     _ => unreachable!(),
                 }
@@ -626,9 +628,11 @@ impl Executor {
                     let rate = body_para.get(body).unwrap();
                     let body = Image::load_from_path(Path::new(&ready_body)).unwrap();
                     match (&position[..], &distance[..]) {
+                        ("-1", "z1") => window.set_fg_z1__1((body, *offset, *rate)),
                         ("-2", "z1") => window.set_fg_z1__2((body, *offset, *rate)),
                         ("0", "z1") => window.set_fg_z1_0((body, *offset, *rate)),
                         ("2", "z1") => window.set_fg_z1_2((body, *offset, *rate)),
+                        ("1", "z1") => window.set_fg_z1_1((body, *offset, *rate)),
                         ("0", "no") => window.set_fg_no_0((body, *offset, *rate)),
                         _ => unreachable!(),
                     }
@@ -643,9 +647,11 @@ impl Executor {
                 )))
                 .unwrap();
                 match (&position[..], &distance[..]) {
+                    ("-1", "z1") => window.set_face_z1__1((face, *face_x, *face_y)),
                     ("-2", "z1") => window.set_face_z1__2((face, *face_x, *face_y)),
                     ("0", "z1") => window.set_face_z1_0((face, *face_x, *face_y)),
                     ("2", "z1") => window.set_face_z1_2((face, *face_x, *face_y)),
+                    ("1", "z1") => window.set_face_z1_1((face, *face_x, *face_y)),
                     ("0", "no") => window.set_face_no_0((face, *face_x, *face_y)),
                     _ => unreachable!(),
                 }
@@ -710,7 +716,10 @@ impl Executor {
                         tx.send(fg_move.back_and_clean()).await?;
                     }
                     match (&position[..], &distance[..]) {
+                        ("-1", "z1") => (window.get_container_width() * 0.5, 0.0),
+                        ("-2", "z1") => (window.get_container_width() * 0.34, 0.0),
                         ("0", "z1") => (window.get_container_width() * 0.17, 0.0),
+                        ("1", "z1") => (-window.get_container_width() * 0.16, 0.0),
                         _ => unreachable!(),
                     }
                 }
@@ -725,10 +734,13 @@ impl Executor {
                         delay: Some("150".to_string()),
                     })
                     .await?;
-                    tx.send(fg_move.back()).await?;
+                    tx.send(fg_move.back_and_clean()).await?;
 
                     match (&position[..], &distance[..]) {
+                        ("-1", "z1") => (window.get_container_width() * 0.33, 0.0),
+                        ("-2", "z1") => (window.get_container_width() * 0.17, 0.0),
                         ("2", "z1") => (-window.get_container_width() * 0.17, 0.0),
+                        ("1", "z1") => (-window.get_container_width() * 0.33, 0.0),
                         _ => unreachable!(),
                     }
                 }
@@ -772,6 +784,10 @@ impl Executor {
                 }
                 "back_and_clean" => {
                     match (&position[..], &distance[..]) {
+                        ("-1", "z1") => {
+                            window.set_fg_z1__1(figure_default());
+                            window.set_face_z1__1(face_default());
+                        }
                         ("-2", "z1") => {
                             window.set_fg_z1__2(figure_default());
                             window.set_face_z1__2(face_default());
@@ -784,9 +800,9 @@ impl Executor {
                             window.set_fg_z1_0(figure_default());
                             window.set_face_z1_0(face_default());
                         }
-                        ("0", "no") => {
-                            window.set_fg_no_0(figure_default());
-                            window.set_face_no_0(face_default());
+                        ("1", "z1") => {
+                            window.set_fg_z1_1(figure_default());
+                            window.set_face_z1_1(face_default());
                         }
                         _ => unreachable!(),
                     }
@@ -796,9 +812,11 @@ impl Executor {
             };
 
             match (&position[..], &distance[..]) {
+                ("-1", "z1") => window.set_offset_z1__1(offset),
                 ("-2", "z1") => window.set_offset_z1__2(offset),
                 ("0", "z1") => window.set_offset_z1_0(offset),
                 ("2", "z1") => window.set_offset_z1_2(offset),
+                ("1", "z1") => window.set_offset_z1_1(offset),
                 _ => unreachable!(),
             }
         }

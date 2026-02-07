@@ -22,6 +22,12 @@ export component MainWindow inherits Window {
     in property <{ body: image, rate: float, offset: float }> fg-z1-0;
     in property <{ face: image, face-x: float, face-y: float }> face-z1-0;
     in property <{ x_offset: length, y_offset: length }> offset-z1-0;
+    in property <{ body: image, rate: float, offset: float }> fg-z1-1;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1-1;
+    in property <{ x_offset: length, y_offset: length }> offset-z1-1;
+    in property <{ body: image, rate: float, offset: float }> fg-z1--1;
+    in property <{ face: image, face-x: float, face-y: float }> face-z1--1;
+    in property <{ x_offset: length, y_offset: length }> offset-z1--1;
     in property <{ body: image, rate: float, offset: float }> fg-z1-2;
     in property <{ face: image, face-x: float, face-y: float }> face-z1-2;
     in property <{ x_offset: length, y_offset: length }> offset-z1-2;
@@ -131,6 +137,9 @@ export component MainWindow inherits Window {
             current-choose: root.current-choose;
             fg-no-0: root.fg-no-0;
             face-no-0: root.face-no-0;
+            fg-z1--1: root.fg-z1--1;
+            face-z1--1: root.face-z1--1;
+            offset-z1--1: root.offset-z1--1;
             fg-z1--2: root.fg-z1--2;
             face-z1--2: root.face-z1--2;
             offset-z1--2: root.offset-z1--2;
@@ -140,6 +149,9 @@ export component MainWindow inherits Window {
             fg-z1-2: root.fg-z1-2;
             face-z1-2: root.face-z1-2;
             offset-z1-2: root.offset-z1-2;
+            fg-z1-1: root.fg-z1-1;
+            face-z1-1: root.face-z1-1;
+            offset-z1-1: root.offset-z1-1;
             dialogue-opacity: root.dialogue-opacity;
 
             backlogs <=> root.backlogs;
