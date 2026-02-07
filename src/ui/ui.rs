@@ -55,6 +55,15 @@ pub async fn ui(
         }
     });
 
+    window.on_get_ex({
+        let executor = executor.clone();
+        move || {
+            let mut executor = executor.clone();
+            slint::spawn_local(async move {  })
+                .expect("Get Ex panicked");
+        }
+    });
+
     window.on_volume_changed({
         let executor = executor.clone();
         move || {

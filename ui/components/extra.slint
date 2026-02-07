@@ -1,0 +1,103 @@
+import { CustomButton } from "common/button.slint";
+import { Colors } from "../styles/colors.slint";
+
+export component Extra {
+    in property <{indexs:int, bg:[image], is_lock:bool}> ex-item;
+
+    callback print({indexs:int, bg:[image], is_lock:bool});
+
+    Rectangle {
+        background: Colors.border-color;
+
+        Image {
+            source: ex-item.bg[0];
+            width: parent.width;
+            height: parent.height;
+        }
+    }
+
+    if !ex-item.is-lock: TouchArea {
+        clicked => { root.print(ex-item); }
+    }
+}
+
+export component ExtraView {
+    in property <length> container-width;
+    in property <length> container-height;
+    in property <[{indexs:int, bg:[image], is_lock:bool}]> ex-items;
+    property <{indexs:int, bg:[image], is_lock:bool}> images;
+    property <int> viewing_index;
+    property <bool> is_viewing: false;
+    in property <[int]> indexs: [
+            0, 1, 2, 3,
+            4, 5, 6, 7,
+            8, 9, 10, 11,
+            12, 13, 14, 15,
+        ];
+
+    callback back();
+
+    Rectangle {
+        width: container-width;
+        height: container-height;
+        background: Colors.slider-background;
+
+        if root.is_viewing: Image {
+            source: images.bg[viewing_index];
+            width: parent.width;
+            height: parent.height;
+
+            TouchArea {
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.down) {
+                        if (event.button == PointerEventButton.left) {
+                            if (viewing_index + 1 < images.indexs) {
+                                viewing_index += 1;
+                            } else {
+                                root.is_viewing = false;
+                            }
+                        } else if (event.button == PointerEventButton.right) {
+                            root.is_viewing = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 返回按钮
+        if !root.is_viewing: CustomButton {
+            x: parent.width * 0.073;
+            y: parent.height * 0.04;
+            text: "返回游戏";
+            button-width: parent.width * 0.10;
+            button-height: parent.height * 0.06;
+            font-size: parent.width * 0.0135;
+            clicked => { root.back(); }
+        }
+
+        if !root.is_viewing: Rectangle {
+            x: parent.width * 0.05;
+            y: parent.height * 0.12;
+            width: parent.width * 0.88;
+            height: parent.height * 0.85;
+
+            for i in 4 :Rectangle {
+                y: i * 21.625 / 85 * parent.height;
+                height: 10.125 / 85 * parent.height / 9 * 16;
+
+                for j in 4: Extra {
+                    x: j * 24 / 88 * parent.width;
+                    y: 0;
+                    width: 18 / 88 * parent.width;
+                    height: parent.height;
+                    ex-item: ex-items[(i * 4 + j)];
+                    print(item) => { 
+                        root.images = item;
+                        root.is_viewing = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
