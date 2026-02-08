@@ -1,0 +1,4 @@
+cast = [
+    {name = "cg1", index = 1, length = 4},
+    {name = "cg2", index = 2, length = 6},
+]

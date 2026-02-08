@@ -1,6 +1,7 @@
 [initialize]
 script_path = "./source/script/"
 background_path = "./source/background/"
+cg_path = "./source/cg/"
 voice_path = "./source/voice/"
 bgm_path = "./source/bgm/"
 figure_path = "./source/figure/"

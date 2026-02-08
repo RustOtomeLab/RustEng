@@ -77,6 +77,7 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     executor.load_volume();
     executor.load_auto();
     executor.load_text();
+    executor.load_extra();
 
     Ok(ExecutorTX {
         auto_tx,

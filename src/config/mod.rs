@@ -11,6 +11,8 @@ pub mod text;
 pub mod user;
 pub mod voice;
 pub mod volume;
+pub mod extra;
+pub mod cg;
 
 lazy_static::lazy_static! {
     pub static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
@@ -29,6 +31,10 @@ impl EngineConfig {
 
     pub fn background_path(&self) -> &str {
         &self.initialize.background_path
+    }
+    
+    pub fn cg_path(&self) -> &str {
+        &self.initialize.cg_path
     }
 
     pub fn voice_path(&self) -> &str {

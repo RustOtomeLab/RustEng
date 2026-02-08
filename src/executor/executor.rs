@@ -3,7 +3,7 @@ use crate::audio::player::{Player, PreBgm};
 use crate::config::figure::FIGURE_CONFIG;
 use crate::config::save_load::SaveData;
 use crate::config::user::save_user_config;
-use crate::config::voice::VOICE_CONFIG;
+use crate::config::voice::VOICE_LENGTH;
 use crate::config::ENGINE_CONFIG;
 use crate::error::EngineError;
 use crate::executor::delay_executor::DelayTX;
@@ -19,6 +19,8 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
+use crate::config::cg::CG_LENGTH;
+use crate::config::extra::save_extra_config;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -37,6 +39,7 @@ pub struct Executor {
     script: Rc<RefCell<Script>>,
     bgm_player: Rc<RefCell<Player>>,
     voice_player: Rc<RefCell<Player>>,
+    pub(crate) cg: Rc<RefCell<u64>>,
     weak: Weak<MainWindow>,
     text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
@@ -53,6 +56,7 @@ impl Clone for Executor {
             script: self.script.clone(),
             bgm_player: self.bgm_player.clone(),
             voice_player: self.voice_player.clone(),
+            cg: self.cg.clone(),
             weak: self.weak.clone(),
             text: self.text.clone(),
             choose_lock: self.choose_lock.clone(),
@@ -76,6 +80,7 @@ impl Executor {
             script,
             bgm_player,
             voice_player,
+            cg: Rc::new(RefCell::new(0)),
             weak,
             text: Arc::new(RwLock::new(DisplayText::new())),
             choose_lock: Rc::new(RefCell::new(false)),
@@ -109,6 +114,11 @@ impl Executor {
 
     pub fn set_loop_move_tx(&mut self, loop_move_tx: DelayTX) {
         self.loop_move_tx = Some(loop_move_tx);
+    }
+
+    pub fn unlock(&mut self, index: usize) {
+        let mut cg = self.cg.borrow_mut();
+        *cg |= 1u64 << index;
     }
 
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
@@ -197,6 +207,49 @@ impl Executor {
             }
             self.execute_jump(Jump::Index((name, index - 1))).await?;
             self.execute_script().await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn execute_get_ex(&self) -> Result<(), EngineError> {
+        let mut ex_items = Vec::with_capacity(16);
+        
+        let cgs = *self.cg.borrow();
+        for mut i in 1..=64 {
+            if cgs & (i * 2) != 0 {
+                if let Some((name, length)) = CG_LENGTH.find_by_id(i) {
+                    let (mut images, mut l, is_lock) = (Vec::new(), *length, false);
+                    for j in 1..=*length {
+                        if cgs & (j * 2) != 0 {
+                            images.push(Image::load_from_path(Path::new(&format!(
+                                "{}{}.png",
+                                ENGINE_CONFIG.cg_path(),
+                                name
+                            )))
+                                .unwrap());
+                        } else {
+                            l -= 1;
+                        }
+                    }
+                    i = i + *length - 1;
+                    ex_items.push((
+                        Rc::new(VecModel::from(images)).into(),
+                        l as i32,
+                        is_lock,
+                        ))
+                }
+            } else { 
+                ex_items.push((
+                    Rc::new(VecModel::from(vec![Image::default()])).into(),
+                    0,
+                    true
+                    ))
+            }
+        }
+        
+        if let Some(window) = self.weak.upgrade() {
+            window.set_ex_items(Rc::new(VecModel::from(ex_items)).into());
         }
 
         Ok(())
@@ -505,7 +558,7 @@ impl Executor {
                     ref name,
                     ref voice,
                 } => {
-                    if let Some(length) = VOICE_CONFIG.find(name) {
+                    if let Some(length) = VOICE_LENGTH.find(name) {
                         let voice_player = self.voice_player.borrow_mut();
                         let volume = window.get_main_volume() / 100.0;
                         let voice_volume = window.get_voice_volume() / 100.0;
@@ -551,22 +604,33 @@ impl Executor {
         Ok(())
     }
 
-    async fn show_bg(&self, bg: &Command) -> Result<(), EngineError> {
+    async fn show_bg(&mut self, bg: &Command) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         let Command::Background {
             name,
             x_offset,
             y_offset,
             zoom,
+            is_cg,
         } = bg
         else {
             unreachable!()
         };
 
+        let path = if *is_cg {
+            if let Some((index, _)) = CG_LENGTH.find_by_name(name) {
+                self.unlock(*index);
+                save_extra_config(self.cg.borrow().clone())?;
+            }
+            ENGINE_CONFIG.cg_path()
+        } else {
+            ENGINE_CONFIG.background_path()
+        };
+
         if let Some(window) = weak.upgrade() {
             let image = Image::load_from_path(Path::new(&format!(
                 "{}{}.png",
-                ENGINE_CONFIG.background_path(),
+                path,
                 name
             )))
             .unwrap();

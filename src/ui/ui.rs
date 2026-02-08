@@ -59,7 +59,7 @@ pub async fn ui(
         let executor = executor.clone();
         move || {
             let mut executor = executor.clone();
-            slint::spawn_local(async move {  })
+            slint::spawn_local(async move { executor.execute_get_ex().await })
                 .expect("Get Ex panicked");
         }
     });
