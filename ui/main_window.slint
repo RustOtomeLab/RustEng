@@ -1,6 +1,7 @@
 import { MainMenu } from "components/main_menu.slint";
 import { SaveView } from "components/save.slint";
 import { LoadView } from "components/load.slint";
+import { ExtraView } from "components/extra.slint";
 import { SettingsView } from "components/main_config.slint";
 import { StoryView } from "components/story.slint";
 
@@ -55,6 +56,13 @@ export component MainWindow inherits Window {
         {explain:"空的"},{explain:"空的"},{explain:"空的"},{explain:"空的"},
     ];
 
+    in property <[{indexs:int, bg:[image], is-lock:bool}]> ex-items: [
+        {is-lock:true},{is-lock:true},{is-lock:true},{is-lock:true},
+        {is-lock:true},{is-lock:true},{is-lock:true},{is-lock:true},
+        {is-lock:true},{is-lock:true},{is-lock:true},{is-lock:true},
+        {is-lock:true},{is-lock:true},{is-lock:true},{is-lock:true},
+    ];
+
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;
     in-out property <float> voice-volume;
@@ -94,7 +102,11 @@ export component MainWindow inherits Window {
                 root.last-screen = 0;
                 root.current-screen = 4;
             }
-            gallery => { /* 画廊逻辑 */ }
+            gallery => {
+                root.get-ex();
+                root.last-screen = 0;
+                root.current-screen = 5;
+            }
             settings => {
                 root.last-screen = 0;
                 root.current-screen = 1;
@@ -214,6 +226,14 @@ export component MainWindow inherits Window {
             load(name, index) => { root.load(name, index); }
             back => { root.current-screen = root.last-screen; }
         }
+
+        if root.current-screen == 5: ExtraView {
+            container-width: parent.width;
+            container-height: parent.height;
+
+            ex-items: root.ex-items;
+            back => { root.current-screen = root.last-screen; }
+        }
     }
 
     // 回调函数保持不变
@@ -231,5 +251,6 @@ export component MainWindow inherits Window {
     callback choose(string);
     callback save(int);
     callback load(string, int);
+    callback get-ex();
     callback exit();
 }

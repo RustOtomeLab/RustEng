@@ -5,7 +5,7 @@ use std::fs;
 use tokio::time::Duration;
 
 lazy_static::lazy_static! {
-    pub static ref VOICE_CONFIG: VoiceConfig = load_voice();
+    pub static ref VOICE_LENGTH: VoiceLength = load_voice();
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -21,17 +21,17 @@ struct LengthWrapper {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct VoiceConfig {
+pub struct VoiceLength {
     voice_length: HashMap<String, HashMap<String, Duration>>,
 }
 
-impl VoiceConfig {
+impl VoiceLength {
     pub fn find(&self, name: &str) -> Option<&HashMap<String, Duration>> {
         self.voice_length.get(name)
     }
 }
 
-fn load_voice() -> VoiceConfig {
+fn load_voice() -> VoiceLength {
     let mut voice_length = HashMap::new();
     for char in &ENGINE_CONFIG.character.list {
         let content = fs::read_to_string(format!(
@@ -50,7 +50,7 @@ fn load_voice() -> VoiceConfig {
         );
     }
 
-    VoiceConfig { voice_length }
+    VoiceLength { voice_length }
 }
 
 pub fn deserialize_duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>

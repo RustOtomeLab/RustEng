@@ -53,6 +53,33 @@ cast = [
 ```
 In ```length.toml```, define voice file names and their durations for **auto-play**.
 
+### CG appreciation configuration file
+
+```
+cg
+length.toml
+```
+
+#### length.toml
+
+```
+#length.toml
+
+cast = [
+    {name = "ev_rir_03_01", index = 1, length = 3},
+    {name = "ev_rir_03_02", index = 2, length = 1},
+    {name = "ev_rir_03_03", index = 3, length = 1},
+    {name = "ev_rir_04_01", index = 4, length = 5},
+    {name = "ev_rir_04_02", index = 5, length = 1},
+    {name = "ev_rir_04_03", index = 6, length = 1},
+    {name = "ev_rir_04_04", index = 7, length = 1},
+    {name = "ev_rir_04_05", index = 8, length = 1},
+    {name = "ev_rir_06_01", index = 9, length = 1},
+]
+```
+In ```length.toml```, define the CG file name, sequence number, and **length**. The length of the main CG is the number of sheets of **all differences**, and the length of the difference CG is 1. The sequence number of the difference CG needs to be **strictly maintained** **after** the main CG.
+
+
 ### Character Sprite Configuration File
 
 ```
@@ -102,6 +129,7 @@ savedata
 1.toml
 2.toml
 ...
+extra.toml
 user.toml
 ```
 The ```savedata``` folder stores user-related configurations.
@@ -123,6 +151,19 @@ Numbered ```.toml``` files store save-related information:
 * ```block_index``` refers to the story block number
 * ```explain``` refers to the text description
 * ```image_path``` refers to the background image location
+
+#### extra.toml
+
+```
+#extra.toml
+
+[cg]
+cg = 1022
+```
+
+In```extra.toml```, the user's extra information is stored, and this information will be modified as the user progresses **through the game**：
+
+* ```cg```represents the unlocked CG condition, where bitmap indexing is used for storage, maintaining the first bit as 0；
 
 #### user.toml
 

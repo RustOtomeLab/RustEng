@@ -16,6 +16,7 @@ pub enum Command {
         x_offset: Option<f32>,
         y_offset: Option<f32>,
         zoom: Option<f32>,
+        is_cg: bool,
     },
     PlayBgm(String),
     PlayVoice {
@@ -180,6 +181,7 @@ impl Script {
                                 x_offset: parts.next().and_then(|s| s.parse::<f32>().ok()),
                                 y_offset: parts.next().and_then(|s| s.parse::<f32>().ok()),
                                 zoom: parts.next().and_then(|s| s.parse::<f32>().ok()),
+                                is_cg: if cmd == "cg" {true} else {false}
                             };
                             self.backgrounds.insert(*block_index, bg.clone());
                             bg

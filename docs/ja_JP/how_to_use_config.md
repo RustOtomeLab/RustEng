@@ -56,6 +56,33 @@ cast = [
 
 ```length.toml```では、音声ファイル名とその長さを定義し、**自動再生**に使用します。
 
+### CG鑑賞設定ファイル
+
+```
+cg
+length.toml
+```
+
+#### length.toml
+
+```
+#length.toml
+
+cast = [
+    {name = "ev_rir_03_01", index = 1, length = 3},
+    {name = "ev_rir_03_02", index = 2, length = 1},
+    {name = "ev_rir_03_03", index = 3, length = 1},
+    {name = "ev_rir_04_01", index = 4, length = 5},
+    {name = "ev_rir_04_02", index = 5, length = 1},
+    {name = "ev_rir_04_03", index = 6, length = 1},
+    {name = "ev_rir_04_04", index = 7, length = 1},
+    {name = "ev_rir_04_05", index = 8, length = 1},
+    {name = "ev_rir_06_01", index = 9, length = 1},
+]
+```
+
+```length.toml```では、CGファイル名、番号、および**長さ**を定義します。メインCGの長さは**すべての差分**の枚数で、差分CGの長さは1です。差分CGの番号はメインCGの**直後に厳密に続く**必要があります。
+
 ### 立ち絵設定ファイル
 
 ```
@@ -109,6 +136,7 @@ savedata
 1.toml
 2.toml
 ...
+extra.toml
 user.toml
 ```
 
@@ -132,6 +160,19 @@ image_path = "./source/background/bg022a.png"
 * ```block_index```はストーリーのブロック番号を指します
 * ```explain```はテキストの説明を指します
 * ```image_path```は背景画像の保存場所を指します
+
+#### extra.toml
+
+```
+#extra.toml
+
+[cg]
+cg = 1022
+```
+
+```extra.toml```には、ユーザーの追加情報が格納されており、これらの情報はユーザーが**ゲームの進行**でアンロックするにつれて変更されます：
+
+* ```cg```はCGをアンロックする場合で、ビットマップインデックスを使用して保存し、最初のビットを0に保つ；
 
 #### user.toml
 
