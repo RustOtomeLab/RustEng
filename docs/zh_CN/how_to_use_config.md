@@ -50,6 +50,33 @@ cast = [
 ```
 在```length.toml```中，定义语音文件名，以及其长度用于**自动播放**。
 
+### CG鉴赏配置文件
+
+```
+cg
+length.toml
+```
+
+#### length.toml
+
+```
+#length.toml
+
+cast = [
+    {name = "ev_rir_03_01", index = 1, length = 3},
+    {name = "ev_rir_03_02", index = 2, length = 1},
+    {name = "ev_rir_03_03", index = 3, length = 1},
+    {name = "ev_rir_04_01", index = 4, length = 5},
+    {name = "ev_rir_04_02", index = 5, length = 1},
+    {name = "ev_rir_04_03", index = 6, length = 1},
+    {name = "ev_rir_04_04", index = 7, length = 1},
+    {name = "ev_rir_04_05", index = 8, length = 1},
+    {name = "ev_rir_06_01", index = 9, length = 1},
+]
+```
+在```length.toml```中，定义CG文件名，序号以及**长度**，主CG的长度为**所有差分**的张数，差分CG的长度为1，差分CG的序号需要**严格保持**在主CG**之后**。
+
+
 ### 立绘配置文件
 
 ```
@@ -99,6 +126,7 @@ savedata
 1.toml
 2.toml
 ...
+extra.toml
 user.toml
 ```
 在```savedata```文件夹中，储存着与用户相关的配置。
@@ -120,6 +148,19 @@ image_path = "./source/background/bg022a.png"
 * ```block_index```指的是剧情快的块号；
 * ```explain```指的是文本的描述；
 * ```image_path```指的是背景图片存储的位置；
+
+#### extra.toml
+
+```
+#extra.toml
+
+[cg]
+cg = 1022
+```
+
+```extra.toml```中，存储的是用户的extra信息，这些信息会随着用户在**游戏进程**中的解锁而修改：
+
+* ```cg```是解锁CG的情况，使用位图索引进行储存，保持第一位为0；
 
 #### user.toml
 

@@ -216,30 +216,39 @@ impl Executor {
         let mut ex_items = Vec::with_capacity(16);
         
         let cgs = *self.cg.borrow();
-        for mut i in 1..=64 {
-            if cgs & (i * 2) != 0 {
-                if let Some((name, length)) = CG_LENGTH.find_by_id(i) {
+        let mut i = 1;
+        while i <= 63 {
+            if cgs & (1 << i) != 0 {
+                if let Some((_, length)) = CG_LENGTH.find_by_id(i) {
                     let (mut images, mut l, is_lock) = (Vec::new(), *length, false);
                     for j in 1..=*length {
-                        if cgs & (j * 2) != 0 {
-                            images.push(Image::load_from_path(Path::new(&format!(
-                                "{}{}.png",
-                                ENGINE_CONFIG.cg_path(),
-                                name
-                            )))
-                                .unwrap());
+                        if cgs & (1 << j + i - 1) != 0 {
+                            if let Some((name, _)) = CG_LENGTH.find_by_id(j + i - 1) {
+                                images.push(Image::load_from_path(Path::new(&format!(
+                                    "{}{}.png",
+                                    ENGINE_CONFIG.cg_path(),
+                                    name
+                                )))
+                                    .unwrap());
+                            }
+                            else {
+                                return Err(EngineError::FileError);
+                            }
                         } else {
                             l -= 1;
                         }
                     }
-                    i = i + *length - 1;
+                    i = i + *length;
                     ex_items.push((
                         Rc::new(VecModel::from(images)).into(),
                         l as i32,
                         is_lock,
                         ))
+                } else {
+                    return Err(EngineError::FileError);
                 }
-            } else { 
+            } else {
+                i += 1;
                 ex_items.push((
                     Rc::new(VecModel::from(vec![Image::default()])).into(),
                     0,

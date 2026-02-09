@@ -38,11 +38,13 @@ Here are the various operations and their usage:
 
 * #### Background Image:
 
-* * ```@bg bg1|0.1|0.2|1.5```: Here, ```@bg``` is the identifier for displaying a background image ( ```@cg``` can also be used; functionally identical, just for distinction in the script). Parts are separated by **vertical bars** ```|```.
+* * ```@bg bg1|0.1|0.2|1.5```: Here, ```@bg``` is the identifier for displaying a background image . Parts are separated by **vertical bars** ```|```.
 
 * * ```bg1``` is the PNG image file used as the background. This file should be placed in the ```source/background``` folder under the root directory.
 
 * * ```0.1|0.2|1.5```represent the x-offset, y-offset, and scale factor respectively, used to customize the background image's position and size. These values can **all be empty** (the ```|``` separators **can be omitted** if all are empty).
+
+* * ```@cg``` can also be used, which has the same functionality. Background images using CG need to be recorded in the CG appreciation and configuration files. For specific usage, please refer to the [Configuration File Documentation](how_to_use_config.md)
 
 * #### BGM：
 

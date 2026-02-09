@@ -26,7 +26,7 @@ export component ExtraView {
     in property <length> container-height;
     in property <[{indexs:int, bg:[image], is_lock:bool}]> ex-items;
     property <{indexs:int, bg:[image], is_lock:bool}> images;
-    property <int> viewing_index;
+    property <int> viewing_index: 0;
     property <bool> is_viewing: false;
     in property <[int]> indexs: [
             0, 1, 2, 3,
@@ -55,9 +55,11 @@ export component ExtraView {
                                 viewing_index += 1;
                             } else {
                                 root.is_viewing = false;
+                                viewing_index = 0;
                             }
                         } else if (event.button == PointerEventButton.right) {
                             root.is_viewing = false;
+                            viewing_index = 0;
                         }
                     }
                 }

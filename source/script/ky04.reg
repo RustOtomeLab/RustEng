@@ -1,0 +1,55 @@
+%version 1
+
+@label start
+@bg bg024c
+“cg测试部分”
+
+@cg ev_rir_03_01
+“第一部分第一张cg”
+
+“1”
+
+@cg ev_rir_03_02
+“第二张cg”
+
+“1”
+
+@cg ev_rir_03_03
+“第三张cg”
+
+“1”
+
+@cg ev_rir_04_01
+“第二部分第一张cg”
+
+“1”
+
+@cg ev_rir_04_02
+“第二张cg”
+
+“1”
+
+@cg ev_rir_04_03
+“第三张cg”
+
+“1”
+
+@cg ev_rir_04_04
+“第四张cg”
+
+“1”
+
+@cg ev_rir_04_05
+“第五张cg”
+
+“1”
+
+@cg ev_rir_06_01
+“第三部分第一张cg”
+
+“1”
+
+@bg bg024c
+“cg测试部分结束”
+
+@jump :start
