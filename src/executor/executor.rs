@@ -422,22 +422,24 @@ impl Executor {
     }
 
     pub async fn execute_script(&mut self) -> Result<(), EngineError> {
-        //println!("执行点击");
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
+            //println!("开始快速播放立绘动画");
             if scr.clear.get(&scr.index()).is_some() {
-                DelayTX::clear_tx(&self.delay_tx).send(()).await?;
-                DelayTX::clear_tx(&self.delay_move_tx).send(()).await?;
-                DelayTX::clear_tx(&self.loop_move_tx).send(()).await?;
+                DelayTX::clear_tx(&self.delay_tx).try_send(()).expect("clear_delay_tx send fali");
+                DelayTX::clear_tx(&self.delay_move_tx).try_send(()).expect("clear_delay_move_tx send fali");
+                DelayTX::clear_tx(&self.loop_move_tx).try_send(()).expect("clear_loop_move_tx send fali");
             } else {
-                DelayTX::skip_tx(&self.delay_tx).send(()).await?;
-                DelayTX::skip_tx(&self.delay_move_tx).send(()).await?;
-                DelayTX::skip_tx(&self.loop_move_tx).send(()).await?;
+                DelayTX::skip_tx(&self.delay_tx).try_send(()).expect("skip_delay_tx send fali");
+                DelayTX::skip_tx(&self.delay_move_tx).try_send(()).expect("skip_delay_move_tx send fali");
+                DelayTX::skip_tx(&self.loop_move_tx).try_send(()).expect("skip_loop_move_tx send fali");
             }
+            //println!("结束快速播放立绘动画");
         }
 
         {
+
             let mut text = self.text.write().unwrap();
             if text.is_running {
                 text.end();
