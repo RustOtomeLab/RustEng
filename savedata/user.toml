@@ -1,12 +1,16 @@
 [auto]
-delay = 2.5382617
+delay = 3.5
 is_wait = true
 
 [text]
-speed = 14.647284
-opacity = 0.2754137
+speed = 50.0
+opacity = 0.8
 
 [volume]
 main = 0.0
 bgm = 100.0
 voice = 100.0
+
+[character_volume]
+rir = 100.0
+rar = 100.0

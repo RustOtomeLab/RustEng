@@ -10,6 +10,11 @@ pub struct TextConfig {
     opacity: f32,
 }
 
+impl Default for TextConfig {
+    fn default() -> Self {
+        TextConfig { speed: 50.0, opacity: 0.8 }
+    }
+}
 impl TextConfig {
     pub fn speed(&self) -> f32 {
         self.speed

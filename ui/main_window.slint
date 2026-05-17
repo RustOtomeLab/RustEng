@@ -5,6 +5,11 @@ import { ExtraView } from "components/extra.slint";
 import { SettingsView } from "components/main_config.slint";
 import { StoryView } from "components/story.slint";
 
+struct CharacterVolume {
+    name: string,
+    volume: float,
+}
+
 export component MainWindow inherits Window {
     min-width: 1280px;
     min-height: 720px;
@@ -66,6 +71,7 @@ export component MainWindow inherits Window {
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;
     in-out property <float> voice-volume;
+    in-out property <[CharacterVolume]> character_volumes: [];
 
     // 计算容器尺寸
     property <length> container-size: min(self.width, self.height * 16 / 9);

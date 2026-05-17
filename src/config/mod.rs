@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use crate::config::initialize::{Character, InitializeConfig};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -13,6 +14,7 @@ pub mod voice;
 pub mod volume;
 pub mod extra;
 pub mod cg;
+pub mod character_volume;
 
 lazy_static::lazy_static! {
     pub static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
@@ -51,6 +53,10 @@ impl EngineConfig {
 
     pub fn save_path(&self) -> &str {
         &self.initialize.save_path
+    }
+
+    pub fn characters(&self) -> &HashSet<String> {
+        &self.character.list
     }
 }
 
