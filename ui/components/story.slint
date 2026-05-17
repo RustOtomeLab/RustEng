@@ -333,6 +333,7 @@ export component StoryView {
                 is-on: is-auto;
                 clicked => {
                     is-auto = !is-auto;
+                    is-skip = false;
                     root.auto-play(true);
                 }
             }
@@ -346,6 +347,7 @@ export component StoryView {
                 is-on: is-skip;
                 clicked => {
                     is-skip = !is-skip;
+                    is-auto = false;
                     root.skip-play(true);
                 }
             }

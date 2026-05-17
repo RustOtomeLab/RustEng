@@ -6,6 +6,7 @@ import { ScreenConfig } from "config/screen.slint";
 import { VolumeConfig } from "config/volume.slint";
 import { SystemConfig } from "config/system.slint";
 import { TextConfig } from "config/text.slint";
+import { HelpConfig } from "config/help.slint";
 
 export component SettingsView {
     in property <length> container-width;
@@ -92,6 +93,18 @@ export component SettingsView {
                     config-view = 3;
                 }
             }
+
+            CustomRoundButton {
+                width: parent.height * 0.75;
+                height: parent.height * 0.75;
+                x: parent.width * 0.44;
+                y: 0;
+                text: "帮助";
+                is-on: (config-view == 4) ? true : false;
+                clicked => {
+                    config-view = 4;
+                }
+            }
         }
 
         // 设置面板
@@ -139,6 +152,13 @@ export component SettingsView {
 
                 volume-changed => { root.volume-changed(); }
                 voice-volume-changed => { root.voice-volume-changed(); }
+            }
+
+            if config-view == 4: HelpConfig {
+                 x: 0;
+                 y: 0;
+                 height: parent.height;
+                 width: parent.width;
             }
         }
     }
