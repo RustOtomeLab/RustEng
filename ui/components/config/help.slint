@@ -1,0 +1,90 @@
+import { Colors } from "../../styles/colors.slint";
+
+component Shortcut {
+    in property <string> label;
+    in property <string> button;
+
+    Text {
+        x: 0;
+        y: 0;
+        text: label;
+        font-size: parent.height * 0.8;
+        color: Colors.text-light;
+        vertical-alignment: center;
+        width: parent.width * 0.12;
+    }
+
+    Rectangle {
+        x: parent.height * 1.2 * 5.5;
+        y: 0;
+        width: parent.width * 0.032;
+        height: parent.height;
+        background: Colors.button-background;
+
+        Text {
+            text: button;
+            font-size: parent.height * 0.8;
+            color: Colors.text-light;
+            vertical-alignment: center;
+            horizontal-alignment: center;
+        }
+    }
+}
+
+export component HelpConfig {
+    Rectangle {
+        Shortcut {
+            height: parent.height * 0.035;
+            width: parent.width;
+            x: parent.width * 0.02;
+            y: parent.height * 0.00;
+            label: "自动播放";
+            button: "F2";
+        }
+
+        Shortcut {
+            height: parent.height * 0.035;
+            width: parent.width;
+            x: parent.width * 0.02;
+            y: parent.height * 0.08;
+            label: "快速播放";
+            button: "F3";
+        }
+
+        Shortcut {
+            height: parent.height * 0.035;
+            width: parent.width;
+            x: parent.width * 0.02;
+            y: parent.height * 0.16;
+            label: "存档";
+            button: "F6";
+        }
+
+        Shortcut {
+            height: parent.height * 0.035;
+            width: parent.width;
+            x: parent.width * 0.02;
+            y: parent.height * 0.24;
+            label: "读档";
+            button: "F7";
+        }
+
+        Shortcut {
+            height: parent.height * 0.035;
+            width: parent.width;
+            x: parent.width * 0.02;
+            y: parent.height * 0.32;
+            label: "设置";
+            button: "F8";
+        }
+
+        Shortcut {
+            height: parent.height * 0.035;
+            width: parent.width;
+            x: parent.width * 0.02;
+            y: parent.height * 0.40;
+            label: "全屏/窗口切换";
+            button: "F11";
+        }
+    }
+}

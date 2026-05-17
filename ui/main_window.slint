@@ -72,6 +72,13 @@ export component MainWindow inherits Window {
     out property <length> container-width: container-size;
     out property <length> container-height: container-size * 9 / 16;
 
+    function esc_story(screen: int) {
+        root.auto-play(false);
+        root.skip-play(false);
+        root.last-screen = 2;
+        root.current-screen = screen;
+    }
+
     FocusScope {
         width: parent.width;
         height: parent.height;
@@ -79,6 +86,26 @@ export component MainWindow inherits Window {
         key-pressed(event) => {
             if (event.text == Key.F11) {
                 root.toggle-fullscreen();
+                accept
+            } else if ((event.text == Key.F2) && current-screen == 2) {
+                is-auto = !is-auto;
+                root.auto-play(true);
+                accept
+            } else if ((event.text == Key.F3) && current-screen == 2) {
+                is-auto = !is-skip;
+                root.skip-play(true);
+                accept
+            } else if ((event.text == Key.F6) && current-screen == 2) {
+                esc_story(3);
+                accept
+            } else if ((event.text == Key.F7) && current-screen == 2) {
+                esc_story(4);
+                accept
+            } else if ((event.text == Key.F8) && current-screen == 2) {
+                esc_story(1);
+                accept
+            } else if ((event.text == Key.Escape) && (current-screen == 1 || current-screen == 3 || current-screen == 4)) {
+                root.current-screen = root.last-screen;
                 accept
             } else {
                 reject
@@ -189,21 +216,13 @@ export component MainWindow inherits Window {
             clicked => { root.clicked(); }
             choose(text) => { root.choose(text); }
             save-game => {
-                root.auto-play(false);
-                root.skip-play(false);
-                root.current-screen = 3;
+                esc_story(3);
             }
             load-game => {
-                root.auto-play(false);
-                root.skip-play(false);
-                root.last-screen = 2;
-                root.current-screen = 4;
+                esc_story(4);
             }
             settings => {
-                root.auto-play(false);
-                root.skip-play(false);
-                root.last-screen = 2;
-                root.current-screen = 1;
+                esc_story(1);
             }
         }
 
