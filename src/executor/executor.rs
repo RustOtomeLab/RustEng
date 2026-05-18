@@ -573,9 +573,17 @@ impl Executor {
                         let voice_player = self.voice_player.borrow_mut();
                         let volume = window.get_main_volume() / 100.0;
                         let voice_volume = window.get_voice_volume() / 100.0;
+                        let character_volumes = window.get_character_volumes();
+                        let mut character_volume = 100.0;
+                        for character_volume_struct in character_volumes.iter() {
+                            if character_volume_struct.name == name {
+                                character_volume = character_volume_struct.volume / 100.0;
+                                break;
+                            }
+                        }
                         voice_player.play_voice(
                             &format!("{}/{}/{}.ogg", ENGINE_CONFIG.voice_path(), name, voice),
-                            volume * voice_volume,
+                            volume * voice_volume * character_volume,
                         );
                         duration += length.get(voice).unwrap().clone();
                     }
