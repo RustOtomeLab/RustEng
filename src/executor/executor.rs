@@ -5,7 +5,7 @@ use crate::config::save_load::SaveData;
 use crate::config::user::save_user_config;
 use crate::config::voice::VOICE_LENGTH;
 use crate::config::ENGINE_CONFIG;
-use crate::error::EngineError;
+use crate::error::{EngineError, ExecutorError, SaveError};
 use crate::executor::delay_executor::DelayTX;
 use crate::executor::text_executor::DisplayText;
 use crate::parser::parser::{Command, Commands};
@@ -124,7 +124,6 @@ impl Executor {
     pub async fn execute_backlog(&self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
-            //println!("{:#?}", script.backlog);
             let backlog = script.backlog();
             window.set_backlogs(Rc::new(VecModel::from(backlog)).into());
         }
@@ -187,12 +186,15 @@ impl Executor {
                 }
                 fs::write(
                     format!("{}{}.toml", ENGINE_CONFIG.save_path(), i),
-                    toml::to_string_pretty(&sava_data)?,
-                )?;
+                    toml::to_string_pretty(&sava_data).map_err(SaveError::from)?,
+                )
+                .map_err(|e| SaveError::Write {
+                    path: format!("{}{}.toml", ENGINE_CONFIG.save_path(), i),
+                    source: e,
+                })?;
             }
             window.set_save_items(Rc::new(VecModel::from(save_items)).into());
 
-            //println!("save {}", index);
         }
 
         Ok(())
@@ -232,7 +234,7 @@ impl Executor {
                                     .unwrap());
                             }
                             else {
-                                return Err(EngineError::FileError);
+                                return Err(ExecutorError::CgMetadataMissing(j + i - 1).into());
                             }
                         } else {
                             l -= 1;
@@ -245,7 +247,7 @@ impl Executor {
                         is_lock,
                         ))
                 } else {
-                    return Err(EngineError::FileError);
+                    return Err(ExecutorError::CgMetadataMissing(i).into());
                 }
             } else {
                 i += 1;
@@ -314,7 +316,6 @@ impl Executor {
 
         if let Some(window) = self.weak.upgrade() {
             if window.get_is_auto() {
-                //println!("choose: 5s");
                 self.auto_tx
                     .clone()
                     .unwrap()
@@ -381,7 +382,6 @@ impl Executor {
     pub async fn execute_auto(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
-                //println!("发送");
                 self.auto_tx
                     .clone()
                     .unwrap()
@@ -389,13 +389,10 @@ impl Executor {
                     .await?;
                 tx.send(()).await?;
             } else {
-                //println!("准备停止");
                 if window.get_is_auto() {
-                    //println!("正在自动");
                     tx.send(()).await?;
                 }
                 window.set_is_auto(false);
-                //println!("停止自动");
             }
         }
 
@@ -405,16 +402,12 @@ impl Executor {
     pub async fn execute_skip(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
-                //println!("发送");
                 tx.send(()).await?;
             } else {
-                //println!("准备停止");
                 if window.get_is_skip() {
-                    //println!("正在快进");
                     tx.send(()).await?;
                 }
                 window.set_is_skip(false);
-                //println!("停止快进");
             }
         }
 
@@ -425,7 +418,6 @@ impl Executor {
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
-            //println!("开始快速播放立绘动画");
             if scr.clear.get(&scr.index()).is_some() {
                 DelayTX::clear_tx(&self.delay_tx).try_send(()).expect("clear_delay_tx send fali");
                 DelayTX::clear_tx(&self.delay_move_tx).try_send(()).expect("clear_delay_move_tx send fali");
@@ -435,7 +427,6 @@ impl Executor {
                 DelayTX::skip_tx(&self.delay_move_tx).try_send(()).expect("skip_delay_move_tx send fali");
                 DelayTX::skip_tx(&self.loop_move_tx).try_send(()).expect("skip_loop_move_tx send fali");
             }
-            //println!("结束快速播放立绘动画");
         }
 
         {
@@ -494,7 +485,6 @@ impl Executor {
         }
 
         if is_auto {
-            //println!("script:{:?}", duration);
             self.auto_tx.clone().unwrap().send(duration).await?;
         }
 
@@ -576,7 +566,7 @@ impl Executor {
                         voice_player.play_voice(
                             &format!("{}/{}/{}.ogg", ENGINE_CONFIG.voice_path(), name, voice),
                             volume * voice_volume,
-                        );
+                        )?;
                         duration += length.get(voice).unwrap().clone();
                     }
                 }
@@ -595,7 +585,6 @@ impl Executor {
             }
         };
 
-        //println!("apply cmd:{:?}", duration);
         Ok(duration)
     }
 
@@ -609,7 +598,7 @@ impl Executor {
             bgm_player.play_loop(
                 &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
                 volume * bgm_volume,
-            );
+            )?;
         }
 
         Ok(())
@@ -821,7 +810,6 @@ impl Executor {
                 }
                 "nod" => {
                     if *repeat != 1 {
-                        //println!("发送循环，循环还剩{}次", repeat);
                         let tx = DelayTX::delay_tx(&self.loop_move_tx);
                         let back = fg_move.back();
                         let nod = Command::Move {
@@ -849,12 +837,10 @@ impl Executor {
                             delay: Some("150".to_string()),
                         })
                         .await?;
-                        //println!("点头");
                     }
                     (0.0, window.get_container_height() / 40.0)
                 }
                 "back" => {
-                    //println!("归位");
                     (0.0, 0.0)
                 }
                 "back_and_clean" => {

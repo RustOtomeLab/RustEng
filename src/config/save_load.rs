@@ -1,5 +1,5 @@
 use crate::config::ENGINE_CONFIG;
-use crate::error::EngineError;
+use crate::error::{EngineError, SaveError};
 use crate::executor::executor::Executor;
 use serde::{Deserialize, Serialize};
 use slint::{Image, ToSharedString, VecModel};
@@ -35,15 +35,17 @@ impl Executor {
     pub fn load_save_data(&mut self) -> Result<(), EngineError> {
         let mut load_items = Vec::with_capacity(16);
         for i in 0..16 {
-            if let Ok(content) =
-                fs::read_to_string(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i))
-            {
+            let path = format!("{}{}.toml", ENGINE_CONFIG.save_path(), i);
+            if let Ok(content) = fs::read_to_string(&path) {
                 let SaveData {
                     script,
                     block_index,
                     explain,
                     image_path,
-                } = toml::from_str(&content)?;
+                } = toml::from_str(&content).map_err(|e| SaveError::Deserialize {
+                    path: path.clone(),
+                    source: e,
+                })?;
                 let image =
                     Image::load_from_path(Path::new(&image_path)).unwrap_or(Image::default());
                 load_items.push((
@@ -55,14 +57,17 @@ impl Executor {
             } else {
                 let sava_data =
                     SaveData::new("".to_string(), 0, "空的".to_string(), "".to_string());
-                let content = toml::to_string_pretty(&sava_data)?;
+                let content = toml::to_string_pretty(&sava_data).map_err(SaveError::from)?;
                 load_items.push((
                     Image::default(),
                     sava_data.explain.to_shared_string(),
                     sava_data.block_index as i32,
                     sava_data.script.to_shared_string(),
                 ));
-                fs::write(format!("{}{}.toml", ENGINE_CONFIG.save_path(), i), content)?;
+                fs::write(&path, content).map_err(|e| SaveError::Write {
+                    path: path.clone(),
+                    source: e,
+                })?;
             }
         }
 

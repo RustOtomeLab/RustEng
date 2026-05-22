@@ -31,11 +31,9 @@ impl SkipExecutor {
             let mut start = true;
             while let Some(_) = rx.recv().await {
                 if start {
-                    //println!("开始快进");
                     is_skip_clone.store(true, Ordering::Relaxed);
                     start = false;
                 } else {
-                    //println!("停止快进");
                     is_skip_clone.store(false, Ordering::Relaxed);
                     start = true;
                 }
@@ -54,11 +52,14 @@ impl SkipExecutor {
             Duration::from_millis(100),
             move || {
                 if is_skip.load(Ordering::Relaxed) {
-                    //println!("定时器触发 - 快速执行");
 
                     let mut executor = executor.clone();
-                    slint::spawn_local(async move { executor.execute_script().await })
-                        .expect("Clicked panicked");
+                    slint::spawn_local(async move {
+                        if let Err(e) = executor.execute_script().await {
+                            eprintln!("skip execute_script failed: {e}");
+                        }
+                    })
+                    .expect("skip-play timer: no slint event loop");
                 }
             },
         );

@@ -66,7 +66,6 @@ impl DelayExecutor {
             loop {
                 tokio::select! {
                     Some(figure) = rx.recv()=> {
-                        //println!("收到delay指令");
                         current_figure.push_back(figure);
                     }
 
@@ -75,19 +74,19 @@ impl DelayExecutor {
                         if let Some(Command::Figure {delay, ..})
                         | Some(Command::Move {delay, ..}) = current_figure.front(){
                             sleep(Duration::from_millis(
-                                delay.clone().unwrap().parse::<u64>().unwrap_or(0),
+                                delay.clone().unwrap_or_default().parse::<u64>().unwrap_or(0),
                             )).await;
                         } else {
                             std::future::pending::<()>().await
                         }
                     } => {
-                        //println!("delay结束");
-                        command_clone.write().unwrap().push_back(current_figure.pop_front().unwrap());
+                        if let Some(cmd) = current_figure.pop_front() {
+                            command_clone.write().unwrap().push_back(cmd);
+                        }
                     }
 
                     // 重置请求
                     _ = skip_rx.recv() => {
-                        //println!("立刻完成延时立绘");
                         while let Some(figure) = current_figure.pop_front() {
                             if let Command::Figure {..} = figure {
                                 command_clone.write().unwrap().push_back(figure);
@@ -126,14 +125,18 @@ impl DelayExecutor {
             Duration::from_millis(30),
             move || {
                 if let Some(mut cmd) = command.write().unwrap().pop_front() {
-                    //println!("准备执行");
                     cmd.delete_delay();
                     let executor = executor.clone();
                     slint::spawn_local(async move {
-                        if let Command::Figure { .. } = &cmd {
-                            executor.show_fg(&cmd).await.unwrap();
+                        let result = if let Command::Figure { .. } = &cmd {
+                            executor.show_fg(&cmd).await
                         } else if let Command::Move { .. } = &cmd {
-                            executor.show_move(&cmd).await.unwrap();
+                            executor.show_move(&cmd).await
+                        } else {
+                            Ok(())
+                        };
+                        if let Err(e) = result {
+                            eprintln!("delay executor failed: {e}");
                         }
                     })
                     .expect("Delay panicked");
