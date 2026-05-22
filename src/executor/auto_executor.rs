@@ -38,14 +38,15 @@ impl AutoExecutor {
             let mut start = true;
             while let Some(_) = rx.recv().await {
                 if start {
-                    //println!("开始自动");
                     is_auto_clone.store(true, Ordering::Relaxed);
                     start = false;
                 } else {
-                    //println!("停止自动");
                     is_auto_clone.store(false, Ordering::Relaxed);
                     start = true;
-                    reset_tx.send(()).await.unwrap();
+                    if let Err(e) = reset_tx.send(()).await {
+                        eprintln!("auto reset channel closed: {e}");
+                        return;
+                    }
                 }
             }
         });
@@ -56,7 +57,6 @@ impl AutoExecutor {
             loop {
                 tokio::select! {
                     Some(delay) = auto_delay_rx.recv() => {
-                        //println!("设置新的延迟: {:?}", delay);
                         current_delay = Some(tokio::time::sleep(delay));
                     }
 
@@ -68,14 +68,15 @@ impl AutoExecutor {
                             std::future::pending::<()>().await
                         }
                     } => {
-                        //println!("准备自动");
-                        auto_tx.send(()).unwrap();
+                        if let Err(e) = auto_tx.send(()) {
+                            eprintln!("auto trigger channel closed: {e}");
+                            return;
+                        }
                         current_delay = None;
                     }
 
                     // 重置请求
                     _ = reset_rx.recv() => {
-                        //println!("reset");
                         current_delay = None;
                     }
                 }
@@ -86,7 +87,6 @@ impl AutoExecutor {
     }
 
     pub fn start_timer(&mut self) {
-        //println!("定时器打开");
         let executor = self.executor.clone();
         let is_auto = self.is_auto.clone();
         let rx = self.auto_rx.take().unwrap();
@@ -97,11 +97,14 @@ impl AutoExecutor {
             move || {
                 if is_auto.load(Ordering::Relaxed) {
                     if let Ok(_) = rx.try_recv() {
-                        //println!("定时器触发 - 自动执行");
 
                         let mut executor = executor.clone();
-                        slint::spawn_local(async move { executor.execute_script().await })
-                            .expect("Clicked panicked");
+                        slint::spawn_local(async move {
+                            if let Err(e) = executor.execute_script().await {
+                                eprintln!("auto execute_script failed: {e}");
+                            }
+                        })
+                        .expect("auto-play timer: no slint event loop");
                     }
                 }
             },

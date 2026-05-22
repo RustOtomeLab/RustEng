@@ -3893,6 +3893,7 @@ dependencies = [
  "serde",
  "slint",
  "slint-build",
+ "thiserror 1.0.69",
  "tokio",
  "toml 0.9.5",
 ]

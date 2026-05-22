@@ -1,6 +1,6 @@
 use crate::audio::player::PreBgm;
 use crate::config::ENGINE_CONFIG;
-use crate::error::EngineError;
+use crate::error::{EngineError, ScriptError};
 use crate::parser::parser::{Command, Commands};
 use slint::{SharedString, ToSharedString};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -63,9 +63,11 @@ impl Script {
     pub fn with_name(&mut self, name: &str) -> Result<(), EngineError> {
         self.name = name.to_string();
         let path = format!("{}{}.reg", ENGINE_CONFIG.script_path(), name);
-        let script = fs::read_to_string(&path)?;
+        let script = fs::read_to_string(&path).map_err(|e| ScriptError::ReadFile {
+            path: path.clone(),
+            source: e,
+        })?;
         self.parse_script(&script)?;
-        //println!("{:#?}", self.commands);
         Ok(())
     }
 

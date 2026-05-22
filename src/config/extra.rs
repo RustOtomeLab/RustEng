@@ -1,9 +1,8 @@
 use std::fs;
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use crate::config::cg::CgConfig;
 use crate::config::ENGINE_CONFIG;
-use crate::error::EngineError;
+use crate::error::{EngineError, SaveError};
 use crate::executor::executor::Executor;
 
 lazy_static::lazy_static! {
@@ -34,10 +33,12 @@ fn load_extra_config() -> ExtraConfig {
 }
 
 pub fn save_extra_config(cg: u64) -> Result<(), EngineError> {
-    fs::write(
-        format!("{}/extra.toml", ENGINE_CONFIG.save_path()),
-        toml::to_string(&ExtraConfig{cg: CgConfig::new(cg)})?,
-    )?;
+    let path = format!("{}/extra.toml", ENGINE_CONFIG.save_path());
+    let content = toml::to_string(&ExtraConfig{cg: CgConfig::new(cg)}).map_err(SaveError::from)?;
+    fs::write(&path, content).map_err(|e| SaveError::Write {
+        path,
+        source: e,
+    })?;
 
     Ok(())
 }
