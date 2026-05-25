@@ -1,4 +1,4 @@
-use crate::error::AudioError;
+use crate::error::MediaError;
 use rodio::{Decoder, OutputStream, Sink, Source};
 use std::{
     fs::File,
@@ -20,7 +20,7 @@ pub enum PreBgm {
 }
 
 impl Player {
-    pub fn new() -> Result<Self, AudioError> {
+    pub fn new() -> Result<Self, MediaError> {
         let (_stream, handle) = OutputStream::try_default()?;
         Ok(Self {
             sink: Arc::new(Mutex::new(None)),
@@ -29,17 +29,17 @@ impl Player {
         })
     }
 
-    pub fn play_loop(&self, path: &str, volume: f32) -> Result<(), AudioError> {
+    pub fn play_loop(&self, path: &str, volume: f32) -> Result<(), MediaError> {
         if let Some(s) = self.sink.lock().unwrap().take() {
             s.stop();
         }
 
-        let file = File::open(path).map_err(|e| AudioError::OpenFile {
+        let file = File::open(path).map_err(|e| MediaError::OpenFile {
             path: path.to_string(),
             source: e,
         })?;
         let source = Decoder::new(BufReader::new(file))
-            .map_err(|e| AudioError::Decode {
+            .map_err(|e| MediaError::DecodeAudio {
                 path: path.to_string(),
                 source: e,
             })?
@@ -67,15 +67,15 @@ impl Player {
         }
     }
 
-    pub fn play_voice(&self, path: &str, volume: f32) -> Result<(), AudioError> {
+    pub fn play_voice(&self, path: &str, volume: f32) -> Result<(), MediaError> {
         if let Some(s) = self.sink.lock().unwrap().take() {
             s.stop();
         }
-        let file = File::open(path).map_err(|e| AudioError::OpenFile {
+        let file = File::open(path).map_err(|e| MediaError::OpenFile {
             path: path.to_string(),
             source: e,
         })?;
-        let source = Decoder::new(BufReader::new(file)).map_err(|e| AudioError::Decode {
+        let source = Decoder::new(BufReader::new(file)).map_err(|e| MediaError::DecodeAudio {
             path: path.to_string(),
             source: e,
         })?;

@@ -11,8 +11,8 @@ pub enum EngineError {
     #[error("save error: {0}")]
     Save(#[from] SaveError),
 
-    #[error("audio error: {0}")]
-    Audio(#[from] AudioError),
+    #[error("media error: {0}")]
+    Media(#[from] MediaError),
 
     #[error("ui error: {0}")]
     Ui(#[from] slint::PlatformError),
@@ -101,8 +101,8 @@ pub enum SaveError {
 }
 
 #[derive(Debug, Error)]
-pub enum AudioError {
-    #[error("failed to open audio file `{path}`: {source}")]
+pub enum MediaError {
+    #[error("failed to open media file `{path}`: {source}")]
     OpenFile {
         path: String,
         #[source]
@@ -110,7 +110,7 @@ pub enum AudioError {
     },
 
     #[error("failed to decode audio file `{path}`: {source}")]
-    Decode {
+    DecodeAudio {
         path: String,
         #[source]
         source: rodio::decoder::DecoderError,
@@ -121,4 +121,9 @@ pub enum AudioError {
 
     #[error("failed to create audio sink: {0}")]
     Sink(#[from] rodio::PlayError),
+
+    /// 视频解码错误（接入 ffmpeg 后会承载具体源错误）。
+    #[allow(dead_code)]
+    #[error("failed to decode video `{path}`: {reason}")]
+    DecodeVideo { path: String, reason: String },
 }

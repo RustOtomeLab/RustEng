@@ -49,6 +49,7 @@ pub enum Command {
     Choice((String, HashMap<String, Label>)),
     Jump(Label),
     Label(String),
+    PlayVideo(String),
     Empty,
 }
 
@@ -233,6 +234,18 @@ impl Script {
                                     content: line.to_string(),
                                 }));
                             }
+                        }
+                        "video" => {
+                            // arg 是不带后缀的视频文件名，扩展名由 ENGINE_CONFIG.video_extension() 在执行期补全
+                            let name = arg.trim();
+                            if name.is_empty() {
+                                return Err(EngineError::from(ScriptError::ArgsTooShort {
+                                    cmd: "video".to_string(),
+                                    line: *line_num,
+                                    content: line.to_string(),
+                                }));
+                            }
+                            PlayVideo(name.to_string())
                         }
                         "fg" => {
                             let mut parts = arg.split('|').map(str::trim);
