@@ -11,6 +11,12 @@ pub(crate) struct VolumeConfig {
     voice: f32,
 }
 
+impl Default for VolumeConfig {
+    fn default() -> Self {
+        VolumeConfig { main: 100.0, bgm: 100.0, voice: 100.0 }
+    }
+}
+
 impl VolumeConfig {
     pub fn main(&self) -> f32 {
         self.main

@@ -4,6 +4,7 @@ import { LoadView } from "components/load.slint";
 import { ExtraView } from "components/extra.slint";
 import { SettingsView } from "components/main_config.slint";
 import { StoryView } from "components/story.slint";
+import { CharacterVolume } from "components/config/volume.slint";
 
 export component MainWindow inherits Window {
     min-width: 1280px;
@@ -68,6 +69,7 @@ export component MainWindow inherits Window {
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;
     in-out property <float> voice-volume;
+    in-out property <[CharacterVolume]> character_volumes: [];
 
     // 计算容器尺寸
     property <length> container-size: min(self.width, self.height * 16 / 9);
@@ -154,6 +156,7 @@ export component MainWindow inherits Window {
             main-volume <=> root.main-volume;
             bgm-volume <=> root.bgm-volume;
             voice-volume <=> root.voice-volume;
+            character_volumes <=> root.character_volumes;
             is-wait <=> root.is-wait;
             delay <=> root.delay;
             dialogue-opacity <=> root.dialogue-opacity;

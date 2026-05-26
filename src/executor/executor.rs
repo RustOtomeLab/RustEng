@@ -581,10 +581,20 @@ impl Executor {
                         let voice_player = self.voice_player.borrow_mut();
                         let volume = window.get_main_volume() / 100.0;
                         let voice_volume = window.get_voice_volume() / 100.0;
-                        voice_player.play_voice(
-                            &format!("{}/{}/{}.ogg", ENGINE_CONFIG.voice_path(), name, voice),
-                            volume * voice_volume,
-                        )?;
+                        let character_volumes = window.get_character_volumes();
+                        let mut character_volume = 100.0;
+                        {
+                            let full_name = ENGINE_CONFIG.character_list().get(name).unwrap();
+                            for CharacterVolume {name: ch_name, volume: ch_volume} in character_volumes.iter() {
+                                if ch_name == full_name {
+                                    voice_player.play_voice(
+                                        &format!("{}/{}/{}.ogg", ENGINE_CONFIG.voice_path(), name, voice),
+                                        volume * voice_volume * ch_volume / 100.0,
+                                    );
+                                    break;
+                                }
+                            }
+                        }
                         duration += length.get(voice).unwrap().clone();
                     }
                 }

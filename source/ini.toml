@@ -10,4 +10,5 @@ video_extension = "mp4"
 save_path = "./savedata/"
 
 [character]
-list = ["rir", "rar"]
+"rir" = "聖莉々子"
+"rar" = "美倉礼良"

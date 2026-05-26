@@ -10,6 +10,12 @@ pub struct AutoConfig {
     is_wait: bool,
 }
 
+impl Default for AutoConfig {
+    fn default() -> Self {
+        AutoConfig { delay: 3.5, is_wait: true }
+    }
+}
+
 impl AutoConfig {
     pub fn delay(&self) -> f32 {
         self.delay

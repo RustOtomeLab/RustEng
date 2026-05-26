@@ -2,10 +2,16 @@ import { CustomButton } from "../common/button.slint";
 import { VolumeSlider } from "../common/volume_slider.slint";
 import { Colors } from "../../styles/colors.slint";
 
+export struct CharacterVolume {
+    name: string,
+    volume: float,
+}
+
 export component VolumeConfig {
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;
     in-out property <float> voice-volume;
+    in-out property <[CharacterVolume]> character_volumes: [];
 
     callback volume-changed();
     callback voice-volume-changed();
@@ -51,6 +57,29 @@ export component VolumeConfig {
             volume-changed(value) => {
                 root.voice-volume = value;
                 root.voice-volume-changed();
+            }
+        }
+
+        Text {
+            y: parent.height * 0.24;
+            x: parent.width * 0.02;
+            text: "个别角色音量：";
+            font-size: parent.height * 0.8 * 0.035;
+            color: Colors.text-light;
+            width: parent.width * 0.3;
+            height: parent.height * 0.035;
+        }
+
+        for cv[i] in character_volumes: VolumeSlider {
+            y: parent.height * (0.24 + 0.08 * (i + 1));
+            x: parent.width * 0.02;
+            width: parent.width * 0.35;
+            height: parent.height * 0.035;
+            label: cv.name;
+            texts: 4;
+            volume: cv.volume;
+            volume-changed(value) => {
+                cv.volume = value;
             }
         }
     }

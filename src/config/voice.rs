@@ -33,7 +33,7 @@ impl VoiceLength {
 
 fn load_voice() -> VoiceLength {
     let mut voice_length = HashMap::new();
-    for char in &ENGINE_CONFIG.character.list {
+    for char in &ENGINE_CONFIG.character_name_list() {
         let content = fs::read_to_string(format!(
             "{}{}/length.toml",
             ENGINE_CONFIG.voice_path(),
