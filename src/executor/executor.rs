@@ -22,6 +22,7 @@ use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use crate::config::cg::CG_LENGTH;
 use crate::config::extra::save_extra_config;
+use crate::ui::ui::CharacterVolume;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -582,7 +583,6 @@ impl Executor {
                         let volume = window.get_main_volume() / 100.0;
                         let voice_volume = window.get_voice_volume() / 100.0;
                         let character_volumes = window.get_character_volumes();
-                        let mut character_volume = 100.0;
                         {
                             let full_name = ENGINE_CONFIG.character_list().get(name).unwrap();
                             for CharacterVolume {name: ch_name, volume: ch_volume} in character_volumes.iter() {
@@ -590,7 +590,7 @@ impl Executor {
                                     voice_player.play_voice(
                                         &format!("{}/{}/{}.ogg", ENGINE_CONFIG.voice_path(), name, voice),
                                         volume * voice_volume * ch_volume / 100.0,
-                                    );
+                                    )?;
                                     break;
                                 }
                             }
