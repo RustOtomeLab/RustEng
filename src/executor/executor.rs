@@ -588,6 +588,9 @@ impl Executor {
                         duration += length.get(voice).unwrap().clone();
                     }
                 }
+                Command::PlayVideo(name) => {
+                    self.start_video(&name)?;
+                }
                 Command::Figure { .. } => {
                     self.show_fg(&command).await?;
                 }
@@ -599,9 +602,6 @@ impl Executor {
                     self.execute_jump(Jump::Label(jump)).await?;
                 }
                 Command::Label(_) => (),
-                Command::PlayVideo(name) => {
-                    self.start_video(&name)?;
-                }
                 Command::Empty => (),
             }
         };
@@ -943,11 +943,6 @@ impl Executor {
         Ok(())
     }
 
-    /// 启动视频播放：
-    /// 1. 停止当前 BGM（按需求 B：结束后由脚本显式 `@bgm` 重新指定，不自动恢复）。
-    /// 2. 标记 `video_lock` 与 UI 的 `is-video`，禁止剧情推进。
-    /// 3. 创建 `VideoPlayer` 实例并启动一个 slint::Timer 以 ~60Hz 取帧。
-    /// 4. timer 检测到 `is_finished` 时自动调用 `execute_stop_video` 收尾。
     fn start_video(&self, name: &str) -> Result<(), EngineError> {
         let path = format!(
             "{}{}.{}",
@@ -956,10 +951,9 @@ impl Executor {
             ENGINE_CONFIG.video_extension()
         );
 
-        // 停止 BGM
         self.bgm_player.borrow().stop();
+        self.voice_player.borrow().stop();
 
-        // 启动播放器
         let player = VideoPlayer::play(&path)?;
         *self.video_player.borrow_mut() = Some(player);
         *self.video_lock.borrow_mut() = true;
@@ -968,14 +962,13 @@ impl Executor {
             window.set_is_video(true);
         }
 
-        // 启动取帧 timer
         let timer = slint::Timer::default();
         let weak = self.weak.clone();
         let video_player = self.video_player.clone();
         let executor_for_finish = self.clone();
         timer.start(
             slint::TimerMode::Repeated,
-            Duration::from_millis(16), // ~60Hz
+            Duration::from_millis(16),
             move || {
                 let mut finished = false;
                 if let Some(vp) = video_player.borrow().as_ref() {
@@ -1002,9 +995,7 @@ impl Executor {
         Ok(())
     }
 
-    /// 用户主动点击或视频自然结束 → 停止视频播放并继续剧情。
     pub async fn execute_stop_video(&self) -> Result<(), EngineError> {
-        // 幂等：如果不在视频播放中，直接忽略
         if !*self.video_lock.borrow() {
             return Ok(());
         }
@@ -1012,7 +1003,7 @@ impl Executor {
         if let Some(player) = self.video_player.borrow_mut().take() {
             player.stop();
         }
-        // 释放 timer（drop 即停止）
+
         self.video_timer.borrow_mut().take();
 
         *self.video_lock.borrow_mut() = false;
@@ -1021,7 +1012,6 @@ impl Executor {
             window.set_video_frame(Image::default());
         }
 
-        // 视频播完后立即推进到下一条剧情指令，给玩家无缝衔接体验
         let mut this = self.clone();
         this.execute_script().await
     }

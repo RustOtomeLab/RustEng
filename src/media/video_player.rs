@@ -33,20 +33,15 @@ use std::sync::{Arc, Mutex, Once};
 use std::thread;
 use std::time::{Duration, Instant};
 
-/// 解码线程产出的帧载体。`SharedPixelBuffer` 是 `Send`，可跨线程传递；
-/// `slint::Image` 不是 `Send`，因此在 UI 线程消费时再封装。
 type FrameBuffer = SharedPixelBuffer<Rgba8Pixel>;
 
-/// ffmpeg 全局初始化（线程安全，仅初始化一次）。
 static FFMPEG_INIT: Once = Once::new();
 
 fn ensure_ffmpeg_initialized() {
     FFMPEG_INIT.call_once(|| {
-        // 即便 init 失败也只能记录日志——后续 open 会再次报错。
         if let Err(e) = ffmpeg::init() {
             eprintln!("ffmpeg init failed: {e}");
         }
-        // 关闭 ffmpeg 的冗余日志（仅保留 ERROR 级别）。
         ffmpeg::util::log::set_level(ffmpeg::util::log::Level::Error);
     });
 }
@@ -57,16 +52,13 @@ pub struct VideoPlayer {
     cancel: Arc<AtomicBool>,
     finished: Arc<AtomicBool>,
     latest_frame: Arc<Mutex<Option<FrameBuffer>>>,
-    /// 持有解码线程句柄，drop 时 join，确保 ffmpeg 资源被回收。
     decode_thread: Option<thread::JoinHandle<()>>,
 }
 
 impl VideoPlayer {
-    /// 启动视频播放：打开文件、启动解码线程、立即返回。
     pub fn play(path: &str) -> Result<Self, MediaError> {
         ensure_ffmpeg_initialized();
 
-        // 路径检查给出更友好的错误（ffmpeg 自己的 NotFound 也能识别，但信息更模糊）。
         if !std::path::Path::new(path).exists() {
             return Err(MediaError::OpenFile {
                 path: path.to_string(),
@@ -110,24 +102,19 @@ impl VideoPlayer {
         })
     }
 
-    /// 请求停止播放。幂等。
     pub fn stop(&self) {
         self.cancel.store(true, Ordering::Release);
     }
 
-    /// 视频是否已结束（自然结束或被取消）。
     pub fn is_finished(&self) -> bool {
         self.finished.load(Ordering::Acquire)
     }
 
-    /// 取出最新解码出的视频帧（如果有）。
-    /// take 语义：UI timer 在每次轮询时取走最新帧后写入 slint，避免重复 set_video_frame。
     pub fn take_latest_frame(&self) -> Option<Image> {
         let buf = self.latest_frame.lock().ok()?.take()?;
         Some(Image::from_rgba8(buf))
     }
 
-    /// 当前播放的文件路径。
     #[allow(dead_code)]
     pub fn path(&self) -> &str {
         &self.path
@@ -138,14 +125,11 @@ impl Drop for VideoPlayer {
     fn drop(&mut self) {
         self.stop();
         if let Some(handle) = self.decode_thread.take() {
-            // 等待解码线程结束，确保 ffmpeg 资源完全释放。
-            // 单元短视频场景下退出延迟通常 < 一帧周期。
             let _ = handle.join();
         }
     }
 }
 
-/// 解码循环。所有 ffmpeg 资源都在本函数栈上，函数返回即被释放。
 fn decode_loop(
     path: &str,
     cancel: Arc<AtomicBool>,
@@ -157,7 +141,7 @@ fn decode_loop(
         reason: format!("open input: {e}"),
     })?;
 
-    // ---- 视频流 ----
+    // 视频流
     let video_stream = ictx
         .streams()
         .best(MediaType::Video)
@@ -193,9 +177,8 @@ fn decode_loop(
         reason: format!("sws context: {e}"),
     })?;
 
-    // ---- 音频流（可选）----
+    // 音频流
     let audio_setup = setup_audio(&ictx).map_err(|mut e| {
-        // 补齐路径上下文（setup_audio 内部不知道 path）
         if let MediaError::DecodeVideo { path: ref mut p, .. } = e {
             if p.is_empty() {
                 *p = path.to_string();
@@ -206,7 +189,6 @@ fn decode_loop(
 
     let playback_start = Instant::now();
 
-    // ---- 主循环：读包并按流索引分发 ----
     for (stream, packet) in ictx.packets() {
         if cancel.load(Ordering::Acquire) {
             break;
@@ -237,7 +219,6 @@ fn decode_loop(
         }
     }
 
-    // ---- flush ----
     if !cancel.load(Ordering::Acquire) {
         video_decoder.send_eof().ok();
         drain_video_frames(
@@ -258,7 +239,6 @@ fn decode_loop(
                 a.target_rate,
                 a.target_channels,
             );
-            // 等待 sink 把缓冲区放完
             while !a.sink.empty() && !cancel.load(Ordering::Acquire) {
                 thread::sleep(Duration::from_millis(20));
             }
@@ -269,7 +249,6 @@ fn decode_loop(
     Ok(())
 }
 
-/// 持续从 video decoder 取帧，按 PTS 节奏写到 latest_frame。
 fn drain_video_frames(
     decoder: &mut ffmpeg::decoder::Video,
     scaler: &mut ScalingContext,
@@ -288,7 +267,6 @@ fn drain_video_frames(
             continue;
         }
 
-        // 计算这一帧应当显示的目标时刻。
         if let Some(pts) = decoded.pts() {
             let pts_secs = pts as f64 * f64::from(time_base.numerator())
                 / f64::from(time_base.denominator());
@@ -296,7 +274,6 @@ fn drain_video_frames(
             let now = Instant::now();
             if target > now {
                 let wait = target - now;
-                // 大睡眠时分多次检查 cancel
                 let chunk = Duration::from_millis(20);
                 let mut remaining = wait;
                 while remaining > Duration::ZERO {
@@ -317,7 +294,6 @@ fn drain_video_frames(
     }
 }
 
-/// 把 RGBA8 的 ffmpeg 帧转换成 SharedPixelBuffer<Rgba8Pixel>（Send，可跨线程）。
 fn video_frame_to_pixel_buffer(rgba_frame: &VideoFrame) -> FrameBuffer {
     let w = rgba_frame.width();
     let h = rgba_frame.height();
@@ -342,7 +318,6 @@ fn video_frame_to_pixel_buffer(rgba_frame: &VideoFrame) -> FrameBuffer {
     buffer
 }
 
-/// 音频上下文：解码器、重采样、rodio sink 等共生体。
 struct AudioSetup {
     stream_index: usize,
     decoder: Mutex<ffmpeg::decoder::Audio>,
@@ -350,7 +325,6 @@ struct AudioSetup {
     target_rate: u32,
     target_channels: u16,
     sink: Sink,
-    /// 持有 OutputStream 防止 sink 提前失效。
     _stream: OutputStream,
 }
 
@@ -373,7 +347,6 @@ fn setup_audio(
         reason: format!("audio decoder: {e}"),
     })?;
 
-    // 目标格式：i16 packed，与 ffmpeg 解码出的 native 格式做 swresample。
     let target_format = SampleFormat::I16(SampleType::Packed);
     let target_rate = decoder.rate();
     let target_channel_layout = decoder.channel_layout();
@@ -392,7 +365,6 @@ fn setup_audio(
         reason: format!("resampler: {e}"),
     })?;
 
-    // 启动 rodio
     let (stream, handle) = OutputStream::try_default().map_err(MediaError::from)?;
     let sink = Sink::try_new(&handle).map_err(MediaError::from)?;
 
@@ -420,7 +392,6 @@ fn drain_audio_frames(
         if resampler.run(&decoded, &mut resampled).is_err() {
             continue;
         }
-        // packed i16: 所有 channel 交错在 plane 0
         let bytes = resampled.data(0);
         let sample_count = bytes.len() / 2;
         let mut samples = Vec::with_capacity(sample_count);
