@@ -5,6 +5,8 @@ cg_path = "./source/cg/"
 voice_path = "./source/voice/"
 bgm_path = "./source/bgm/"
 figure_path = "./source/figure/"
+video_path = "./source/video/"
+video_extension = "mp4"
 save_path = "./savedata/"
 
 [character]

@@ -32,7 +32,10 @@ impl TextExecutor {
                 if speed == Duration::from_millis(0) {
                     let mut text = text.write().unwrap();
                     let tx = text_tx.clone();
-                    tx.send(text.full_text.clone()).unwrap();
+                    if let Err(e) = tx.send(text.full_text.clone()) {
+                        eprintln!("text channel closed: {e}");
+                        return;
+                    }
                     text.is_running = false;
                     continue;
                 }
@@ -41,7 +44,10 @@ impl TextExecutor {
                     {
                         let mut text = text.write().unwrap();
                         if let Some(text) = text.next_character() {
-                            tx.send(text).unwrap()
+                            if let Err(e) = tx.send(text) {
+                                eprintln!("text channel closed: {e}");
+                                return;
+                            }
                         }
                     }
                     sleep(speed).await;
@@ -53,7 +59,6 @@ impl TextExecutor {
     }
 
     pub fn start_timer(&mut self) {
-        //println!("定时器打开");
         let weak = self.weak.clone();
         let rx = self.text_rx.take().unwrap();
 

@@ -1,60 +1,129 @@
-use crate::error::EngineError::AutoError;
-use crate::parser::parser::ParserError;
-use serde::Deserialize;
-use slint::PlatformError;
-use std::io::Error;
-use std::num::ParseIntError;
-use tokio::sync::mpsc::error::SendError;
+use thiserror::Error;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Error)]
 pub enum EngineError {
-    #[warn(dead_code)]
-    FileError,
-    ParseError,
-    UiError,
-    AutoError,
-    ConfigError,
-    SaveError,
+    #[error("script error: {0}")]
+    Script(#[from] ScriptError),
+
+    #[error("executor error: {0}")]
+    Executor(#[from] ExecutorError),
+
+    #[error("save error: {0}")]
+    Save(#[from] SaveError),
+
+    #[error("media error: {0}")]
+    Media(#[from] MediaError),
+
+    #[error("ui error: {0}")]
+    Ui(#[from] slint::PlatformError),
 }
 
-impl From<ParserError> for EngineError {
-    fn from(_: ParserError) -> Self {
-        EngineError::ParseError
+impl<T> From<tokio::sync::mpsc::error::SendError<T>> for EngineError {
+    fn from(_: tokio::sync::mpsc::error::SendError<T>) -> Self {
+        EngineError::Executor(ExecutorError::ChannelClosed)
     }
 }
 
-impl From<Error> for EngineError {
-    fn from(_: Error) -> Self {
-        EngineError::FileError
-    }
+#[derive(Debug, Error)]
+pub enum ScriptError {
+    #[error("invalid command at line {line}: {content}")]
+    InvalidCommand { line: usize, content: String },
+
+    #[error("malformed dialogue at line {line}: {content}")]
+    MalformedDialogue { line: usize, content: String },
+
+    #[error("unknown line at line {line}: {content}")]
+    UnknownLine { line: usize, content: String },
+
+    #[error("unsupported script version: need {need}, got `{indeed}`")]
+    UnsupportedVersion { need: usize, indeed: String },
+
+    #[error("invalid choice block: {0}")]
+    Choice(String),
+
+    #[error("command `{cmd}` at line {line} requires more arguments: {content}")]
+    ArgsTooShort {
+        cmd: String,
+        line: usize,
+        content: String,
+    },
+
+    #[error("failed to parse integer in script: {0}")]
+    ParseInt(#[from] std::num::ParseIntError),
+
+    #[error("failed to read script file `{path}`: {source}")]
+    ReadFile {
+        path: String,
+        #[source]
+        source: std::io::Error,
+    },
 }
 
-impl From<PlatformError> for EngineError {
-    fn from(_: PlatformError) -> Self {
-        EngineError::UiError
-    }
+#[derive(Debug, Error)]
+pub enum ExecutorError {
+    #[error("internal channel closed")]
+    ChannelClosed,
+
+    #[error("CG metadata not found for id {0}")]
+    CgMetadataMissing(u64),
+
+    #[allow(dead_code)]
+    #[error("invalid executor state: {0}")]
+    InvalidState(&'static str),
 }
 
-impl From<ParseIntError> for EngineError {
-    fn from(_: ParseIntError) -> Self {
-        EngineError::ParseError
-    }
+#[derive(Debug, Error)]
+pub enum SaveError {
+    #[allow(dead_code)]
+    #[error("failed to read save file `{path}`: {source}")]
+    Read {
+        path: String,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("failed to write save file `{path}`: {source}")]
+    Write {
+        path: String,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("failed to serialize save data: {0}")]
+    Serialize(#[from] toml::ser::Error),
+
+    #[error("failed to deserialize save data `{path}`: {source}")]
+    Deserialize {
+        path: String,
+        #[source]
+        source: toml::de::Error,
+    },
 }
 
-impl<T> From<SendError<T>> for EngineError {
-    fn from(_: SendError<T>) -> Self {
-        AutoError
-    }
-}
+#[derive(Debug, Error)]
+pub enum MediaError {
+    #[error("failed to open media file `{path}`: {source}")]
+    OpenFile {
+        path: String,
+        #[source]
+        source: std::io::Error,
+    },
 
-impl From<toml::de::Error> for EngineError {
-    fn from(_: toml::de::Error) -> Self {
-        EngineError::ConfigError
-    }
-}
+    #[error("failed to decode audio file `{path}`: {source}")]
+    DecodeAudio {
+        path: String,
+        #[source]
+        source: rodio::decoder::DecoderError,
+    },
 
-impl From<toml::ser::Error> for EngineError {
-    fn from(_: toml::ser::Error) -> Self {
-        EngineError::SaveError
-    }
+    #[error("failed to create audio output stream: {0}")]
+    OutputStream(#[from] rodio::StreamError),
+
+    #[error("failed to create audio sink: {0}")]
+    Sink(#[from] rodio::PlayError),
+
+    /// 视频解码错误（接入 ffmpeg 后会承载具体源错误）。
+    #[allow(dead_code)]
+    #[error("failed to decode video `{path}`: {reason}")]
+    DecodeVideo { path: String, reason: String },
 }

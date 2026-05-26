@@ -1,4 +1,4 @@
-use crate::error::EngineError;
+use crate::error::{EngineError, ScriptError};
 use crate::script::{Label, Script};
 use std::collections::HashMap;
 
@@ -23,6 +23,7 @@ pub enum Command {
         name: String,
         voice: String,
     },
+    PlayVideo(String),
     Dialogue {
         speaker: String,
         text: String,
@@ -124,16 +125,6 @@ impl Command {
     }
 }
 
-#[derive(Debug)]
-pub enum ParserError {
-    ChooseError(String),
-    InvalidCommand { line: usize, content: String },
-    MalformedDialogue { line: usize, content: String },
-    UnknownLine { line: usize, content: String },
-    UnSupportedVersion { need: usize, indeed: String },
-    TooShort,
-}
-
 static VERSION: usize = 1;
 
 impl Script {
@@ -191,7 +182,7 @@ impl Script {
                             PlayBgm(arg.to_string())
                         }
                         "choose" => {
-                            let num = arg.parse::<usize>()?;
+                            let num = arg.parse::<usize>().map_err(ScriptError::from)?;
                             let mut choose_branch = HashMap::with_capacity(num);
                             let explain = lines[index + 1].1.clone();
                             for i in index + 2..=index + num + 1 {
@@ -222,8 +213,8 @@ impl Script {
                                     choose_branch.insert(choice.clone(), label.clone());
                                     self.choices.insert(choice, label);
                                 } else {
-                                    return Err(EngineError::from(ParserError::ChooseError(
-                                        format!("Invalid choice: {}", lines[line_num + i].1),
+                                    return Err(EngineError::from(ScriptError::Choice(
+                                        format!("Invalid choice at line {}: {}", lines[i].0, lines[i].1),
                                     )));
                                 }
                             }
@@ -237,8 +228,23 @@ impl Script {
                                     voice: voice.to_string(),
                                 }
                             } else {
-                                return Err(EngineError::from(ParserError::TooShort));
+                                return Err(EngineError::from(ScriptError::ArgsTooShort {
+                                    cmd: "voice".to_string(),
+                                    line: *line_num,
+                                    content: line.to_string(),
+                                }));
                             }
+                        }
+                        "video" => {
+                            let name = arg.trim();
+                            if name.is_empty() {
+                                return Err(EngineError::from(ScriptError::ArgsTooShort {
+                                    cmd: "video".to_string(),
+                                    line: *line_num,
+                                    content: line.to_string(),
+                                }));
+                            }
+                            PlayVideo(name.to_string())
                         }
                         "fg" => {
                             let mut parts = arg.split('|').map(str::trim);
@@ -276,7 +282,11 @@ impl Script {
                                         delay: delay.map(|d| d.to_string()),
                                     }
                                 }
-                                _ => return Err(EngineError::from(ParserError::TooShort)),
+                                _ => return Err(EngineError::from(ScriptError::ArgsTooShort {
+                                    cmd: "fg".to_string(),
+                                    line: *line_num,
+                                    content: line.to_string(),
+                                })),
                             }
                         }
                         "move" => {
@@ -308,7 +318,7 @@ impl Script {
                                         face: face.to_string(),
                                         position: position.to_string(),
                                         action: action.to_string(),
-                                        repeat: repeat.parse::<i32>()?,
+                                        repeat: repeat.parse::<i32>().map_err(ScriptError::from)?,
                                         delay: delay.map(|d| d.to_string()),
                                     };
                                     if action.contains("to") {
@@ -320,7 +330,11 @@ impl Script {
                                     }
                                     command
                                 }
-                                _ => return Err(EngineError::from(ParserError::TooShort)),
+                                _ => return Err(EngineError::from(ScriptError::ArgsTooShort {
+                                    cmd: "move".to_string(),
+                                    line: *line_num,
+                                    content: line.to_string(),
+                                })),
                             }
                         }
                         "clear" => {
@@ -331,7 +345,7 @@ impl Script {
                                 if arg == "All" {
                                     Clear(arg.to_string(), arg.to_string())
                                 } else {
-                                    return Err(EngineError::from(ParserError::InvalidCommand {
+                                    return Err(EngineError::from(ScriptError::InvalidCommand {
                                         line: *line_num,
                                         content: line.to_string(),
                                     }));
@@ -354,7 +368,7 @@ impl Script {
                             Label(arg.to_string())
                         }
                         _ => {
-                            return Err(EngineError::from(ParserError::InvalidCommand {
+                            return Err(EngineError::from(ScriptError::InvalidCommand {
                                 line: *line_num,
                                 content: line.to_string(),
                             }));
@@ -362,7 +376,7 @@ impl Script {
                     };
                     block_commands.push(cmd);
                 } else {
-                    return Err(EngineError::from(ParserError::InvalidCommand {
+                    return Err(EngineError::from(ScriptError::InvalidCommand {
                         line: *line_num,
                         content: line.to_string(),
                     }));
@@ -371,19 +385,19 @@ impl Script {
                 if let Some((cmd, arg)) = line.split_once(' ') {
                     if cmd == "version" {
                         if arg.parse::<usize>().unwrap_or(0) != VERSION {
-                            return Err(EngineError::from(ParserError::UnSupportedVersion {
+                            return Err(EngineError::from(ScriptError::UnsupportedVersion {
                                 need: VERSION,
                                 indeed: arg.to_string(),
                             }));
                         }
                     } else {
-                        return Err(EngineError::from(ParserError::UnknownLine {
+                        return Err(EngineError::from(ScriptError::UnknownLine {
                             line: *line_num,
                             content: line.to_string(),
                         }));
                     }
                 } else {
-                    return Err(EngineError::from(ParserError::InvalidCommand {
+                    return Err(EngineError::from(ScriptError::InvalidCommand {
                         line: *line_num,
                         content: line.to_string(),
                     }));
@@ -398,13 +412,13 @@ impl Script {
                     });
                     break;
                 } else {
-                    return Err(EngineError::from(ParserError::MalformedDialogue {
+                    return Err(EngineError::from(ScriptError::MalformedDialogue {
                         line: *line_num,
                         content: line.clone(),
                     }));
                 }
             } else {
-                return Err(EngineError::from(ParserError::UnknownLine {
+                return Err(EngineError::from(ScriptError::UnknownLine {
                     line: *line_num,
                     content: line.clone(),
                 }));

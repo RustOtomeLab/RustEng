@@ -2,7 +2,7 @@ use crate::config::system::AutoConfig;
 use crate::config::text::TextConfig;
 use crate::config::volume::VolumeConfig;
 use crate::config::ENGINE_CONFIG;
-use crate::error::EngineError;
+use crate::error::{EngineError, SaveError};
 use crate::ui::ui::MainWindow;
 use serde::{Deserialize, Serialize};
 use slint::Weak;
@@ -98,10 +98,16 @@ fn load_user_config() -> UserConfig {
 
 pub fn save_user_config(weak: Weak<MainWindow>) -> Result<(), EngineError> {
     let path = format!("{}/user.toml", ENGINE_CONFIG.save_path());
-    write_config(&path, &UserConfig::from_weak(weak))
+    write_config(&path, &UserConfig::from_weak(weak))?;
+  
+    Ok(())
 }
 
 fn write_config(path: &str, config: &UserConfig) -> Result<(), EngineError> {
-    fs::write(path, toml::to_string(config)?)?;
+    let content = toml::to_string(config).map_err(SaveError::from)?;
+    fs::write(path, content).map_err(|e| SaveError::Write {
+        path,
+        source: e,
+    })?;
     Ok(())
 }

@@ -1,4 +1,4 @@
-use crate::audio::player::Player;
+use crate::media::player::Player;
 use crate::error::EngineError;
 use crate::executor::executor::Executor;
 use crate::executor::load_data;
@@ -38,7 +38,6 @@ pub async fn ui(
     window.on_save({
         let executor = executor.clone();
         move |index| {
-            //println!("准备存档");
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_save(index).await })
                 .expect("Save panicked");
@@ -48,7 +47,6 @@ pub async fn ui(
     window.on_load({
         let executor = executor.clone();
         move |name, index| {
-            //println!("准备读档");
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_load(name.to_string(), index).await })
                 .expect("Load panicked");
@@ -134,7 +132,6 @@ pub async fn ui(
         let executor = executor.clone();
         move |name, i| {
             let mut executor = executor.clone();
-            //println!("backlog {} {}", i, name);
             slint::spawn_local(
                 async move { executor.execute_backlog_jump(name.to_string(), i).await },
             )
@@ -145,7 +142,6 @@ pub async fn ui(
     window.on_clicked({
         let executor = executor.clone();
         move || {
-            //println!("检测到点击");
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_script().await })
                 .expect("Clicked panicked");
@@ -171,6 +167,19 @@ pub async fn ui(
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_skip(tx, source).await })
                 .expect("TODO: panic message");
+        }
+    });
+
+    window.on_stop_video({
+        let executor = executor.clone();
+        move || {
+            let executor = executor.clone();
+            slint::spawn_local(async move {
+                if let Err(e) = executor.execute_stop_video().await {
+                    eprintln!("stop_video failed: {e}");
+                }
+            })
+            .expect("stop_video panicked");
         }
     });
 

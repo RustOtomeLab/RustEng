@@ -1,7 +1,7 @@
-mod audio;
 mod config;
 mod error;
 mod executor;
+mod media;
 mod parser;
 mod run;
 mod script;

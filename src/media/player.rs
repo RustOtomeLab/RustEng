@@ -1,3 +1,4 @@
+use crate::error::MediaError;
 use rodio::{Decoder, OutputStream, Sink, Source};
 use std::{
     fs::File,
@@ -19,31 +20,38 @@ pub enum PreBgm {
 }
 
 impl Player {
-    pub fn new() -> Self {
-        let (_stream, handle) = OutputStream::try_default().expect("Failed to open audio output");
-        Self {
+    pub fn new() -> Result<Self, MediaError> {
+        let (_stream, handle) = OutputStream::try_default()?;
+        Ok(Self {
             sink: Arc::new(Mutex::new(None)),
             _stream,
             stream_handle: handle,
-        }
+        })
     }
 
-    pub fn play_loop(&self, path: &str, volume: f32) {
+    pub fn play_loop(&self, path: &str, volume: f32) -> Result<(), MediaError> {
         if let Some(s) = self.sink.lock().unwrap().take() {
             s.stop();
         }
 
-        let file = File::open(path).expect("Failed to open BGM file");
+        let file = File::open(path).map_err(|e| MediaError::OpenFile {
+            path: path.to_string(),
+            source: e,
+        })?;
         let source = Decoder::new(BufReader::new(file))
-            .expect("Failed to decode BGM file")
+            .map_err(|e| MediaError::DecodeAudio {
+                path: path.to_string(),
+                source: e,
+            })?
             .repeat_infinite();
 
-        let sink = Sink::try_new(&self.stream_handle).expect("Failed to create sink");
+        let sink = Sink::try_new(&self.stream_handle)?;
         sink.append(source);
         sink.set_volume(volume);
         sink.play();
 
         *self.sink.lock().unwrap() = Some(sink);
+        Ok(())
     }
 
     pub fn stop(&self) {
@@ -59,18 +67,25 @@ impl Player {
         }
     }
 
-    pub fn play_voice(&self, path: &str, volume: f32) {
+    pub fn play_voice(&self, path: &str, volume: f32) -> Result<(), MediaError> {
         if let Some(s) = self.sink.lock().unwrap().take() {
             s.stop();
         }
-        let file = File::open(path).expect("Failed to open Voice file");
-        let source = Decoder::new(BufReader::new(file)).expect("Failed to decode Voice file");
+        let file = File::open(path).map_err(|e| MediaError::OpenFile {
+            path: path.to_string(),
+            source: e,
+        })?;
+        let source = Decoder::new(BufReader::new(file)).map_err(|e| MediaError::DecodeAudio {
+            path: path.to_string(),
+            source: e,
+        })?;
 
-        let sink = Sink::try_new(&self.stream_handle).expect("Failed to create sink");
+        let sink = Sink::try_new(&self.stream_handle)?;
         sink.append(source);
         sink.set_volume(volume);
         sink.play();
 
         *self.sink.lock().unwrap() = Some(sink);
+        Ok(())
     }
 }
