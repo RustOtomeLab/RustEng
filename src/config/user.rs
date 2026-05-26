@@ -106,7 +106,7 @@ pub fn save_user_config(weak: Weak<MainWindow>) -> Result<(), EngineError> {
 fn write_config(path: &str, config: &UserConfig) -> Result<(), EngineError> {
     let content = toml::to_string(config).map_err(SaveError::from)?;
     fs::write(path, content).map_err(|e| SaveError::Write {
-        path,
+        path: path.to_string(),
         source: e,
     })?;
     Ok(())
