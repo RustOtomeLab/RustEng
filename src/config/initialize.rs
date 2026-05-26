@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct InitializeConfig {
@@ -13,6 +13,18 @@ pub(crate) struct InitializeConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct Character {
-    pub(crate) list: HashSet<String>,
+pub(crate) struct Character(HashMap<String, String>);
+
+impl Character {
+    pub(crate) fn list(&self) -> &HashMap<String, String> {
+        &self.0
+    }
+    
+    pub(crate) fn name_list(&self) -> HashSet<&String> {
+        self.0.keys().collect()
+    }
+
+    pub(crate) fn full_name_list(&self) -> HashSet<&String> {
+        self.0.values().collect()
+    }
 }

@@ -7,10 +7,10 @@ speed = 50.0
 opacity = 0.8
 
 [volume]
-main = 0.0
+main = 100.0
 bgm = 100.0
 voice = 100.0
 
 [character_volume]
-rir = 100.0
-rar = 100.0
+"美倉礼良" = 100.0
+"聖莉々子" = 100.0

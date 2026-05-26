@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use crate::config::initialize::{Character, InitializeConfig};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -55,8 +55,16 @@ impl EngineConfig {
         &self.initialize.save_path
     }
 
-    pub fn characters(&self) -> &HashSet<String> {
-        &self.character.list
+    pub fn character_name_list(&self) -> HashSet<&String> {
+        self.character.name_list()
+    }
+    
+    pub fn character_full_name_list(&self) -> HashSet<&String> {
+        self.character.full_name_list()
+    }
+    
+    pub fn character_list(&self) -> &HashMap<String, String> {
+        &self.character.list()
     }
 }
 

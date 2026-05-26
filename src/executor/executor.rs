@@ -575,10 +575,13 @@ impl Executor {
                         let voice_volume = window.get_voice_volume() / 100.0;
                         let character_volumes = window.get_character_volumes();
                         let mut character_volume = 100.0;
-                        for character_volume_struct in character_volumes.iter() {
-                            if character_volume_struct.name == name {
-                                character_volume = character_volume_struct.volume / 100.0;
-                                break;
+                        {
+                            let name = ENGINE_CONFIG.character_list().get(name).unwrap();
+                            for character_volume_struct in character_volumes.iter() {
+                                if character_volume_struct.name == name {
+                                    character_volume = character_volume_struct.volume / 100.0;
+                                    break;
+                                }
                             }
                         }
                         voice_player.play_voice(

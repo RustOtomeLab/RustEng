@@ -8,4 +8,5 @@ figure_path = "./source/figure/"
 save_path = "./savedata/"
 
 [character]
-list = ["rir", "rar"]
+"rir" = "聖莉々子"
+"rar" = "美倉礼良"

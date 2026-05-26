@@ -7,6 +7,7 @@ import { VolumeConfig } from "config/volume.slint";
 import { SystemConfig } from "config/system.slint";
 import { TextConfig } from "config/text.slint";
 import { HelpConfig } from "config/help.slint";
+import { CharacterVolume } from "config/volume.slint";
 
 export component SettingsView {
     in property <length> container-width;
@@ -15,6 +16,7 @@ export component SettingsView {
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;
     in-out property <float> voice-volume;
+    in-out property <[CharacterVolume]> character_volumes: [];
     in-out property <bool> is-wait;
     in-out property <float> delay;
     in-out property <float> text-speed;
@@ -149,6 +151,7 @@ export component SettingsView {
                 main-volume <=> root.main-volume;
                 bgm-volume <=> root.bgm-volume;
                 voice-volume <=> root.voice-volume;
+                character_volumes <=> root.character_volumes;
 
                 volume-changed => { root.volume-changed(); }
                 voice-volume-changed => { root.voice-volume-changed(); }

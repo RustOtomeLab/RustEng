@@ -70,7 +70,7 @@ fn load_figure() -> FigureConfig {
     let mut body_list = HashMap::new();
     let mut face_list = HashMap::new();
     let mut offset_list = HashMap::new();
-    for char in &ENGINE_CONFIG.character.list {
+    for char in &ENGINE_CONFIG.character_name_list() {
         let content = fs::read_to_string(format!(
             "{}{}/{}.toml",
             ENGINE_CONFIG.figure_path(),

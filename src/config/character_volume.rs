@@ -17,15 +17,15 @@ impl CharacterVolumeConfig {
     pub(crate) fn default_from_engine() -> Self {
         CharacterVolumeConfig {
             volumes: ENGINE_CONFIG
-                .characters()
+                .character_full_name_list()
                 .iter()
-                .map(|name| (name.clone(), 100.0_f32))
+                .map(|name| (name.to_string(), 100.0_f32))
                 .collect(),
         }
     }
 
     pub(crate) fn fill_missing(&mut self) {
-        for name in ENGINE_CONFIG.characters() {
+        for name in ENGINE_CONFIG.character_full_name_list() {
             self.volumes.entry(name.clone()).or_insert(100.0);
         }
     }
@@ -49,7 +49,7 @@ impl Executor {
         let weak = self.get_weak();
         if let Some(window) = weak.upgrade() {
             let volumes: Vec<CharacterVolume> = ENGINE_CONFIG
-                .characters()
+                .character_full_name_list()
                 .iter()
                 .map(|name| CharacterVolume {
                     name: name.as_str().into(),
