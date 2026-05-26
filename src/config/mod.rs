@@ -49,6 +49,14 @@ impl EngineConfig {
         &self.initialize.figure_path
     }
 
+    pub fn video_path(&self) -> &str {
+        &self.initialize.video_path
+    }
+
+    pub fn video_extension(&self) -> &str {
+        &self.initialize.video_extension
+    }
+
     pub fn save_path(&self) -> &str {
         &self.initialize.save_path
     }

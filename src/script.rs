@@ -1,4 +1,4 @@
-use crate::audio::player::PreBgm;
+use crate::media::player::PreBgm;
 use crate::config::ENGINE_CONFIG;
 use crate::error::{EngineError, ScriptError};
 use crate::parser::parser::{Command, Commands};

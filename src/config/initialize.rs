@@ -9,6 +9,8 @@ pub(crate) struct InitializeConfig {
     pub(crate) voice_path: String,
     pub(crate) bgm_path: String,
     pub(crate) figure_path: String,
+    pub(crate) video_path: String,
+    pub(crate) video_extension: String,
     pub(crate) save_path: String,
 }
 

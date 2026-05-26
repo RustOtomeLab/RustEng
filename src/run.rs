@@ -1,4 +1,4 @@
-use crate::audio::player::Player;
+use crate::media::player::Player;
 use crate::error::EngineError;
 use crate::script::Script;
 use crate::ui::ui::ui;

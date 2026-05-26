@@ -1,4 +1,4 @@
-use crate::audio::player::Player;
+use crate::media::player::Player;
 use crate::error::EngineError;
 use crate::executor::executor::Executor;
 use crate::executor::load_data;
@@ -167,6 +167,19 @@ pub async fn ui(
             let mut executor = executor.clone();
             slint::spawn_local(async move { executor.execute_skip(tx, source).await })
                 .expect("TODO: panic message");
+        }
+    });
+
+    window.on_stop_video({
+        let executor = executor.clone();
+        move || {
+            let executor = executor.clone();
+            slint::spawn_local(async move {
+                if let Err(e) = executor.execute_stop_video().await {
+                    eprintln!("stop_video failed: {e}");
+                }
+            })
+            .expect("stop_video panicked");
         }
     });
 

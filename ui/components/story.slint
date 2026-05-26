@@ -36,6 +36,9 @@ export component StoryView {
     in-out property <bool> is-skip;
     in property <float> dialogue-opacity;
 
+    in-out property <bool> is-video: false;
+    in property <image> video-frame;
+
     callback auto-play(bool);
     callback skip-play(bool);
     callback backlog();
@@ -46,13 +49,16 @@ export component StoryView {
     callback settings();
     callback save-game();
     callback load-game();
+    callback stop-video();
 
     TouchArea {
         width: parent.width;
         height: parent.height;
 
         scroll-event(event) => {
-            if (event.delta-y > 0) {
+            if (root.is-video) {
+                accept
+            } else if (event.delta-y > 0) {
                 root.backlog();
                 is_backlog = true;
                 accept
@@ -70,7 +76,13 @@ export component StoryView {
         TouchArea {
             width: parent.width;
             height: parent.height;
-            clicked => { if (!is_backlog) {root.clicked();} }
+            clicked => {
+                if (root.is-video) {
+                    root.stop-video();
+                } else if (!is_backlog) {
+                    root.clicked();
+                }
+            }
         }
 
         // 背景图片
@@ -231,7 +243,7 @@ export component StoryView {
         }
 
         // 对话框
-        if root.current-choose == 0 && !root.is_backlog: Rectangle {
+        if root.current-choose == 0 && !root.is_backlog && !root.is-video: Rectangle {
             y: parent.height * 0.75;
             width: parent.width;
             height: parent.height * 0.25;
@@ -279,7 +291,7 @@ export component StoryView {
         }
 
         // 选择分支
-        if root.current-choose != 0 && !root.is_backlog: Rectangle {
+        if root.current-choose != 0 && !root.is_backlog && !root.is-video: Rectangle {
             height: parent.height * 0.05 * (2 * root.current-choose - 1);
             width: parent.width * 0.75;
 
@@ -301,7 +313,7 @@ export component StoryView {
         }
 
         //下方按钮
-        if !root.is_backlog: Rectangle {
+        if !root.is_backlog && !root.is-video: Rectangle {
             width: parent.width;
             height: parent.width * 0.04;
             y: parent.height - self.height - parent.height * 0.02;
@@ -363,13 +375,27 @@ export component StoryView {
         }
 
         //历史记录
-        if root.is_backlog: BackLogView {
+        if root.is_backlog && !root.is-video: BackLogView {
             container-width: parent.width;
             container-height: parent.height;
             backlogs <=> root.backlogs;
             back => { is_backlog = false; }
             backlog-change(i) => { root.backlog-change(i); }
             backlog-jump(s, i) => { root.backlog-jump(s, i); }
+        }
+
+        // 视频层（最上层）
+        if root.is-video: Rectangle {
+            width: parent.width;
+            height: parent.height;
+            background: #000000;
+
+            Image {
+                source: root.video-frame;
+                width: parent.width;
+                height: parent.height;
+                image-fit: contain;
+            }
         }
     }
 }

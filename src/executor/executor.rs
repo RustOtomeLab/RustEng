@@ -1,5 +1,6 @@
-use crate::audio::player::PreBgm::Play;
-use crate::audio::player::{Player, PreBgm};
+use crate::media::player::PreBgm::Play;
+use crate::media::player::{Player, PreBgm};
+use crate::media::video_player::VideoPlayer;
 use crate::config::figure::FIGURE_CONFIG;
 use crate::config::save_load::SaveData;
 use crate::config::user::save_user_config;
@@ -43,6 +44,12 @@ pub struct Executor {
     weak: Weak<MainWindow>,
     text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
+    /// 视频播放：当前是否正在播放（与 UI `is-video` 同步），用于阻止剧情推进。
+    video_lock: Rc<RefCell<bool>>,
+    /// 当前活动的视频播放器；为 `None` 表示无视频播放。
+    video_player: Rc<RefCell<Option<VideoPlayer>>>,
+    /// 视频帧轮询定时器（持有以保活）。
+    video_timer: Rc<RefCell<Option<slint::Timer>>>,
     text_tx: Option<Sender<Arc<RwLock<DisplayText>>>>,
     auto_tx: Option<Sender<Duration>>,
     delay_tx: Option<DelayTX>,
@@ -60,6 +67,9 @@ impl Clone for Executor {
             weak: self.weak.clone(),
             text: self.text.clone(),
             choose_lock: self.choose_lock.clone(),
+            video_lock: self.video_lock.clone(),
+            video_player: self.video_player.clone(),
+            video_timer: self.video_timer.clone(),
             text_tx: self.text_tx.clone(),
             auto_tx: self.auto_tx.clone(),
             delay_tx: self.delay_tx.clone(),
@@ -84,6 +94,9 @@ impl Executor {
             weak,
             text: Arc::new(RwLock::new(DisplayText::new())),
             choose_lock: Rc::new(RefCell::new(false)),
+            video_lock: Rc::new(RefCell::new(false)),
+            video_player: Rc::new(RefCell::new(None)),
+            video_timer: Rc::new(RefCell::new(None)),
             text_tx: None,
             delay_tx: None,
             auto_tx: None,
@@ -460,6 +473,11 @@ impl Executor {
             return Ok(());
         }
 
+        if *self.video_lock.borrow() {
+            // 视频播放中，禁止推进剧情；UI 端也不会触发 clicked，这是双保险。
+            return Ok(());
+        }
+
         let mut commands = Commands::EmptyCmd;
         {
             let scr = self.script.clone();
@@ -569,6 +587,9 @@ impl Executor {
                         )?;
                         duration += length.get(voice).unwrap().clone();
                     }
+                }
+                Command::PlayVideo(name) => {
+                    self.start_video(&name)?;
                 }
                 Command::Figure { .. } => {
                     self.show_fg(&command).await?;
@@ -920,6 +941,79 @@ impl Executor {
         }
 
         Ok(())
+    }
+
+    fn start_video(&self, name: &str) -> Result<(), EngineError> {
+        let path = format!(
+            "{}{}.{}",
+            ENGINE_CONFIG.video_path(),
+            name,
+            ENGINE_CONFIG.video_extension()
+        );
+
+        self.bgm_player.borrow().stop();
+        self.voice_player.borrow().stop();
+
+        let player = VideoPlayer::play(&path)?;
+        *self.video_player.borrow_mut() = Some(player);
+        *self.video_lock.borrow_mut() = true;
+
+        if let Some(window) = self.weak.upgrade() {
+            window.set_is_video(true);
+        }
+
+        let timer = slint::Timer::default();
+        let weak = self.weak.clone();
+        let video_player = self.video_player.clone();
+        let executor_for_finish = self.clone();
+        timer.start(
+            slint::TimerMode::Repeated,
+            Duration::from_millis(16),
+            move || {
+                let mut finished = false;
+                if let Some(vp) = video_player.borrow().as_ref() {
+                    if let Some(window) = weak.upgrade() {
+                        if let Some(frame) = vp.take_latest_frame() {
+                            window.set_video_frame(frame);
+                        }
+                    }
+                    finished = vp.is_finished();
+                }
+                if finished {
+                    let executor = executor_for_finish.clone();
+                    slint::spawn_local(async move {
+                        if let Err(e) = executor.execute_stop_video().await {
+                            eprintln!("video auto-stop failed: {e}");
+                        }
+                    })
+                    .expect("video timer: no slint event loop");
+                }
+            },
+        );
+        *self.video_timer.borrow_mut() = Some(timer);
+
+        Ok(())
+    }
+
+    pub async fn execute_stop_video(&self) -> Result<(), EngineError> {
+        if !*self.video_lock.borrow() {
+            return Ok(());
+        }
+
+        if let Some(player) = self.video_player.borrow_mut().take() {
+            player.stop();
+        }
+
+        self.video_timer.borrow_mut().take();
+
+        *self.video_lock.borrow_mut() = false;
+        if let Some(window) = self.weak.upgrade() {
+            window.set_is_video(false);
+            window.set_video_frame(Image::default());
+        }
+
+        let mut this = self.clone();
+        this.execute_script().await
     }
 }
 

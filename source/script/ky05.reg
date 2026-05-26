@@ -1,0 +1,16 @@
+%version 1
+
+@label start
+@bg bg024c
+“准备播放视频”
+
+“3”
+
+“2”
+
+“1”
+
+@video opening
+“播放结束”
+
+@jump :start
