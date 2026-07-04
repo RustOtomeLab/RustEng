@@ -1,10 +1,14 @@
-use crate::executor::executor::Executor;
-use crate::parser::parser::Command;
-use std::collections::VecDeque;
-use std::sync::Arc;
-use std::sync::RwLock;
-use tokio::sync::mpsc::Sender;
-use tokio::time::{sleep, Duration};
+use crate::error::EngineError;
+use crate::executors::executor::Executor;
+use crate::parser::script_parser::Command;
+use std::{
+    collections::VecDeque,
+    sync::{Arc, RwLock},
+};
+use tokio::{
+    sync::mpsc::Sender,
+    time::{sleep, Duration},
+};
 
 #[derive(Clone)]
 pub struct DelayTX {
@@ -13,28 +17,74 @@ pub struct DelayTX {
     clear_tx: Sender<()>,
 }
 
-impl DelayTX {
-    pub fn delay_tx(tx: &Option<DelayTX>) -> Sender<Command> {
-        if let Some(tx) = tx {
-            tx.delay_tx.clone()
-        } else {
-            unreachable!()
-        }
+#[derive(Clone)]
+pub struct DelayChannels {
+    pub delay_tx: DelayTX,
+    pub delay_move_tx: DelayTX,
+    pub loop_move_tx: DelayTX,
+}
+
+impl DelayChannels {
+    pub async fn send_delay(&self, fg: &Command) -> Result<(), EngineError> {
+        self.delay_tx.delay_tx.send(fg.clone()).await?;
+        Ok(())
     }
 
-    pub fn skip_tx(tx: &Option<DelayTX>) -> Sender<()> {
-        if let Some(tx) = tx {
-            tx.skip_tx.clone()
-        } else {
-            unreachable!()
-        }
+    pub async fn send_move(&self, fg_move: Command) -> Result<(), EngineError> {
+        self.delay_move_tx.delay_tx.send(fg_move).await?;
+        Ok(())
     }
 
-    pub fn clear_tx(tx: &Option<DelayTX>) -> Sender<()> {
-        if let Some(tx) = tx {
-            tx.clear_tx.clone()
-        } else {
-            unreachable!()
+    pub fn send_loop(&self, fg_move: Command, fg_back: Command) {
+        try_send_loop(&self.delay_move_tx.delay_tx, fg_back);
+        try_send_loop(&self.loop_move_tx.delay_tx, fg_move);
+    }
+
+    pub fn clear_all(&self) {
+        self.delay_tx
+            .clear_tx
+            .try_send(())
+            .expect("clear_delay_tx send fali");
+        self.delay_move_tx
+            .clear_tx
+            .try_send(())
+            .expect("clear_delay_move_tx send fali");
+        self.loop_move_tx
+            .clear_tx
+            .try_send(())
+            .expect("clear_loop_move_tx send fali");
+    }
+
+    pub fn skip_all(&self) {
+        self.delay_tx
+            .skip_tx
+            .try_send(())
+            .expect("skip_delay_tx send fali");
+        self.delay_move_tx
+            .skip_tx
+            .try_send(())
+            .expect("skip_delay_move_tx send fali");
+        self.loop_move_tx
+            .skip_tx
+            .try_send(())
+            .expect("skip_loop_move_tx send fali");
+    }
+}
+
+fn try_send_loop(tx: &Sender<Command>, cmd: Command) {
+    match tx.try_send(cmd) {
+        Ok(_) => {}
+        Err(tokio::sync::mpsc::error::TrySendError::Full(cmd)) => {
+            // 通道满了：把发送任务交给 tokio 等待
+            let tx_clone = tx.clone();
+            tokio::spawn(async move {
+                if let Err(e) = tx_clone.send(cmd).await {
+                    eprintln!("delay tx send failed: {e:?}");
+                }
+            });
+        }
+        Err(e) => {
+            eprintln!("try_send other error: {e:?}");
         }
     }
 }
@@ -136,7 +186,7 @@ impl DelayExecutor {
                             Ok(())
                         };
                         if let Err(e) = result {
-                            eprintln!("delay executor failed: {e}");
+                            eprintln!("delay executors failed: {e}");
                         }
                     })
                     .expect("Delay panicked");

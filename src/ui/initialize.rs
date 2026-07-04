@@ -1,17 +1,15 @@
-use crate::media::player::Player;
 use crate::error::EngineError;
-use crate::executor::executor::Executor;
-use crate::executor::load_data;
+use crate::executors::{executor::Executor, load_data};
+use crate::media::player::Player;
 use crate::script::Script;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 slint::include_modules!();
 
 pub async fn ui(
     script: Rc<RefCell<Script>>,
-    bgm_player: Rc<RefCell<Player>>,
-    voice_player: Rc<RefCell<Player>>,
+    bgm_player: Player,
+    voice_player: Player,
 ) -> Result<(), EngineError> {
     let window = MainWindow::new()?;
     let weak = window.as_weak();
@@ -56,7 +54,7 @@ pub async fn ui(
     window.on_get_ex({
         let executor = executor.clone();
         move || {
-            let mut executor = executor.clone();
+            let executor = executor.clone();
             slint::spawn_local(async move { executor.execute_get_ex().await })
                 .expect("Get Ex panicked");
         }

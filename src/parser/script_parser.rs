@@ -49,8 +49,7 @@ pub enum Command {
     Clear(String, String),
     Choice((String, HashMap<String, Label>)),
     Jump(Label),
-    Label(String),
-    Empty,
+    Label,
 }
 
 impl Command {
@@ -161,7 +160,7 @@ impl Script {
 
         let mut block_commands = Vec::new();
 
-        for (index, (line_num, line)) in lines.into_iter().enumerate() {
+        for (index, (line_num, line)) in lines.iter().enumerate() {
             if let Some(line) = line.strip_prefix('@') {
                 if let Some((cmd, arg)) = line.split_once(' ') {
                     let cmd = match cmd {
@@ -172,7 +171,7 @@ impl Script {
                                 x_offset: parts.next().and_then(|s| s.parse::<f32>().ok()),
                                 y_offset: parts.next().and_then(|s| s.parse::<f32>().ok()),
                                 zoom: parts.next().and_then(|s| s.parse::<f32>().ok()),
-                                is_cg: if cmd == "cg" {true} else {false}
+                                is_cg: cmd == "cg",
                             };
                             self.backgrounds.insert(*block_index, bg.clone());
                             bg
@@ -185,8 +184,9 @@ impl Script {
                             let num = arg.parse::<usize>().map_err(ScriptError::from)?;
                             let mut choose_branch = HashMap::with_capacity(num);
                             let explain = lines[index + 1].1.clone();
-                            for i in index + 2..=index + num + 1 {
-                                if let Some((choice, script)) = lines[i].1.split_once(' ') {
+                            for (i, line) in lines.iter().take(index + num + 1 + 1).skip(index + 2)
+                            {
+                                if let Some((choice, script)) = line.split_once(' ') {
                                     let (choice, label) = match script.split_once(":") {
                                         Some((name, label))
                                             if !name.is_empty() && !label.is_empty() =>
@@ -213,9 +213,9 @@ impl Script {
                                     choose_branch.insert(choice.clone(), label.clone());
                                     self.choices.insert(choice, label);
                                 } else {
-                                    return Err(EngineError::from(ScriptError::Choice(
-                                        format!("Invalid choice at line {}: {}", lines[i].0, lines[i].1),
-                                    )));
+                                    return Err(EngineError::from(ScriptError::Choice(format!(
+                                        "Invalid choice at line {i}: {line}"
+                                    ))));
                                 }
                             }
                             block_commands.push(Choice((explain, choose_branch)));
@@ -282,11 +282,13 @@ impl Script {
                                         delay: delay.map(|d| d.to_string()),
                                     }
                                 }
-                                _ => return Err(EngineError::from(ScriptError::ArgsTooShort {
-                                    cmd: "fg".to_string(),
-                                    line: *line_num,
-                                    content: line.to_string(),
-                                })),
+                                _ => {
+                                    return Err(EngineError::from(ScriptError::ArgsTooShort {
+                                        cmd: "fg".to_string(),
+                                        line: *line_num,
+                                        content: line.to_string(),
+                                    }))
+                                }
                             }
                         }
                         "move" => {
@@ -330,26 +332,26 @@ impl Script {
                                     }
                                     command
                                 }
-                                _ => return Err(EngineError::from(ScriptError::ArgsTooShort {
-                                    cmd: "move".to_string(),
-                                    line: *line_num,
-                                    content: line.to_string(),
-                                })),
+                                _ => {
+                                    return Err(EngineError::from(ScriptError::ArgsTooShort {
+                                        cmd: "move".to_string(),
+                                        line: *line_num,
+                                        content: line.to_string(),
+                                    }))
+                                }
                             }
                         }
                         "clear" => {
                             self.clear.insert(*block_index);
                             if let Some((dis, pos)) = arg.split_once("|") {
                                 Clear(dis.to_string(), pos.to_string())
+                            } else if arg == "All" {
+                                Clear(arg.to_string(), arg.to_string())
                             } else {
-                                if arg == "All" {
-                                    Clear(arg.to_string(), arg.to_string())
-                                } else {
-                                    return Err(EngineError::from(ScriptError::InvalidCommand {
-                                        line: *line_num,
-                                        content: line.to_string(),
-                                    }));
-                                }
+                                return Err(EngineError::from(ScriptError::InvalidCommand {
+                                    line: *line_num,
+                                    content: line.to_string(),
+                                }));
                             }
                         }
                         "jump" => match arg.split_once(":") {
@@ -365,7 +367,7 @@ impl Script {
                         },
                         "label" => {
                             self.labels.insert(arg.to_string(), *block_index);
-                            Label(arg.to_string())
+                            Label
                         }
                         _ => {
                             return Err(EngineError::from(ScriptError::InvalidCommand {
@@ -402,7 +404,7 @@ impl Script {
                         content: line.to_string(),
                     }));
                 }
-            } else if let Some(_) = line.strip_prefix('#') {
+            } else if line.strip_prefix('#').is_some() {
                 continue;
             } else if let Some((speaker, text)) = line.split_once("“") {
                 if let Some(text) = text.strip_suffix("”") {

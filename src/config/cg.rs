@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-use std::fs;
-use serde::{Deserialize, Serialize};
 use crate::config::ENGINE_CONFIG;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs};
 
 lazy_static::lazy_static! {
     pub static ref CG_LENGTH: CgLength = load_cg();
@@ -51,19 +50,17 @@ impl CgLength {
 }
 
 fn load_cg() -> CgLength {
-    let content = fs::read_to_string(format!(
-        "{}length.toml",
-        ENGINE_CONFIG.cg_path(),
-    ))
-        .unwrap();
+    let content = fs::read_to_string(format!("{}length.toml", ENGINE_CONFIG.cg_path(),)).unwrap();
     let name_item: LengthWrapper = toml::from_str(&content).unwrap();
     let index_item = name_item.cast.clone();
     CgLength {
-        cg_by_name: name_item.cast
+        cg_by_name: name_item
+            .cast
             .into_iter()
             .map(|length| (length.name, (length.index, length.length)))
             .collect(),
-        cg_by_id: index_item.into_iter()
+        cg_by_id: index_item
+            .into_iter()
             .map(|length| (length.index, (length.name, length.length)))
             .collect(),
     }

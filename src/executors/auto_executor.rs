@@ -1,10 +1,13 @@
-use crate::executor::executor::Executor;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
-use std::sync::mpsc::Receiver;
-use std::sync::Arc;
-use tokio::sync::mpsc::{channel, Sender};
-use tokio::time::{Duration, Sleep};
+use crate::executors::executor::Executor;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    mpsc::Receiver,
+    Arc,
+};
+use tokio::{
+    sync::mpsc::{channel, Sender},
+    time::{Duration, Sleep},
+};
 
 pub struct AutoExecutor {
     timer: slint::Timer,
@@ -36,7 +39,7 @@ impl AutoExecutor {
         let is_auto_clone = is_auto.clone();
         tokio::spawn(async move {
             let mut start = true;
-            while let Some(_) = rx.recv().await {
+            while rx.recv().await.is_some() {
                 if start {
                     is_auto_clone.store(true, Ordering::Relaxed);
                     start = false;
@@ -95,17 +98,14 @@ impl AutoExecutor {
             slint::TimerMode::Repeated,
             Duration::from_millis(100),
             move || {
-                if is_auto.load(Ordering::Relaxed) {
-                    if let Ok(_) = rx.try_recv() {
-
-                        let mut executor = executor.clone();
-                        slint::spawn_local(async move {
-                            if let Err(e) = executor.execute_script().await {
-                                eprintln!("auto execute_script failed: {e}");
-                            }
-                        })
-                        .expect("auto-play timer: no slint event loop");
-                    }
+                if is_auto.load(Ordering::Relaxed) && rx.try_recv().is_ok() {
+                    let mut executor = executor.clone();
+                    slint::spawn_local(async move {
+                        if let Err(e) = executor.execute_script().await {
+                            eprintln!("auto execute_script failed: {e}");
+                        }
+                    })
+                    .expect("auto-play timer: no slint event loop");
                 }
             },
         );

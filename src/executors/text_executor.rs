@@ -1,9 +1,7 @@
-use crate::executor::executor::Executor;
-use crate::ui::ui::MainWindow;
+use crate::executors::executor::Executor;
+use crate::ui::initialize::MainWindow;
 use slint::{ToSharedString, Weak};
-use std::sync::mpsc::Receiver;
-use std::sync::Arc;
-use std::sync::RwLock;
+use std::sync::{mpsc::Receiver, Arc, RwLock};
 use tokio::sync::mpsc::{channel, Sender};
 use tokio::time::{sleep, Duration};
 
@@ -83,6 +81,8 @@ impl TextExecutor {
         );
     }
 }
+
+pub type TextTX = Sender<Arc<RwLock<DisplayText>>>;
 
 pub struct DisplayText {
     pub(crate) full_text: String,

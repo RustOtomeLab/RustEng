@@ -1,37 +1,26 @@
-//! 视频播放器（基于 ffmpeg-next 的实现）
-//!
-//! 设计：
-//! - `play(path)` 打开文件，启动一个**单独的解码 std::thread**
-//!   （避免 ffmpeg 阻塞调用阻塞 tokio runtime）。
-//!   线程内部完成：解封装 → 视频解码 → swscale 到 RGBA8 → 推到 latest_frame；
-//!   音频解码 → swresample → rodio Sink 播放。
-//! - 同步策略：以**视频 PTS 时钟**为基准。线程持有自播放起始的 `Instant`，
-//!   每解出一帧后 sleep 至该帧 `pts` 对应的目标显示时刻再写入 `latest_frame`。
-//!   音频独立喂入 rodio sink，由 sink 自带定时驱动播放节奏；
-//!   视频追音频实现的"严格 A/V 同步"在此场景下被简化（GalGame 视频
-//!   通常较短，5~30 秒级片头/CG），可接受少许漂移。
-//! - 取消：`cancel: AtomicBool` 在每次循环开头检查；UI 端 `stop()` 会置位
-//!   并立即停止 audio sink，解码线程下一次循环退出。
-//! - 完成：解封装 EOF + 解码缓冲 flush 完毕后置 `finished = true`。
-//!
-//! 资源生命周期：`VideoPlayer` 被 drop 时自动 `stop()`，确保 ffmpeg 资源释放。
-
 use crate::error::MediaError;
 use ffmpeg_next as ffmpeg;
 use ffmpeg_next::format::{input, Pixel};
 use ffmpeg_next::media::Type as MediaType;
-use ffmpeg_next::software::resampling::context::Context as ResamplingContext;
-use ffmpeg_next::software::scaling::{context::Context as ScalingContext, flag::Flags};
-use ffmpeg_next::util::format::sample::{Sample as SampleFormat, Type as SampleType};
-use ffmpeg_next::util::frame::{audio::Audio as AudioFrame, video::Video as VideoFrame};
-use ffmpeg_next::util::rational::Rational;
-use rodio::buffer::SamplesBuffer;
-use rodio::{OutputStream, Sink};
+use ffmpeg_next::software::{
+    resampling::context::Context as ResamplingContext,
+    scaling::{context::Context as ScalingContext, flag::Flags},
+};
+use ffmpeg_next::util::{
+    format::sample::{Sample as SampleFormat, Type as SampleType},
+    frame::{audio::Audio as AudioFrame, video::Video as VideoFrame},
+    rational::Rational,
+};
+use rodio::{buffer::SamplesBuffer, OutputStream, Sink};
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, Once};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex, Once,
+    },
+    thread,
+    time::{Duration, Instant},
+};
 
 type FrameBuffer = SharedPixelBuffer<Rgba8Pixel>;
 
@@ -44,6 +33,40 @@ fn ensure_ffmpeg_initialized() {
         }
         ffmpeg::util::log::set_level(ffmpeg::util::log::Level::Error);
     });
+}
+
+pub struct VideoContext {
+    video_player: Option<VideoPlayer>,
+    video_timer: Option<slint::Timer>,
+}
+
+impl VideoContext {
+    pub fn default() -> Self {
+        VideoContext {
+            video_player: None,
+            video_timer: None,
+        }
+    }
+
+    pub fn set_video_player(&mut self, player: VideoPlayer) {
+        self.video_player = Some(player);
+    }
+
+    pub fn set_video_timer(&mut self, timer: slint::Timer) {
+        self.video_timer = Some(timer);
+    }
+
+    pub fn get_video_player_ref(&self) -> Option<&VideoPlayer> {
+        self.video_player.as_ref()
+    }
+
+    pub fn get_video_player(&mut self) -> Option<VideoPlayer> {
+        self.video_player.take()
+    }
+
+    pub fn get_video_timer(&mut self) -> Option<slint::Timer> {
+        self.video_timer.take()
+    }
 }
 
 /// 一段视频的播放句柄。
@@ -142,13 +165,13 @@ fn decode_loop(
     })?;
 
     // 视频流
-    let video_stream = ictx
-        .streams()
-        .best(MediaType::Video)
-        .ok_or_else(|| MediaError::DecodeVideo {
-            path: path.to_string(),
-            reason: "no video stream".into(),
-        })?;
+    let video_stream =
+        ictx.streams()
+            .best(MediaType::Video)
+            .ok_or_else(|| MediaError::DecodeVideo {
+                path: path.to_string(),
+                reason: "no video stream".into(),
+            })?;
     let video_stream_index = video_stream.index();
     let video_time_base: Rational = video_stream.time_base();
 
@@ -157,10 +180,13 @@ fn decode_loop(
             path: path.to_string(),
             reason: format!("video codec ctx: {e}"),
         })?;
-    let mut video_decoder = video_ctx.decoder().video().map_err(|e| MediaError::DecodeVideo {
-        path: path.to_string(),
-        reason: format!("video decoder: {e}"),
-    })?;
+    let mut video_decoder = video_ctx
+        .decoder()
+        .video()
+        .map_err(|e| MediaError::DecodeVideo {
+            path: path.to_string(),
+            reason: format!("video decoder: {e}"),
+        })?;
     let src_w = video_decoder.width();
     let src_h = video_decoder.height();
     let mut scaler = ScalingContext::get(
@@ -179,7 +205,10 @@ fn decode_loop(
 
     // 音频流
     let audio_setup = setup_audio(&ictx).map_err(|mut e| {
-        if let MediaError::DecodeVideo { path: ref mut p, .. } = e {
+        if let MediaError::DecodeVideo {
+            path: ref mut p, ..
+        } = e
+        {
             if p.is_empty() {
                 *p = path.to_string();
             }
@@ -268,8 +297,8 @@ fn drain_video_frames(
         }
 
         if let Some(pts) = decoded.pts() {
-            let pts_secs = pts as f64 * f64::from(time_base.numerator())
-                / f64::from(time_base.denominator());
+            let pts_secs =
+                pts as f64 * f64::from(time_base.numerator()) / f64::from(time_base.denominator());
             let target = playback_start + Duration::from_secs_f64(pts_secs.max(0.0));
             let now = Instant::now();
             if target > now {
@@ -328,9 +357,7 @@ struct AudioSetup {
     _stream: OutputStream,
 }
 
-fn setup_audio(
-    ictx: &ffmpeg::format::context::Input,
-) -> Result<Option<AudioSetup>, MediaError> {
+fn setup_audio(ictx: &ffmpeg::format::context::Input) -> Result<Option<AudioSetup>, MediaError> {
     let audio_stream = match ictx.streams().best(MediaType::Audio) {
         Some(s) => s,
         None => return Ok(None),
@@ -342,10 +369,13 @@ fn setup_audio(
             path: String::new(),
             reason: format!("audio codec ctx: {e}"),
         })?;
-    let decoder = audio_ctx.decoder().audio().map_err(|e| MediaError::DecodeVideo {
-        path: String::new(),
-        reason: format!("audio decoder: {e}"),
-    })?;
+    let decoder = audio_ctx
+        .decoder()
+        .audio()
+        .map_err(|e| MediaError::DecodeVideo {
+            path: String::new(),
+            reason: format!("audio decoder: {e}"),
+        })?;
 
     let target_format = SampleFormat::I16(SampleType::Packed);
     let target_rate = decoder.rate();

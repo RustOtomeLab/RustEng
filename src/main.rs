@@ -1,6 +1,6 @@
 mod config;
 mod error;
-mod executor;
+mod executors;
 mod media;
 mod parser;
 mod run;

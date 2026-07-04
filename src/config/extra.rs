@@ -1,9 +1,8 @@
-use std::fs;
-use serde::{Deserialize, Serialize};
-use crate::config::cg::CgConfig;
-use crate::config::ENGINE_CONFIG;
+use crate::config::{cg::CgConfig, ENGINE_CONFIG};
 use crate::error::{EngineError, SaveError};
-use crate::executor::executor::Executor;
+use crate::executors::executor::Executor;
+use serde::{Deserialize, Serialize};
+use std::fs;
 
 lazy_static::lazy_static! {
     pub static ref EXTRA_CONFIG: ExtraConfig = load_extra_config();
@@ -34,11 +33,11 @@ fn load_extra_config() -> ExtraConfig {
 
 pub fn save_extra_config(cg: u64) -> Result<(), EngineError> {
     let path = format!("{}/extra.toml", ENGINE_CONFIG.save_path());
-    let content = toml::to_string(&ExtraConfig{cg: CgConfig::new(cg)}).map_err(SaveError::from)?;
-    fs::write(&path, content).map_err(|e| SaveError::Write {
-        path,
-        source: e,
-    })?;
+    let content = toml::to_string(&ExtraConfig {
+        cg: CgConfig::new(cg),
+    })
+    .map_err(SaveError::from)?;
+    fs::write(&path, content).map_err(|e| SaveError::Write { path, source: e })?;
 
     Ok(())
 }

@@ -1,28 +1,29 @@
-use crate::media::player::PreBgm::Play;
-use crate::media::player::{Player, PreBgm};
-use crate::media::video_player::VideoPlayer;
-use crate::config::figure::FIGURE_CONFIG;
-use crate::config::save_load::SaveData;
-use crate::config::user::save_user_config;
-use crate::config::voice::VOICE_LENGTH;
-use crate::config::ENGINE_CONFIG;
+use crate::config::{
+    cg::CG_LENGTH, extra::save_extra_config, figure::FIGURE_CONFIG, save_load::SaveData,
+    user::save_user_config, voice::VOICE_LENGTH, ENGINE_CONFIG,
+};
 use crate::error::{EngineError, ExecutorError, SaveError};
-use crate::executor::delay_executor::DelayTX;
-use crate::executor::text_executor::DisplayText;
-use crate::parser::parser::{Command, Commands};
+use crate::executors::{
+    delay_executor::{DelayChannels, DelayTX},
+    text_executor::{DisplayText, TextTX},
+};
+use crate::media::{
+    player::{MediaPlayer, Player, PreBgm, PreBgm::Play},
+    video_player::{VideoContext, VideoPlayer},
+};
+use crate::parser::script_parser::{Command, Commands};
 use crate::script::{Label, Script};
-use crate::ui::ui::MainWindow;
+use crate::ui::initialize::{CharacterVolume, MainWindow};
 use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
-use std::cell::RefCell;
-use std::fs;
-use std::path::Path;
-use std::rc::Rc;
-use std::sync::{Arc, RwLock};
-use std::time::Duration;
+use std::{
+    cell::RefCell,
+    fs,
+    path::Path,
+    rc::Rc,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 use tokio::sync::mpsc::Sender;
-use crate::config::cg::CG_LENGTH;
-use crate::config::extra::save_extra_config;
-use crate::ui::ui::CharacterVolume;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -37,72 +38,41 @@ fn face_default() -> (Image, f32, f32) {
     (Image::default(), 0.0, 0.0)
 }
 
+#[derive(Clone)]
 pub struct Executor {
     script: Rc<RefCell<Script>>,
-    bgm_player: Rc<RefCell<Player>>,
-    voice_player: Rc<RefCell<Player>>,
+    media_player: Rc<RefCell<MediaPlayer>>,
     pub(crate) cg: Rc<RefCell<u64>>,
     weak: Weak<MainWindow>,
     text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
-    /// 视频播放：当前是否正在播放（与 UI `is-video` 同步），用于阻止剧情推进。
-    video_lock: Rc<RefCell<bool>>,
-    /// 当前活动的视频播放器；为 `None` 表示无视频播放。
-    video_player: Rc<RefCell<Option<VideoPlayer>>>,
-    /// 视频帧轮询定时器（持有以保活）。
-    video_timer: Rc<RefCell<Option<slint::Timer>>>,
-    text_tx: Option<Sender<Arc<RwLock<DisplayText>>>>,
+    video_context: Rc<RefCell<VideoContext>>,
+    text_tx: Option<TextTX>,
     auto_tx: Option<Sender<Duration>>,
-    delay_tx: Option<DelayTX>,
-    delay_move_tx: Option<DelayTX>,
-    loop_move_tx: Option<DelayTX>,
-}
-
-impl Clone for Executor {
-    fn clone(&self) -> Executor {
-        Executor {
-            script: self.script.clone(),
-            bgm_player: self.bgm_player.clone(),
-            voice_player: self.voice_player.clone(),
-            cg: self.cg.clone(),
-            weak: self.weak.clone(),
-            text: self.text.clone(),
-            choose_lock: self.choose_lock.clone(),
-            video_lock: self.video_lock.clone(),
-            video_player: self.video_player.clone(),
-            video_timer: self.video_timer.clone(),
-            text_tx: self.text_tx.clone(),
-            auto_tx: self.auto_tx.clone(),
-            delay_tx: self.delay_tx.clone(),
-            delay_move_tx: self.delay_move_tx.clone(),
-            loop_move_tx: self.loop_move_tx.clone(),
-        }
-    }
+    delay_channels: Option<DelayChannels>,
 }
 
 impl Executor {
     pub fn new(
         script: Rc<RefCell<Script>>,
-        bgm_player: Rc<RefCell<Player>>,
-        voice_player: Rc<RefCell<Player>>,
+        bgm_player: Player,
+        voice_player: Player,
         weak: Weak<MainWindow>,
     ) -> Executor {
         Executor {
             script,
-            bgm_player,
-            voice_player,
+            media_player: Rc::new(RefCell::new(MediaPlayer {
+                bgm_player,
+                voice_player,
+            })),
             cg: Rc::new(RefCell::new(0)),
             weak,
             text: Arc::new(RwLock::new(DisplayText::new())),
             choose_lock: Rc::new(RefCell::new(false)),
-            video_lock: Rc::new(RefCell::new(false)),
-            video_player: Rc::new(RefCell::new(None)),
-            video_timer: Rc::new(RefCell::new(None)),
+            video_context: Rc::new(RefCell::new(VideoContext::default())),
             text_tx: None,
-            delay_tx: None,
             auto_tx: None,
-            delay_move_tx: None,
-            loop_move_tx: None,
+            delay_channels: None,
         }
     }
 
@@ -114,20 +84,21 @@ impl Executor {
         self.text_tx = Some(text_tx);
     }
 
-    pub fn set_delay_tx(&mut self, delay_tx: DelayTX) {
-        self.delay_tx = Some(delay_tx);
-    }
-
     pub fn set_auto_tx(&mut self, auto_tx: Sender<Duration>) {
         self.auto_tx = Some(auto_tx);
     }
 
-    pub fn set_delay_move_tx(&mut self, delay_move_tx: DelayTX) {
-        self.delay_move_tx = Some(delay_move_tx);
-    }
-
-    pub fn set_loop_move_tx(&mut self, loop_move_tx: DelayTX) {
-        self.loop_move_tx = Some(loop_move_tx);
+    pub fn set_delay_channels(
+        &mut self,
+        delay_tx: DelayTX,
+        delay_move_tx: DelayTX,
+        loop_move_tx: DelayTX,
+    ) {
+        self.delay_channels = Some(DelayChannels {
+            delay_tx,
+            delay_move_tx,
+            loop_move_tx,
+        });
     }
 
     pub fn unlock(&mut self, index: usize) {
@@ -208,7 +179,6 @@ impl Executor {
                 })?;
             }
             window.set_save_items(Rc::new(VecModel::from(save_items)).into());
-
         }
 
         Ok(())
@@ -230,7 +200,7 @@ impl Executor {
 
     pub async fn execute_get_ex(&self) -> Result<(), EngineError> {
         let mut ex_items = Vec::with_capacity(16);
-        
+
         let cgs = *self.cg.borrow();
         let mut i = 1;
         while i <= 63 {
@@ -238,28 +208,25 @@ impl Executor {
                 if let Some((_, length)) = CG_LENGTH.find_by_id(i) {
                     let (mut images, mut l, is_lock) = (Vec::new(), *length, false);
                     for j in 1..=*length {
-                        if cgs & (1 << j + i - 1) != 0 {
+                        if cgs & (1 << (j + i - 1)) != 0 {
                             if let Some((name, _)) = CG_LENGTH.find_by_id(j + i - 1) {
-                                images.push(Image::load_from_path(Path::new(&format!(
-                                    "{}{}.png",
-                                    ENGINE_CONFIG.cg_path(),
-                                    name
-                                )))
-                                    .unwrap());
-                            }
-                            else {
+                                images.push(
+                                    Image::load_from_path(Path::new(&format!(
+                                        "{}{}.png",
+                                        ENGINE_CONFIG.cg_path(),
+                                        name
+                                    )))
+                                    .unwrap(),
+                                );
+                            } else {
                                 return Err(ExecutorError::CgMetadataMissing(j + i - 1).into());
                             }
                         } else {
                             l -= 1;
                         }
                     }
-                    i = i + *length;
-                    ex_items.push((
-                        Rc::new(VecModel::from(images)).into(),
-                        l as i32,
-                        is_lock,
-                        ))
+                    i += *length;
+                    ex_items.push((Rc::new(VecModel::from(images)).into(), l as i32, is_lock))
                 } else {
                     return Err(ExecutorError::CgMetadataMissing(i).into());
                 }
@@ -268,11 +235,11 @@ impl Executor {
                 ex_items.push((
                     Rc::new(VecModel::from(vec![Image::default()])).into(),
                     0,
-                    true
-                    ))
+                    true,
+                ))
             }
         }
-        
+
         if let Some(window) = self.weak.upgrade() {
             window.set_ex_items(Rc::new(VecModel::from(ex_items)).into());
         }
@@ -282,7 +249,7 @@ impl Executor {
 
     pub async fn execute_bgm_volume(&mut self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
-            let bgm_player = self.bgm_player.borrow_mut();
+            let bgm_player = &self.media_player.borrow_mut().bgm_player;
             let volume = window.get_main_volume() / 100.0;
             let bgm_volume = window.get_bgm_volume() / 100.0;
             bgm_player.change_volume(volume * bgm_volume);
@@ -293,7 +260,7 @@ impl Executor {
 
     pub async fn execute_voice_volume(&mut self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
-            let voice_player = self.voice_player.borrow_mut();
+            let voice_player = &self.media_player.borrow().voice_player;
             let volume = window.get_main_volume() / 100.0;
             let voice_volume = window.get_voice_volume() / 100.0;
             voice_player.change_volume(volume * voice_volume);
@@ -341,54 +308,55 @@ impl Executor {
     }
 
     pub async fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
-        let mut script = self.script.borrow_mut();
-        let current_bgm = script.current_bgm().to_string();
-        let mut pre_bg = None;
-        let mut pre_bgm = PreBgm::None;
-        let mut pre_figures = None;
-        let backlog = script.to_owned().take_backlog();
-        let jump_index = match label {
-            Jump::Label((name, label)) => {
-                if name != script.name() {
-                    let mut scr = Script::new();
-                    scr.with_name(&name)?;
-                    scr.set_backlog(backlog);
-                    *script = scr;
+        {
+            let mut script = self.script.borrow_mut();
+            let current_bgm = script.current_bgm().to_string();
+            let mut pre_bg = None;
+            let mut pre_bgm = PreBgm::None;
+            let mut pre_figures = None;
+            let backlog = script.to_owned().take_backlog();
+            let jump_index = match label {
+                Jump::Label((name, label)) => {
+                    if name != script.name() {
+                        let mut scr = Script::new();
+                        scr.with_name(&name)?;
+                        scr.set_backlog(backlog);
+                        *script = scr;
+                    }
+                    script.find_label(&label).copied()
                 }
-                script.find_label(&label).map(|index| *index)
-            }
-            Jump::Index((name, index)) => {
-                if name != script.name() {
-                    let mut scr = Script::new();
-                    scr.with_name(&name)?;
-                    scr.set_backlog(backlog);
-                    *script = scr;
+                Jump::Index((name, index)) => {
+                    if name != script.name() {
+                        let mut scr = Script::new();
+                        scr.with_name(&name)?;
+                        scr.set_backlog(backlog);
+                        *script = scr;
+                    }
+                    Some(index as usize)
                 }
-                Some(index as usize)
-            }
-        };
+            };
 
-        let mut current_block = script.index();
-        if let Some(index) = jump_index {
-            current_block = index;
-            if let Some((_, bgm)) = script.get_bgm(index) {
-                if &current_bgm != bgm {
-                    pre_bgm = Play(bgm.to_string());
+            let mut current_block = script.index();
+            if let Some(index) = jump_index {
+                current_block = index;
+                if let Some((_, bgm)) = script.get_bgm(index) {
+                    if &current_bgm != bgm {
+                        pre_bgm = Play(bgm.to_string());
+                    }
+                } else if script.get_bgm(index).is_none() {
+                    pre_bgm = PreBgm::Stop;
                 }
-            } else if script.get_bgm(index).is_none() {
-                pre_bgm = PreBgm::Stop;
+                {
+                    pre_bg = script.get_background(index).map(|(_, bg)| bg.clone());
+                    pre_figures = script.get_figures(index).map(|(_, fg)| fg.clone());
+                }
             }
-            {
-                pre_bg = script.get_background(index).map(|(_, bg)| bg.clone());
-                pre_figures = script.get_figures(index).map(|(_, fg)| fg.clone());
-            }
+            script.set_pre_bg(pre_bg);
+            script.set_pre_bgm(pre_bgm);
+            script.set_pre_figures(pre_figures);
+            script.set_index(current_block);
         }
-        script.set_pre_bg(pre_bg);
-        script.set_pre_bgm(pre_bgm);
-
         self.clean_fg("All", "All").await?;
-        script.set_pre_figures(pre_figures);
-        script.set_index(current_block);
 
         Ok(())
     }
@@ -432,33 +400,33 @@ impl Executor {
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
-            if scr.clear.get(&scr.index()).is_some() {
-                DelayTX::clear_tx(&self.delay_tx).try_send(()).expect("clear_delay_tx send fali");
-                DelayTX::clear_tx(&self.delay_move_tx).try_send(()).expect("clear_delay_move_tx send fali");
-                DelayTX::clear_tx(&self.loop_move_tx).try_send(()).expect("clear_loop_move_tx send fali");
+            if scr.clear.contains(&scr.index()) {
+                self.delay_channels.as_ref().unwrap().clear_all();
             } else {
-                DelayTX::skip_tx(&self.delay_tx).try_send(()).expect("skip_delay_tx send fali");
-                DelayTX::skip_tx(&self.delay_move_tx).try_send(()).expect("skip_delay_move_tx send fali");
-                DelayTX::skip_tx(&self.loop_move_tx).try_send(()).expect("skip_loop_move_tx send fali");
+                self.delay_channels.as_ref().unwrap().skip_all();
             }
         }
 
-        {
-
+        let res = {
             let mut text = self.text.write().unwrap();
             if text.is_running {
                 text.end();
-                if let Some(window) = self.weak.upgrade() {
-                    if window.get_is_auto() {
-                        self.auto_tx
-                            .clone()
-                            .unwrap()
-                            .send(Duration::from_secs(2))
-                            .await?;
-                    }
-                }
-                return Ok(());
+                true
+            } else {
+                false
             }
+        };
+        if res {
+            if let Some(window) = self.weak.upgrade() {
+                if window.get_is_auto() {
+                    self.auto_tx
+                        .clone()
+                        .unwrap()
+                        .send(Duration::from_secs(2))
+                        .await?;
+                }
+            }
+            return Ok(());
         }
 
         let mut duration = Duration::default();
@@ -474,8 +442,7 @@ impl Executor {
             return Ok(());
         }
 
-        if *self.video_lock.borrow() {
-            // 视频播放中，禁止推进剧情；UI 端也不会触发 clicked，这是双保险。
+        if self.video_context.try_borrow().is_err() {
             return Ok(());
         }
 
@@ -531,7 +498,7 @@ impl Executor {
             if let Play(bgm) = pre_bgm {
                 self.play_bgm(bgm).await?;
             } else if let PreBgm::Stop = pre_bgm {
-                let bgm_player = self.bgm_player.borrow_mut();
+                let bgm_player = &self.media_player.borrow().bgm_player;
                 bgm_player.stop();
             }
             if let Some(figures) = pre_fg {
@@ -543,9 +510,16 @@ impl Executor {
             match command {
                 Command::Background { .. } => self.show_bg(&command).await?,
                 Command::PlayBgm(bgm) => {
-                    let mut script = self.script.borrow_mut();
-                    if bgm != script.current_bgm() {
-                        script.set_current_bgm(bgm.clone());
+                    let needs_play = {
+                        let mut script = self.script.borrow_mut();
+                        if bgm != script.current_bgm() {
+                            script.set_current_bgm(bgm.clone());
+                            true
+                        } else {
+                            false
+                        }
+                    };
+                    if needs_play {
                         self.play_bgm(bgm).await?;
                     }
                 }
@@ -553,7 +527,7 @@ impl Executor {
                     *self.choose_lock.borrow_mut() = true;
 
                     let mut script = self.script.borrow_mut();
-                    script.set_explain(&format!("选择支：{}", explain));
+                    script.set_explain(&format!("选择支：{explain}"));
                     let mut choose_branch = Vec::with_capacity(choices.len());
                     for (index, choice) in choices.iter().enumerate() {
                         choose_branch.push((index as i32, SharedString::from(choice.0.clone())));
@@ -563,9 +537,11 @@ impl Executor {
                     window.set_current_choose(choices.len() as i32);
                 }
                 Command::Dialogue { speaker, text } => {
-                    let mut script = self.script.borrow_mut();
-                    script.set_explain(&text);
-                    script.push_backlog(speaker.to_shared_string(), text.to_shared_string());
+                    {
+                        let mut script = self.script.borrow_mut();
+                        script.set_explain(&text);
+                        script.push_backlog(speaker.to_shared_string(), text.to_shared_string());
+                    }
                     window.set_speaker(SharedString::from(speaker));
                     {
                         let mut send_text = self.text.write().unwrap();
@@ -579,23 +555,32 @@ impl Executor {
                     ref voice,
                 } => {
                     if let Some(length) = VOICE_LENGTH.find(name) {
-                        let voice_player = self.voice_player.borrow_mut();
+                        let voice_player = &self.media_player.borrow().voice_player;
                         let volume = window.get_main_volume() / 100.0;
                         let voice_volume = window.get_voice_volume() / 100.0;
                         let character_volumes = window.get_character_volumes();
                         {
                             let full_name = ENGINE_CONFIG.character_list().get(name).unwrap();
-                            for CharacterVolume {name: ch_name, volume: ch_volume} in character_volumes.iter() {
+                            for CharacterVolume {
+                                name: ch_name,
+                                volume: ch_volume,
+                            } in character_volumes.iter()
+                            {
                                 if ch_name == full_name {
                                     voice_player.play_voice(
-                                        &format!("{}/{}/{}.ogg", ENGINE_CONFIG.voice_path(), name, voice),
+                                        &format!(
+                                            "{}/{}/{}.ogg",
+                                            ENGINE_CONFIG.voice_path(),
+                                            name,
+                                            voice
+                                        ),
                                         volume * voice_volume * ch_volume / 100.0,
                                     )?;
                                     break;
                                 }
                             }
                         }
-                        duration += length.get(voice).unwrap().clone();
+                        duration += *length.get(voice).unwrap();
                     }
                 }
                 Command::PlayVideo(name) => {
@@ -611,8 +596,7 @@ impl Executor {
                 Command::Jump(jump) => {
                     self.execute_jump(Jump::Label(jump)).await?;
                 }
-                Command::Label(_) => (),
-                Command::Empty => (),
+                Command::Label => (),
             }
         };
 
@@ -623,7 +607,7 @@ impl Executor {
         let weak = self.weak.clone();
 
         if let Some(window) = weak.upgrade() {
-            let bgm_player = self.bgm_player.borrow_mut();
+            let bgm_player = &self.media_player.borrow().bgm_player;
             let volume = window.get_main_volume() / 100.0;
             let bgm_volume = window.get_bgm_volume() / 100.0;
             bgm_player.play_loop(
@@ -651,7 +635,7 @@ impl Executor {
         let path = if *is_cg {
             if let Some((index, _)) = CG_LENGTH.find_by_name(name) {
                 self.unlock(*index);
-                save_extra_config(self.cg.borrow().clone())?;
+                save_extra_config(*self.cg.borrow())?;
             }
             ENGINE_CONFIG.cg_path()
         } else {
@@ -659,12 +643,7 @@ impl Executor {
         };
 
         if let Some(window) = weak.upgrade() {
-            let image = Image::load_from_path(Path::new(&format!(
-                "{}{}.png",
-                path,
-                name
-            )))
-            .unwrap();
+            let image = Image::load_from_path(Path::new(&format!("{path}{name}.png"))).unwrap();
             window.set_bg((
                 image,
                 x_offset.unwrap_or(0.0),
@@ -691,11 +670,11 @@ impl Executor {
         };
 
         if let Some(window) = weak.upgrade() {
-            if let Some(_) = delay {
-                DelayTX::delay_tx(&self.delay_tx).send(fg.clone()).await?;
+            if delay.is_some() {
+                self.delay_channels.as_ref().unwrap().send_delay(fg).await?;
                 return Ok(());
             }
-            if let (Some(body_para), Some(face_para), Some(offset)) = FIGURE_CONFIG.find(&name) {
+            if let (Some(body_para), Some(face_para), Some(offset)) = FIGURE_CONFIG.find(name) {
                 let body_exist = match (&position[..], &distance[..]) {
                     ("-1", "z1") => window.get_fg_z1__1(),
                     ("-2", "z1") => window.get_fg_z1__2(),
@@ -773,9 +752,11 @@ impl Executor {
         };
 
         if let Some(window) = weak.upgrade() {
-            if let Some(_) = delay {
-                DelayTX::delay_tx(&self.delay_tx)
-                    .send(fg_move.clone())
+            if delay.is_some() {
+                self.delay_channels
+                    .as_ref()
+                    .unwrap()
+                    .send_delay(fg_move)
                     .await?;
                 return Ok(());
             }
@@ -783,7 +764,6 @@ impl Executor {
             let offset: (f32, f32) = match &action[..] {
                 "to2" => {
                     if *repeat != 1 {
-                        let tx = DelayTX::delay_tx(&self.loop_move_tx);
                         let back = fg_move.back();
                         let action = Command::Move {
                             name: name.to_string(),
@@ -795,11 +775,13 @@ impl Executor {
                             repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
                             delay: Some("301".to_string()),
                         };
-                        send_loop(tx.clone(), back);
-                        send_loop(tx, action);
+                        self.delay_channels
+                            .as_ref()
+                            .unwrap()
+                            .send_loop(action, back);
                     } else {
-                        let tx = DelayTX::delay_tx(&self.delay_move_tx);
-                        tx.send(Command::Figure {
+                        let tx = self.delay_channels.as_ref().unwrap();
+                        tx.send_move(Command::Figure {
                             name: name.to_string(),
                             distance: distance.to_string(),
                             body: body.to_string(),
@@ -808,7 +790,7 @@ impl Executor {
                             delay: Some("150".to_string()),
                         })
                         .await?;
-                        tx.send(fg_move.back_and_clean()).await?;
+                        tx.send_move(fg_move.back_and_clean()).await?;
                     }
                     match (&position[..], &distance[..]) {
                         ("-1", "z1") => (window.get_container_width() * 0.5, 0.0),
@@ -819,8 +801,8 @@ impl Executor {
                     }
                 }
                 "to0" => {
-                    let tx = DelayTX::delay_tx(&self.delay_move_tx);
-                    tx.send(Command::Figure {
+                    let tx = self.delay_channels.as_ref().unwrap();
+                    tx.send_move(Command::Figure {
                         name: name.to_string(),
                         distance: distance.to_string(),
                         body: body.to_string(),
@@ -829,7 +811,7 @@ impl Executor {
                         delay: Some("150".to_string()),
                     })
                     .await?;
-                    tx.send(fg_move.back_and_clean()).await?;
+                    tx.send_move(fg_move.back_and_clean()).await?;
 
                     match (&position[..], &distance[..]) {
                         ("-1", "z1") => (window.get_container_width() * 0.33, 0.0),
@@ -841,7 +823,6 @@ impl Executor {
                 }
                 "nod" => {
                     if *repeat != 1 {
-                        let tx = DelayTX::delay_tx(&self.loop_move_tx);
                         let back = fg_move.back();
                         let nod = Command::Move {
                             name: name.to_string(),
@@ -853,27 +834,26 @@ impl Executor {
                             repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
                             delay: Some("301".to_string()),
                         };
-                        send_loop(tx.clone(), back);
-                        send_loop(tx, nod);
+                        self.delay_channels.as_ref().unwrap().send_loop(nod, back);
                     } else {
-                        let tx = DelayTX::delay_tx(&self.delay_move_tx);
-                        tx.send(Command::Move {
-                            name: name.to_string(),
-                            distance: distance.to_string(),
-                            body: body.to_string(),
-                            face: face.to_string(),
-                            position: position.to_string(),
-                            action: "back".to_string(),
-                            repeat: *repeat,
-                            delay: Some("150".to_string()),
-                        })
-                        .await?;
+                        self.delay_channels
+                            .as_ref()
+                            .unwrap()
+                            .send_move(Command::Move {
+                                name: name.to_string(),
+                                distance: distance.to_string(),
+                                body: body.to_string(),
+                                face: face.to_string(),
+                                position: position.to_string(),
+                                action: "back".to_string(),
+                                repeat: *repeat,
+                                delay: Some("150".to_string()),
+                            })
+                            .await?;
                     }
                     (0.0, window.get_container_height() / 40.0)
                 }
-                "back" => {
-                    (0.0, 0.0)
-                }
+                "back" => (0.0, 0.0),
                 "back_and_clean" => {
                     match (&position[..], &distance[..]) {
                         ("-1", "z1") => {
@@ -919,7 +899,7 @@ impl Executor {
     async fn clean_fg(&self, distance: &str, position: &str) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         if let Some(window) = weak.upgrade() {
-            match (&position[..], &distance[..]) {
+            match (position, distance) {
                 ("-2", "z1") => {
                     window.set_fg_z1__2(figure_default());
                     window.set_face_z1__2(face_default());
@@ -961,12 +941,11 @@ impl Executor {
             ENGINE_CONFIG.video_extension()
         );
 
-        self.bgm_player.borrow().stop();
-        self.voice_player.borrow().stop();
+        self.media_player.borrow().stop_all();
 
         let player = VideoPlayer::play(&path)?;
-        *self.video_player.borrow_mut() = Some(player);
-        *self.video_lock.borrow_mut() = true;
+        let mut video_context = self.video_context.borrow_mut();
+        video_context.set_video_player(player);
 
         if let Some(window) = self.weak.upgrade() {
             window.set_is_video(true);
@@ -974,14 +953,14 @@ impl Executor {
 
         let timer = slint::Timer::default();
         let weak = self.weak.clone();
-        let video_player = self.video_player.clone();
+        let video_player = self.video_context.clone();
         let executor_for_finish = self.clone();
         timer.start(
             slint::TimerMode::Repeated,
             Duration::from_millis(16),
             move || {
                 let mut finished = false;
-                if let Some(vp) = video_player.borrow().as_ref() {
+                if let Some(vp) = video_player.borrow().get_video_player_ref() {
                     if let Some(window) = weak.upgrade() {
                         if let Some(frame) = vp.take_latest_frame() {
                             window.set_video_frame(frame);
@@ -1000,23 +979,24 @@ impl Executor {
                 }
             },
         );
-        *self.video_timer.borrow_mut() = Some(timer);
+        video_context.set_video_timer(timer);
 
         Ok(())
     }
 
     pub async fn execute_stop_video(&self) -> Result<(), EngineError> {
-        if !*self.video_lock.borrow() {
-            return Ok(());
+        {
+            let mut video_context = self.video_context.borrow_mut();
+
+            if let Some(player) = video_context.get_video_player() {
+                player.stop();
+            } else {
+                return Ok(());
+            }
+
+            video_context.get_video_timer();
         }
 
-        if let Some(player) = self.video_player.borrow_mut().take() {
-            player.stop();
-        }
-
-        self.video_timer.borrow_mut().take();
-
-        *self.video_lock.borrow_mut() = false;
         if let Some(window) = self.weak.upgrade() {
             window.set_is_video(false);
             window.set_video_frame(Image::default());
@@ -1024,23 +1004,5 @@ impl Executor {
 
         let mut this = self.clone();
         this.execute_script().await
-    }
-}
-
-fn send_loop(tx: Sender<Command>, cmd: Command) {
-    match tx.try_send(cmd) {
-        Ok(_) => {}
-        Err(tokio::sync::mpsc::error::TrySendError::Full(cmd)) => {
-            // 通道满了：把发送任务交给 tokio 等待
-            let tx_clone = tx.clone();
-            tokio::spawn(async move {
-                if let Err(e) = tx_clone.send(cmd).await {
-                    eprintln!("delay tx send failed: {:?}", e);
-                }
-            });
-        }
-        Err(e) => {
-            eprintln!("try_send other error: {:?}", e);
-        }
     }
 }
