@@ -57,7 +57,7 @@ impl SkipExecutor {
                 if is_skip.load(Ordering::Relaxed) {
                     let mut executor = executor.clone();
                     slint::spawn_local(async move {
-                        if let Err(e) = executor.execute_script().await {
+                        if let Err(e) = executor.execute_script() {
                             eprintln!("skip execute_script failed: {e}");
                         }
                     })

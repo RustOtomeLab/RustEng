@@ -101,7 +101,7 @@ impl AutoExecutor {
                 if is_auto.load(Ordering::Relaxed) && rx.try_recv().is_ok() {
                     let mut executor = executor.clone();
                     slint::spawn_local(async move {
-                        if let Err(e) = executor.execute_script().await {
+                        if let Err(e) = executor.execute_script() {
                             eprintln!("auto execute_script failed: {e}");
                         }
                     })

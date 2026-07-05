@@ -25,13 +25,13 @@ pub struct DelayChannels {
 }
 
 impl DelayChannels {
-    pub async fn send_delay(&self, fg: &Command) -> Result<(), EngineError> {
-        self.delay_tx.delay_tx.send(fg.clone()).await?;
+    pub fn send_delay(&self, fg: &Command) -> Result<(), EngineError> {
+        self.delay_tx.delay_tx.try_send(fg.clone())?;
         Ok(())
     }
 
-    pub async fn send_move(&self, fg_move: Command) -> Result<(), EngineError> {
-        self.delay_move_tx.delay_tx.send(fg_move).await?;
+    pub fn send_move(&self, fg_move: Command) -> Result<(), EngineError> {
+        self.delay_move_tx.delay_tx.try_send(fg_move)?;
         Ok(())
     }
 
@@ -179,9 +179,9 @@ impl DelayExecutor {
                     let executor = executor.clone();
                     slint::spawn_local(async move {
                         let result = if let Command::Figure { .. } = &cmd {
-                            executor.show_fg(&cmd).await
+                            executor.show_fg(&cmd)
                         } else if let Command::Move { .. } = &cmd {
-                            executor.show_move(&cmd).await
+                            executor.show_move(&cmd)
                         } else {
                             Ok(())
                         };

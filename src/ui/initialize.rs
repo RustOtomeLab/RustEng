@@ -34,137 +34,105 @@ pub async fn ui(
     });
 
     window.on_save({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move |index| {
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_save(index).await })
-                .expect("Save panicked");
+            executor.execute_save(index).expect("Save panicked");
         }
     });
 
     window.on_load({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move |name, index| {
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_load(name.to_string(), index).await })
-                .expect("Load panicked");
+            executor.execute_load(name.to_string(), index).expect("Load panicked");
         }
     });
 
     window.on_get_ex({
         let executor = executor.clone();
         move || {
-            let executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_get_ex().await })
-                .expect("Get Ex panicked");
+            executor.execute_get_ex().expect("Get Ex panicked");
         }
     });
 
     window.on_volume_changed({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move || {
-            let mut executor = executor.clone();
-            slint::spawn_local(async move {
-                let _ = executor.execute_bgm_volume().await;
-                executor.execute_voice_volume().await
-            })
-            .expect("Volume change panicked");
+                executor.execute_bgm_volume().expect("bgm_volume change panicked");
+                executor.execute_voice_volume().expect("voice_volume change panicked");
         }
     });
 
     window.on_bgm_volume_changed({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move || {
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_bgm_volume().await })
-                .expect("Bgm volume change panicked");
+            executor.execute_bgm_volume().expect("Bgm volume change panicked");
         }
     });
 
     window.on_voice_volume_changed({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move || {
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_voice_volume().await })
-                .expect("Voice volume change panicked");
+            executor.execute_voice_volume().expect("Voice volume change panicked");
         }
     });
 
     window.on_save_config({
         let executor = executor.clone();
         move || {
-            let executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_save_config().await })
-                .expect("Choose panicked");
+            executor.execute_save_config().expect("Choose panicked");
         }
     });
 
     window.on_choose({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move |choice| {
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_choose(choice).await })
-                .expect("Choose panicked");
+            executor.execute_choose(choice).expect("Choose panicked");
         }
     });
 
     window.on_backlog({
         let executor = executor.clone();
         move || {
-            let executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_backlog().await })
-                .expect("Backlog panicked");
+            executor.execute_backlog().expect("Backlog panicked");
         }
     });
 
     window.on_backlog_change({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move |i| {
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_backlog_change(i).await })
-                .expect("Backlog change panicked");
+            executor.execute_backlog_change(i).expect("Backlog change panicked");
         }
     });
 
     window.on_backlog_jump({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move |name, i| {
-            let mut executor = executor.clone();
-            slint::spawn_local(
-                async move { executor.execute_backlog_jump(name.to_string(), i).await },
-            )
-            .expect("Backlog jump panicked");
+            executor.execute_backlog_jump(name.to_string(), i).expect("Backlog jump panicked");
         }
     });
 
     window.on_clicked({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move || {
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_script().await })
-                .expect("Clicked panicked");
+            executor.execute_script().expect("Clicked panicked");
         }
     });
 
     window.on_auto_play({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         let tx = executor_tx.auto_tx();
         move |source| {
             let tx = tx.clone();
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_auto(tx, source).await })
-                .expect("TODO: panic message");
+            executor.execute_auto(tx, source).expect("TODO: panic message");
         }
     });
 
     window.on_skip_play({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         let tx = executor_tx.skip_tx();
         move |source| {
             let tx = tx.clone();
-            let mut executor = executor.clone();
-            slint::spawn_local(async move { executor.execute_skip(tx, source).await })
-                .expect("TODO: panic message");
+            executor.execute_skip(tx, source).expect("TODO: panic message");
         }
     });
 

@@ -106,7 +106,7 @@ impl Executor {
         *cg |= 1u64 << index;
     }
 
-    pub async fn execute_backlog(&self) -> Result<(), EngineError> {
+    pub fn execute_backlog(&self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
             let backlog = script.backlog();
@@ -116,15 +116,15 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_backlog_change(&mut self, offset: i32) -> Result<(), EngineError> {
+    pub fn execute_backlog_change(&mut self, offset: i32) -> Result<(), EngineError> {
         {
             let mut script = self.script.borrow_mut();
             script.set_offset(offset);
         }
-        self.execute_backlog().await
+        self.execute_backlog()
     }
 
-    pub async fn execute_backlog_jump(
+    pub fn execute_backlog_jump(
         &mut self,
         name: String,
         index: i32,
@@ -132,10 +132,10 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             window.set_is_backlog(false);
         }
-        self.execute_load(name, index).await
+        self.execute_load(name, index)
     }
 
-    pub async fn execute_save(&mut self, index: i32) -> Result<(), EngineError> {
+    pub fn execute_save(&mut self, index: i32) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
             let bg = window.get_bg();
@@ -184,21 +184,21 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_load(&mut self, name: String, index: i32) -> Result<(), EngineError> {
+    pub fn execute_load(&mut self, name: String, index: i32) -> Result<(), EngineError> {
         if !name.is_empty() {
             let weak = self.weak.clone();
             if let Some(window) = weak.upgrade() {
                 window.set_current_screen(2);
                 window.set_current_choose(0);
             }
-            self.execute_jump(Jump::Index((name, index - 1))).await?;
-            self.execute_script().await?;
+            self.execute_jump(Jump::Index((name, index - 1)))?;
+            self.execute_script()?;
         }
 
         Ok(())
     }
 
-    pub async fn execute_get_ex(&self) -> Result<(), EngineError> {
+    pub fn execute_get_ex(&self) -> Result<(), EngineError> {
         let mut ex_items = Vec::with_capacity(16);
 
         let cgs = *self.cg.borrow();
@@ -247,7 +247,7 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_bgm_volume(&mut self) -> Result<(), EngineError> {
+    pub fn execute_bgm_volume(&mut self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let bgm_player = &self.media_player.borrow_mut().bgm_player;
             let volume = window.get_main_volume() / 100.0;
@@ -258,7 +258,7 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_voice_volume(&mut self) -> Result<(), EngineError> {
+    pub fn execute_voice_volume(&mut self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let voice_player = &self.media_player.borrow().voice_player;
             let volume = window.get_main_volume() / 100.0;
@@ -269,14 +269,14 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_save_config(&self) -> Result<(), EngineError> {
+    pub fn execute_save_config(&self) -> Result<(), EngineError> {
         let weak = self.get_weak();
         save_user_config(weak)?;
 
         Ok(())
     }
 
-    pub async fn execute_choose(&mut self, choice: SharedString) -> Result<(), EngineError> {
+    pub fn execute_choose(&mut self, choice: SharedString) -> Result<(), EngineError> {
         *self.choose_lock.borrow_mut() = false;
 
         let label: (String, String);
@@ -300,14 +300,13 @@ impl Executor {
                 self.auto_tx
                     .clone()
                     .unwrap()
-                    .send(Duration::from_secs(5))
-                    .await?;
+                    .try_send(Duration::from_secs(5))?;
             }
         }
-        self.execute_jump(Jump::Label(label)).await
+        self.execute_jump(Jump::Label(label))
     }
 
-    pub async fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
+    pub fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
         {
             let mut script = self.script.borrow_mut();
             let current_bgm = script.current_bgm().to_string();
@@ -356,23 +355,22 @@ impl Executor {
             script.set_pre_figures(pre_figures);
             script.set_index(current_block);
         }
-        self.clean_fg("All", "All").await?;
+        self.clean_fg("All", "All")?;
 
         Ok(())
     }
 
-    pub async fn execute_auto(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
+    pub fn execute_auto(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
                 self.auto_tx
                     .clone()
                     .unwrap()
-                    .send(Duration::from_secs(1))
-                    .await?;
-                tx.send(()).await?;
+                    .try_send(Duration::from_secs(1))?;
+                tx.try_send(())?;
             } else {
                 if window.get_is_auto() {
-                    tx.send(()).await?;
+                    tx.try_send(())?;
                 }
                 window.set_is_auto(false);
             }
@@ -381,13 +379,13 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_skip(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
+    pub fn execute_skip(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
-                tx.send(()).await?;
+                tx.try_send(())?;
             } else {
                 if window.get_is_skip() {
-                    tx.send(()).await?;
+                    tx.try_send(())?;
                 }
                 window.set_is_skip(false);
             }
@@ -396,7 +394,7 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_script(&mut self) -> Result<(), EngineError> {
+    pub fn execute_script(&mut self) -> Result<(), EngineError> {
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
@@ -422,8 +420,7 @@ impl Executor {
                     self.auto_tx
                         .clone()
                         .unwrap()
-                        .send(Duration::from_secs(2))
-                        .await?;
+                        .try_send(Duration::from_secs(2))?;
                 }
             }
             return Ok(());
@@ -456,11 +453,11 @@ impl Executor {
         }
         let delay = match commands {
             Commands::EmptyCmd => unreachable!(),
-            Commands::OneCmd(command) => self.apply_command(command).await?,
+            Commands::OneCmd(command) => self.apply_command(command)?,
             Commands::VarCmds(vars) => {
                 let mut delay = Duration::default();
                 for command in vars {
-                    delay += self.apply_command(command).await?;
+                    delay += self.apply_command(command)?;
                 }
                 delay
             }
@@ -471,13 +468,13 @@ impl Executor {
         }
 
         if is_auto {
-            self.auto_tx.clone().unwrap().send(duration).await?;
+            self.auto_tx.clone().unwrap().try_send(duration)?;
         }
 
         Ok(())
     }
 
-    pub async fn apply_command(&mut self, command: Command) -> Result<Duration, EngineError> {
+    pub fn apply_command(&mut self, command: Command) -> Result<Duration, EngineError> {
         let mut duration = Duration::from_secs(0);
 
         if let Some(window) = self.weak.upgrade() {
@@ -493,22 +490,22 @@ impl Executor {
             }
 
             if let Some(bg) = pre_bg {
-                self.show_bg(&bg).await?;
+                self.show_bg(&bg)?;
             }
             if let Play(bgm) = pre_bgm {
-                self.play_bgm(bgm).await?;
+                self.play_bgm(bgm)?;
             } else if let PreBgm::Stop = pre_bgm {
                 let bgm_player = &self.media_player.borrow().bgm_player;
                 bgm_player.stop();
             }
             if let Some(figures) = pre_fg {
                 for figure in figures.0.values() {
-                    self.show_fg(&figure.clone()).await?;
+                    self.show_fg(&figure.clone())?;
                 }
             }
 
             match command {
-                Command::Background { .. } => self.show_bg(&command).await?,
+                Command::Background { .. } => self.show_bg(&command)?,
                 Command::PlayBgm(bgm) => {
                     let needs_play = {
                         let mut script = self.script.borrow_mut();
@@ -520,7 +517,7 @@ impl Executor {
                         }
                     };
                     if needs_play {
-                        self.play_bgm(bgm).await?;
+                        self.play_bgm(bgm)?;
                     }
                 }
                 Command::Choice((explain, choices)) => {
@@ -548,7 +545,7 @@ impl Executor {
                         send_text.start_animation(text, window.get_text_speed());
                     }
                     let tx = self.text_tx.clone().unwrap();
-                    tx.send(self.text.clone()).await?;
+                    tx.try_send(self.text.clone())?;
                 }
                 Command::PlayVoice {
                     ref name,
@@ -587,14 +584,14 @@ impl Executor {
                     self.start_video(&name)?;
                 }
                 Command::Figure { .. } => {
-                    self.show_fg(&command).await?;
+                    self.show_fg(&command)?;
                 }
                 Command::Move { .. } => {
-                    self.show_move(&command).await?;
+                    self.show_move(&command)?;
                 }
-                Command::Clear(distance, position) => self.clean_fg(&distance, &position).await?,
+                Command::Clear(distance, position) => self.clean_fg(&distance, &position)?,
                 Command::Jump(jump) => {
-                    self.execute_jump(Jump::Label(jump)).await?;
+                    self.execute_jump(Jump::Label(jump))?;
                 }
                 Command::Label => (),
             }
@@ -603,7 +600,7 @@ impl Executor {
         Ok(duration)
     }
 
-    async fn play_bgm(&self, bgm: String) -> Result<(), EngineError> {
+    fn play_bgm(&self, bgm: String) -> Result<(), EngineError> {
         let weak = self.weak.clone();
 
         if let Some(window) = weak.upgrade() {
@@ -619,7 +616,7 @@ impl Executor {
         Ok(())
     }
 
-    async fn show_bg(&mut self, bg: &Command) -> Result<(), EngineError> {
+    fn show_bg(&mut self, bg: &Command) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         let Command::Background {
             name,
@@ -655,7 +652,7 @@ impl Executor {
         Ok(())
     }
 
-    pub(crate) async fn show_fg(&self, fg: &Command) -> Result<(), EngineError> {
+    pub(crate) fn show_fg(&self, fg: &Command) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         let Command::Figure {
             name,
@@ -671,7 +668,7 @@ impl Executor {
 
         if let Some(window) = weak.upgrade() {
             if delay.is_some() {
-                self.delay_channels.as_ref().unwrap().send_delay(fg).await?;
+                self.delay_channels.as_ref().unwrap().send_delay(fg)?;
                 return Ok(());
             }
             if let (Some(body_para), Some(face_para), Some(offset)) = FIGURE_CONFIG.find(name) {
@@ -735,7 +732,7 @@ impl Executor {
         Ok(())
     }
 
-    pub(crate) async fn show_move(&self, fg_move: &Command) -> Result<(), EngineError> {
+    pub(crate) fn show_move(&self, fg_move: &Command) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         let Command::Move {
             name,
@@ -756,8 +753,7 @@ impl Executor {
                 self.delay_channels
                     .as_ref()
                     .unwrap()
-                    .send_delay(fg_move)
-                    .await?;
+                    .send_delay(fg_move)?;
                 return Ok(());
             }
 
@@ -788,9 +784,8 @@ impl Executor {
                             face: face.to_string(),
                             position: "2".to_string(),
                             delay: Some("150".to_string()),
-                        })
-                        .await?;
-                        tx.send_move(fg_move.back_and_clean()).await?;
+                        })?;
+                        tx.send_move(fg_move.back_and_clean())?;
                     }
                     match (&position[..], &distance[..]) {
                         ("-1", "z1") => (window.get_container_width() * 0.5, 0.0),
@@ -809,9 +804,8 @@ impl Executor {
                         face: face.to_string(),
                         position: "0".to_string(),
                         delay: Some("150".to_string()),
-                    })
-                    .await?;
-                    tx.send_move(fg_move.back_and_clean()).await?;
+                    })?;
+                    tx.send_move(fg_move.back_and_clean())?;
 
                     match (&position[..], &distance[..]) {
                         ("-1", "z1") => (window.get_container_width() * 0.33, 0.0),
@@ -848,8 +842,7 @@ impl Executor {
                                 action: "back".to_string(),
                                 repeat: *repeat,
                                 delay: Some("150".to_string()),
-                            })
-                            .await?;
+                            })?;
                     }
                     (0.0, window.get_container_height() / 40.0)
                 }
@@ -896,7 +889,7 @@ impl Executor {
         Ok(())
     }
 
-    async fn clean_fg(&self, distance: &str, position: &str) -> Result<(), EngineError> {
+    fn clean_fg(&self, distance: &str, position: &str) -> Result<(), EngineError> {
         let weak = self.weak.clone();
         if let Some(window) = weak.upgrade() {
             match (position, distance) {
@@ -1003,6 +996,6 @@ impl Executor {
         }
 
         let mut this = self.clone();
-        this.execute_script().await
+        this.execute_script()
     }
 }
