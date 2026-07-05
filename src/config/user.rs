@@ -1,13 +1,12 @@
-use crate::config::system::AutoConfig;
-use crate::config::text::TextConfig;
-use crate::config::volume::VolumeConfig;
-use crate::config::ENGINE_CONFIG;
+use crate::config::{
+    character_volume::CharacterVolumeConfig, system::AutoConfig, text::TextConfig,
+    volume::VolumeConfig, ENGINE_CONFIG,
+};
 use crate::error::{EngineError, SaveError};
-use crate::ui::ui::MainWindow;
+use crate::ui::initialize::MainWindow;
 use serde::{Deserialize, Serialize};
 use slint::Weak;
 use std::fs;
-use crate::config::character_volume::CharacterVolumeConfig;
 
 lazy_static::lazy_static! {
     pub static ref USER_CONFIG: UserConfig = load_user_config();
@@ -60,7 +59,7 @@ impl UserConfig {
     }
 
     pub fn character_volume(&self, name: &str) -> f32 {
-        self.character_volume.volumes.get(name).unwrap().clone()
+        *self.character_volume.volumes.get(name).unwrap()
     }
 
     pub fn from_weak(weak: Weak<MainWindow>) -> Self {
@@ -99,7 +98,7 @@ fn load_user_config() -> UserConfig {
 pub fn save_user_config(weak: Weak<MainWindow>) -> Result<(), EngineError> {
     let path = format!("{}/user.toml", ENGINE_CONFIG.save_path());
     write_config(&path, &UserConfig::from_weak(weak))?;
-  
+
     Ok(())
 }
 

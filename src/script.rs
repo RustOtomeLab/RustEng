@@ -1,10 +1,12 @@
-use crate::media::player::PreBgm;
 use crate::config::ENGINE_CONFIG;
 use crate::error::{EngineError, ScriptError};
-use crate::parser::parser::{Command, Commands};
+use crate::media::player::PreBgm;
+use crate::parser::script_parser::{Command, Commands};
 use slint::{SharedString, ToSharedString};
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::fs;
+use std::{
+    collections::{BTreeMap, HashMap, HashSet},
+    fs,
+};
 
 pub type Label = (String, String);
 
@@ -77,8 +79,8 @@ impl Script {
         command
     }
 
-    pub fn set_explain(&mut self, explain: &String) {
-        let mut explain = &explain[..];
+    pub fn set_explain(&mut self, explain: &str) {
+        let mut explain = explain;
         if explain.len() > 18 {
             explain = &explain[0..18];
         }
@@ -125,7 +127,7 @@ impl Script {
     ) {
         self.figures
             .entry(index)
-            .or_insert_with(Figure::default)
+            .or_default()
             .push(distance, position, command);
     }
 
@@ -218,11 +220,11 @@ impl Script {
     }
 
     pub fn change_figure(&mut self, index: usize, distance: &str, position: &str) -> Command {
-        let pos = format!("{}{}", distance, position);
+        let pos = format!("{distance}{position}");
         let mut idx = 0;
         for i in (0..=index).rev() {
             if let Some(fg) = self.figures.get(&i) {
-                if fg.0.get(&pos).is_some() {
+                if fg.0.contains_key(&pos) {
                     idx = i;
                     break;
                 }
@@ -233,17 +235,11 @@ impl Script {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Figure(pub HashMap<String, Command>);
-
-impl Default for Figure {
-    fn default() -> Self {
-        Figure(HashMap::new())
-    }
-}
 
 impl Figure {
     fn push(&mut self, distance: &str, position: &str, command: Command) {
-        self.0.insert(format!("{}{}", distance, position), command);
+        self.0.insert(format!("{distance}{position}"), command);
     }
 }

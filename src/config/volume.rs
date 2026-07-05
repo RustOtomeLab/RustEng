@@ -1,6 +1,6 @@
 use crate::config::user::USER_CONFIG;
-use crate::executor::executor::Executor;
-use crate::ui::ui::MainWindow;
+use crate::executors::executor::Executor;
+use crate::ui::initialize::MainWindow;
 use serde::{Deserialize, Serialize};
 use slint::Weak;
 
@@ -13,7 +13,11 @@ pub(crate) struct VolumeConfig {
 
 impl Default for VolumeConfig {
     fn default() -> Self {
-        VolumeConfig { main: 100.0, bgm: 100.0, voice: 100.0 }
+        VolumeConfig {
+            main: 100.0,
+            bgm: 100.0,
+            voice: 100.0,
+        }
     }
 }
 

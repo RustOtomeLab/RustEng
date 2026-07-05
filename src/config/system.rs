@@ -1,6 +1,6 @@
 use crate::config::user::USER_CONFIG;
-use crate::executor::executor::Executor;
-use crate::ui::ui::MainWindow;
+use crate::executors::executor::Executor;
+use crate::ui::initialize::MainWindow;
 use serde::{Deserialize, Serialize};
 use slint::Weak;
 
@@ -12,7 +12,10 @@ pub struct AutoConfig {
 
 impl Default for AutoConfig {
     fn default() -> Self {
-        AutoConfig { delay: 3.5, is_wait: true }
+        AutoConfig {
+            delay: 3.5,
+            is_wait: true,
+        }
     }
 }
 

@@ -6,6 +6,18 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+pub struct MediaPlayer {
+    pub bgm_player: Player,
+    pub voice_player: Player,
+}
+
+impl MediaPlayer {
+    pub fn stop_all(&self) {
+        self.bgm_player.stop();
+        self.voice_player.stop();
+    }
+}
+
 pub struct Player {
     sink: Arc<Mutex<Option<Sink>>>,
     _stream: OutputStream,

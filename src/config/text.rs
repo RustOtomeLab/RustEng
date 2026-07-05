@@ -1,6 +1,6 @@
 use crate::config::user::USER_CONFIG;
-use crate::executor::executor::Executor;
-use crate::ui::ui::MainWindow;
+use crate::executors::executor::Executor;
+use crate::ui::initialize::MainWindow;
 use serde::{Deserialize, Serialize};
 use slint::Weak;
 
@@ -12,7 +12,10 @@ pub struct TextConfig {
 
 impl Default for TextConfig {
     fn default() -> Self {
-        TextConfig { speed: 50.0, opacity: 0.8 }
+        TextConfig {
+            speed: 50.0,
+            opacity: 0.8,
+        }
     }
 }
 impl TextConfig {

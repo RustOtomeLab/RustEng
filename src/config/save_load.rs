@@ -1,11 +1,9 @@
 use crate::config::ENGINE_CONFIG;
 use crate::error::{EngineError, SaveError};
-use crate::executor::executor::Executor;
+use crate::executors::executor::Executor;
 use serde::{Deserialize, Serialize};
 use slint::{Image, ToSharedString, VecModel};
-use std::fs;
-use std::path::Path;
-use std::rc::Rc;
+use std::{fs, path::Path, rc::Rc};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SaveData {
@@ -46,8 +44,7 @@ impl Executor {
                     path: path.clone(),
                     source: e,
                 })?;
-                let image =
-                    Image::load_from_path(Path::new(&image_path)).unwrap_or(Image::default());
+                let image = Image::load_from_path(Path::new(&image_path)).unwrap_or_default();
                 load_items.push((
                     image,
                     explain.to_shared_string(),

@@ -1,8 +1,11 @@
-use crate::executor::executor::Executor;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use std::time::Duration;
+use crate::executors::executor::Executor;
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 use tokio::sync::mpsc::{channel, Sender};
 
 pub struct SkipExecutor {
@@ -29,7 +32,7 @@ impl SkipExecutor {
         let is_skip_clone = is_skip.clone();
         tokio::spawn(async move {
             let mut start = true;
-            while let Some(_) = rx.recv().await {
+            while (rx.recv().await).is_some() {
                 if start {
                     is_skip_clone.store(true, Ordering::Relaxed);
                     start = false;
@@ -52,7 +55,6 @@ impl SkipExecutor {
             Duration::from_millis(100),
             move || {
                 if is_skip.load(Ordering::Relaxed) {
-
                     let mut executor = executor.clone();
                     slint::spawn_local(async move {
                         if let Err(e) = executor.execute_script().await {

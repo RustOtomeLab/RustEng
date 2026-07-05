@@ -5,7 +5,7 @@ pub enum EngineError {
     #[error("script error: {0}")]
     Script(#[from] ScriptError),
 
-    #[error("executor error: {0}")]
+    #[error("executors error: {0}")]
     Executor(#[from] ExecutorError),
 
     #[error("save error: {0}")]
@@ -68,7 +68,7 @@ pub enum ExecutorError {
     CgMetadataMissing(u64),
 
     #[allow(dead_code)]
-    #[error("invalid executor state: {0}")]
+    #[error("invalid executors state: {0}")]
     InvalidState(&'static str),
 }
 

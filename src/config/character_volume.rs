@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-use std::rc::Rc;
+use crate::config::{user::USER_CONFIG, ENGINE_CONFIG};
+use crate::executors::executor::Executor;
+use crate::ui::initialize::{CharacterVolume, MainWindow};
 use serde::{Deserialize, Serialize};
 use slint::{Model, Weak};
-use crate::config::ENGINE_CONFIG;
-use crate::config::user::USER_CONFIG;
-use crate::executor::executor::Executor;
-use crate::ui::ui::{CharacterVolume, MainWindow};
+use std::{collections::HashMap, rc::Rc};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct CharacterVolumeConfig {
@@ -57,9 +55,7 @@ impl Executor {
                 })
                 .collect();
 
-            window.set_character_volumes(
-                Rc::new(slint::VecModel::from(volumes)).into()
-            );
+            window.set_character_volumes(Rc::new(slint::VecModel::from(volumes)).into());
         }
     }
 }

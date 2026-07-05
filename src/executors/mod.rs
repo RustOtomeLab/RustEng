@@ -1,9 +1,8 @@
 use crate::error::EngineError;
-use crate::executor::auto_executor::AutoExecutor;
-use crate::executor::delay_executor::DelayExecutor;
-use crate::executor::executor::Executor;
-use crate::executor::skip_executor::SkipExecutor;
-use crate::executor::text_executor::TextExecutor;
+use crate::executors::{
+    auto_executor::AutoExecutor, delay_executor::DelayExecutor, executor::Executor,
+    skip_executor::SkipExecutor, text_executor::TextExecutor,
+};
 use tokio::sync::mpsc::Sender;
 
 pub mod auto_executor;
@@ -38,27 +37,26 @@ pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
     executor.set_text_tx(text_tx);
 
     let (mut delay_executor, delay_tx) = DelayExecutor::new(executor.clone());
-    executor.set_delay_tx(delay_tx.clone());
-    delay_executor.executor.set_delay_tx(delay_tx);
-
     let (mut delay_move_executor, delay_move_tx) = DelayExecutor::new(executor.clone());
-    executor.set_delay_move_tx(delay_move_tx.clone());
-    delay_executor
-        .executor
-        .set_delay_move_tx(delay_move_tx.clone());
-    delay_move_executor
-        .executor
-        .set_delay_move_tx(delay_move_tx);
-
     let (mut loop_move_executor, loop_move_tx) = DelayExecutor::new(executor.clone());
-    executor.set_loop_move_tx(loop_move_tx.clone());
-    delay_executor
+    executor.set_delay_channels(
+        delay_tx.clone(),
+        delay_move_tx.clone(),
+        loop_move_tx.clone(),
+    );
+    delay_executor.executor.set_delay_channels(
+        delay_tx.clone(),
+        delay_move_tx.clone(),
+        loop_move_tx.clone(),
+    );
+    delay_move_executor.executor.set_delay_channels(
+        delay_tx.clone(),
+        delay_move_tx.clone(),
+        loop_move_tx.clone(),
+    );
+    loop_move_executor
         .executor
-        .set_loop_move_tx(loop_move_tx.clone());
-    delay_move_executor
-        .executor
-        .set_loop_move_tx(loop_move_tx.clone());
-    loop_move_executor.executor.set_loop_move_tx(loop_move_tx);
+        .set_delay_channels(delay_tx, delay_move_tx, loop_move_tx);
 
     let (mut auto_executor, auto_tx, auto_delay_tx) = AutoExecutor::new(executor.clone());
     executor.set_auto_tx(auto_delay_tx.clone());

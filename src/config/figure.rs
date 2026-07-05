@@ -1,7 +1,6 @@
 use crate::config::ENGINE_CONFIG;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs;
+use std::{collections::HashMap, fs};
 
 lazy_static::lazy_static! {
     pub static ref FIGURE_CONFIG: FigureConfig = load_figure();
@@ -42,6 +41,12 @@ struct FigureRead {
     offset: Offset,
 }
 
+type FigureConfigRef<'a> = (
+    Option<&'a HashMap<String, f32>>,
+    Option<&'a HashMap<String, (f32, f32)>>,
+    Option<&'a f32>,
+);
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct FigureConfig {
     body_list: HashMap<String, HashMap<String, f32>>,
@@ -50,14 +55,7 @@ pub struct FigureConfig {
 }
 
 impl FigureConfig {
-    pub fn find(
-        &self,
-        name: &str,
-    ) -> (
-        Option<&HashMap<String, f32>>,
-        Option<&HashMap<String, (f32, f32)>>,
-        Option<&f32>,
-    ) {
+    pub fn find(&self, name: &str) -> FigureConfigRef<'_> {
         (
             self.body_list.get(name),
             self.face_list.get(name),

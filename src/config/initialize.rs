@@ -21,7 +21,7 @@ impl Character {
     pub(crate) fn list(&self) -> &HashMap<String, String> {
         &self.0
     }
-    
+
     pub(crate) fn name_list(&self) -> HashSet<&String> {
         self.0.keys().collect()
     }
