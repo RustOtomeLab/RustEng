@@ -43,7 +43,9 @@ pub async fn ui(
     window.on_load({
         let mut executor = executor.clone();
         move |name, index| {
-            executor.execute_load(name.to_string(), index).expect("Load panicked");
+            executor
+                .execute_load(name.to_string(), index)
+                .expect("Load panicked");
         }
     });
 
@@ -57,22 +59,30 @@ pub async fn ui(
     window.on_volume_changed({
         let mut executor = executor.clone();
         move || {
-                executor.execute_bgm_volume().expect("bgm_volume change panicked");
-                executor.execute_voice_volume().expect("voice_volume change panicked");
+            executor
+                .execute_bgm_volume()
+                .expect("bgm_volume change panicked");
+            executor
+                .execute_voice_volume()
+                .expect("voice_volume change panicked");
         }
     });
 
     window.on_bgm_volume_changed({
         let mut executor = executor.clone();
         move || {
-            executor.execute_bgm_volume().expect("Bgm volume change panicked");
+            executor
+                .execute_bgm_volume()
+                .expect("Bgm volume change panicked");
         }
     });
 
     window.on_voice_volume_changed({
         let mut executor = executor.clone();
         move || {
-            executor.execute_voice_volume().expect("Voice volume change panicked");
+            executor
+                .execute_voice_volume()
+                .expect("Voice volume change panicked");
         }
     });
 
@@ -100,14 +110,18 @@ pub async fn ui(
     window.on_backlog_change({
         let mut executor = executor.clone();
         move |i| {
-            executor.execute_backlog_change(i).expect("Backlog change panicked");
+            executor
+                .execute_backlog_change(i)
+                .expect("Backlog change panicked");
         }
     });
 
     window.on_backlog_jump({
         let mut executor = executor.clone();
         move |name, i| {
-            executor.execute_backlog_jump(name.to_string(), i).expect("Backlog jump panicked");
+            executor
+                .execute_backlog_jump(name.to_string(), i)
+                .expect("Backlog jump panicked");
         }
     });
 
@@ -123,7 +137,9 @@ pub async fn ui(
         let tx = executor_tx.auto_tx();
         move |source| {
             let tx = tx.clone();
-            executor.execute_auto(tx, source).expect("TODO: panic message");
+            executor
+                .execute_auto(tx, source)
+                .expect("TODO: panic message");
         }
     });
 
@@ -132,7 +148,9 @@ pub async fn ui(
         let tx = executor_tx.skip_tx();
         move |source| {
             let tx = tx.clone();
-            executor.execute_skip(tx, source).expect("TODO: panic message");
+            executor
+                .execute_skip(tx, source)
+                .expect("TODO: panic message");
         }
     });
 

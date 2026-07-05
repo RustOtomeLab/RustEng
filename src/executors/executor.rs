@@ -124,11 +124,7 @@ impl Executor {
         self.execute_backlog()
     }
 
-    pub fn execute_backlog_jump(
-        &mut self,
-        name: String,
-        index: i32,
-    ) -> Result<(), EngineError> {
+    pub fn execute_backlog_jump(&mut self, name: String, index: i32) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             window.set_is_backlog(false);
         }
@@ -750,10 +746,7 @@ impl Executor {
 
         if let Some(window) = weak.upgrade() {
             if delay.is_some() {
-                self.delay_channels
-                    .as_ref()
-                    .unwrap()
-                    .send_delay(fg_move)?;
+                self.delay_channels.as_ref().unwrap().send_delay(fg_move)?;
                 return Ok(());
             }
 

@@ -130,7 +130,7 @@ pub enum MediaError {
 
     #[error("failed to create audio sink: {0}")]
     Sink(#[from] rodio::PlayError),
-    
+
     #[allow(dead_code)]
     #[error("failed to decode video `{path}`: {reason}")]
     DecodeVideo { path: String, reason: String },
