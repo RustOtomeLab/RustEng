@@ -24,6 +24,12 @@ impl<T> From<tokio::sync::mpsc::error::SendError<T>> for EngineError {
     }
 }
 
+impl<T> From<tokio::sync::mpsc::error::TrySendError<T>> for EngineError {
+    fn from(_: tokio::sync::mpsc::error::TrySendError<T>) -> Self {
+        EngineError::Executor(ExecutorError::ChannelFulled)
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum ScriptError {
     #[error("invalid command at line {line}: {content}")]
@@ -63,6 +69,9 @@ pub enum ScriptError {
 pub enum ExecutorError {
     #[error("internal channel closed")]
     ChannelClosed,
+
+    #[error("internal channel fulled")]
+    ChannelFulled,
 
     #[error("CG metadata not found for id {0}")]
     CgMetadataMissing(u64),
@@ -122,7 +131,6 @@ pub enum MediaError {
     #[error("failed to create audio sink: {0}")]
     Sink(#[from] rodio::PlayError),
 
-    /// 视频解码错误（接入 ffmpeg 后会承载具体源错误）。
     #[allow(dead_code)]
     #[error("failed to decode video `{path}`: {reason}")]
     DecodeVideo { path: String, reason: String },
