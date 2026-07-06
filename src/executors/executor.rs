@@ -54,13 +54,13 @@ pub struct Executor {
 
 impl Executor {
     pub fn new(
-        script: Rc<RefCell<Script>>,
+        script: Script,
         bgm_player: Player,
         voice_player: Player,
         weak: Weak<MainWindow>,
     ) -> Executor {
         Executor {
-            script,
+            script: Rc::new(RefCell::new(script)),
             media_player: Rc::new(RefCell::new(MediaPlayer {
                 bgm_player,
                 voice_player,

@@ -7,7 +7,7 @@ use std::{cell::RefCell, rc::Rc};
 slint::include_modules!();
 
 pub async fn ui(
-    script: Rc<RefCell<Script>>,
+    script: Script,
     bgm_player: Player,
     voice_player: Player,
 ) -> Result<(), EngineError> {

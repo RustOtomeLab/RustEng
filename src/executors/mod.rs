@@ -33,7 +33,7 @@ impl ExecutorTX {
 }
 
 pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
-    let (mut text_executor, text_tx) = TextExecutor::new(executor.clone());
+    let (mut text_executor, text_tx) = TextExecutor::new(executor.get_weak());
     executor.set_text_tx(text_tx);
 
     let (mut delay_executor, delay_tx) = DelayExecutor::new(executor.clone());

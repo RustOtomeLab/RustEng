@@ -176,20 +176,16 @@ impl DelayExecutor {
             move || {
                 if let Some(mut cmd) = command.write().unwrap().pop_front() {
                     cmd.delete_delay();
-                    let executor = executor.clone();
-                    slint::spawn_local(async move {
-                        let result = if let Command::Figure { .. } = &cmd {
-                            executor.show_fg(&cmd)
-                        } else if let Command::Move { .. } = &cmd {
-                            executor.show_move(&cmd)
-                        } else {
-                            Ok(())
-                        };
-                        if let Err(e) = result {
-                            eprintln!("delay executors failed: {e}");
-                        }
-                    })
-                    .expect("Delay panicked");
+                    let result = if let Command::Figure { .. } = &cmd {
+                        executor.show_fg(&cmd)
+                    } else if let Command::Move { .. } = &cmd {
+                        executor.show_move(&cmd)
+                    } else {
+                        Ok(())
+                    };
+                    if let Err(e) = result {
+                        eprintln!("delay executors failed: {e}");
+                    }
                 }
             },
         );

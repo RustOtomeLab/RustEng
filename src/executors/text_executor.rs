@@ -1,4 +1,3 @@
-use crate::executors::executor::Executor;
 use crate::ui::initialize::MainWindow;
 use slint::{ToSharedString, Weak};
 use std::sync::{mpsc::Receiver, Arc, RwLock};
@@ -12,11 +11,10 @@ pub struct TextExecutor {
 }
 
 impl TextExecutor {
-    pub fn new(executor: Executor) -> (Self, Sender<Arc<RwLock<DisplayText>>>) {
+    pub fn new(weak: Weak<MainWindow>) -> (Self, Sender<Arc<RwLock<DisplayText>>>) {
         let (full_text_tx, mut full_text_rx) = channel::<Arc<RwLock<DisplayText>>>(10);
         let (text_tx, text_rx) = std::sync::mpsc::channel::<String>();
         let timer = slint::Timer::default();
-        let weak = executor.get_weak();
 
         let executor = Self {
             timer,

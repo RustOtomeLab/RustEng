@@ -90,7 +90,7 @@ impl AutoExecutor {
     }
 
     pub fn start_timer(&mut self) {
-        let executor = self.executor.clone();
+        let mut executor = self.executor.clone();
         let is_auto = self.is_auto.clone();
         let rx = self.auto_rx.take().unwrap();
 
@@ -99,13 +99,7 @@ impl AutoExecutor {
             Duration::from_millis(100),
             move || {
                 if is_auto.load(Ordering::Relaxed) && rx.try_recv().is_ok() {
-                    let mut executor = executor.clone();
-                    slint::spawn_local(async move {
-                        if let Err(e) = executor.execute_script() {
-                            eprintln!("auto execute_script failed: {e}");
-                        }
-                    })
-                    .expect("auto-play timer: no slint event loop");
+                    executor.execute_script().expect("auto execute_script failed");
                 }
             },
         );
