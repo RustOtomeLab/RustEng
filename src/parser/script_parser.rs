@@ -3,14 +3,14 @@ use crate::script::{Label, Script};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub enum Commands {
+pub(crate) enum Commands {
     OneCmd(Command),
     VarCmds(Vec<Command>),
     EmptyCmd,
 }
 
 #[derive(Debug, Clone)]
-pub enum Command {
+pub(crate) enum Command {
     Background {
         name: String,
         x_offset: Option<f32>,
@@ -53,19 +53,19 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn delete_delay(&mut self) {
+    pub(crate) fn delete_delay(&mut self) {
         if let Command::Figure { delay, .. } | Command::Move { delay, .. } = self {
             delay.take();
         }
     }
 
-    pub fn change_position(&mut self, pos: &str) {
+    pub(crate) fn change_position(&mut self, pos: &str) {
         if let Command::Figure { position, .. } | Command::Move { position, .. } = self {
             *position = pos.to_string();
         }
     }
 
-    pub fn action(&self) -> &String {
+    pub(crate) fn action(&self) -> &String {
         if let Command::Move { action, .. } = self {
             action
         } else {
@@ -73,7 +73,7 @@ impl Command {
         }
     }
 
-    pub fn back(&self) -> Command {
+    pub(crate) fn back(&self) -> Command {
         if let Command::Move {
             name,
             distance,
@@ -98,7 +98,7 @@ impl Command {
         }
     }
 
-    pub fn back_and_clean(&self) -> Command {
+    pub(crate) fn back_and_clean(&self) -> Command {
         if let Command::Move {
             name,
             distance,
@@ -127,7 +127,7 @@ impl Command {
 static VERSION: usize = 1;
 
 impl Script {
-    pub fn parse_script(&mut self, text: &str) -> Result<(), EngineError> {
+    pub(crate) fn parse_script(&mut self, text: &str) -> Result<(), EngineError> {
         let mut block_lines = Vec::new();
         let mut block_index = 0;
 
@@ -173,11 +173,11 @@ impl Script {
                                 zoom: parts.next().and_then(|s| s.parse::<f32>().ok()),
                                 is_cg: cmd == "cg",
                             };
-                            self.backgrounds.insert(*block_index, bg.clone());
+                            self.insert_background(*block_index, bg.clone());
                             bg
                         }
                         "bgm" => {
-                            self.bgms.insert(*block_index, arg.to_string());
+                            self.insert_bgm(*block_index, arg.to_string());
                             PlayBgm(arg.to_string())
                         }
                         "choose" => {
@@ -202,7 +202,7 @@ impl Script {
                                         ),
                                         Some(("", label)) => (
                                             choice.to_string(),
-                                            (self.name.to_string(), label.to_string()),
+                                            (self.name().to_string(), label.to_string()),
                                         ),
                                         None => (
                                             choice.to_string(),
@@ -211,7 +211,7 @@ impl Script {
                                         _ => unreachable!(),
                                     };
                                     choose_branch.insert(choice.clone(), label.clone());
-                                    self.choices.insert(choice, label);
+                                    self.insert_choice(choice, label);
                                 } else {
                                     return Err(EngineError::from(ScriptError::Choice(format!(
                                         "Invalid choice at line {i}: {line}"
@@ -342,7 +342,7 @@ impl Script {
                             }
                         }
                         "clear" => {
-                            self.clear.insert(*block_index);
+                            self.insert_clear(*block_index);
                             if let Some((dis, pos)) = arg.split_once("|") {
                                 Clear(dis.to_string(), pos.to_string())
                             } else if arg == "All" {
@@ -361,12 +361,12 @@ impl Script {
                             Some((name, "")) if !name.is_empty() => {
                                 Jump((name.to_string(), "start".to_string()))
                             }
-                            Some(("", label)) => Jump((self.name.to_string(), label.to_string())),
+                            Some(("", label)) => Jump((self.name().to_string(), label.to_string())),
                             None => Jump((arg.to_string(), "start".to_string())),
                             _ => unreachable!(),
                         },
                         "label" => {
-                            self.labels.insert(arg.to_string(), *block_index);
+                            self.insert_label(arg.to_string(), *block_index);
                             Label
                         }
                         _ => {
@@ -429,11 +429,10 @@ impl Script {
 
         if block_commands.len() == 1 {
             *block_index += 1;
-            self.commands
-                .push(OneCmd(block_commands.into_iter().next().unwrap()));
+            self.push_command(OneCmd(block_commands.into_iter().next().unwrap()));
         } else if block_commands.len() > 1 {
             *block_index += 1;
-            self.commands.push(VarCmds(block_commands))
+            self.push_command(VarCmds(block_commands))
         }
 
         Ok(())

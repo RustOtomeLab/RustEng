@@ -4,7 +4,7 @@ use std::{collections::HashMap, fs};
 use tokio::time::Duration;
 
 lazy_static::lazy_static! {
-    pub static ref VOICE_LENGTH: VoiceLength = load_voice();
+    pub(crate) static ref VOICE_LENGTH: VoiceLength = load_voice();
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -20,12 +20,12 @@ struct LengthWrapper {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct VoiceLength {
+pub(crate) struct VoiceLength {
     voice_length: HashMap<String, HashMap<String, Duration>>,
 }
 
 impl VoiceLength {
-    pub fn find(&self, name: &str) -> Option<&HashMap<String, Duration>> {
+    pub(crate) fn find(&self, name: &str) -> Option<&HashMap<String, Duration>> {
         self.voice_length.get(name)
     }
 }
@@ -52,7 +52,7 @@ fn load_voice() -> VoiceLength {
     VoiceLength { voice_length }
 }
 
-pub fn deserialize_duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub(crate) fn deserialize_duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'de>,
 {

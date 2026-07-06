@@ -28,7 +28,7 @@ impl CharacterVolumeConfig {
         }
     }
 
-    pub fn from_weak(weak: Weak<MainWindow>) -> Self {
+    pub(crate) fn from_weak(weak: Weak<MainWindow>) -> Self {
         if let Some(window) = weak.upgrade() {
             let model = window.get_character_volumes();
             let volumes = (0..model.row_count())
@@ -43,7 +43,7 @@ impl CharacterVolumeConfig {
 }
 
 impl Executor {
-    pub fn load_character_volumes(&self) {
+    pub(crate) fn load_character_volumes(&self) {
         let weak = self.get_weak();
         if let Some(window) = weak.upgrade() {
             let volumes: Vec<CharacterVolume> = ENGINE_CONFIG

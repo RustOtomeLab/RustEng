@@ -8,7 +8,7 @@ use crate::executors::{
     text_executor::{DisplayText, TextTX},
 };
 use crate::media::{
-    player::{MediaPlayer, Player, PreBgm, PreBgm::Play},
+    player::{MediaPlayer, PreBgm, PreBgm::Play},
     video_player::{VideoContext, VideoPlayer},
 };
 use crate::parser::script_parser::{Command, Commands};
@@ -39,10 +39,10 @@ fn face_default() -> (Image, f32, f32) {
 }
 
 #[derive(Clone)]
-pub struct Executor {
+pub(crate) struct Executor {
     script: Rc<RefCell<Script>>,
     media_player: Rc<RefCell<MediaPlayer>>,
-    pub(crate) cg: Rc<RefCell<u64>>,
+    cg: Rc<RefCell<u64>>,
     weak: Weak<MainWindow>,
     text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
@@ -53,18 +53,13 @@ pub struct Executor {
 }
 
 impl Executor {
-    pub fn new(
-        script: Rc<RefCell<Script>>,
-        bgm_player: Player,
-        voice_player: Player,
-        weak: Weak<MainWindow>,
-    ) -> Executor {
-        Executor {
-            script,
-            media_player: Rc::new(RefCell::new(MediaPlayer {
-                bgm_player,
-                voice_player,
-            })),
+    pub(crate) fn new(weak: Weak<MainWindow>) -> Result<Executor, EngineError> {
+        let mut script = Script::new();
+        script.with_name("ky01")?;
+
+        Ok(Executor {
+            script: Rc::new(RefCell::new(script)),
+            media_player: Rc::new(RefCell::new(MediaPlayer::new()?)),
             cg: Rc::new(RefCell::new(0)),
             weak,
             text: Arc::new(RwLock::new(DisplayText::new())),
@@ -73,22 +68,26 @@ impl Executor {
             text_tx: None,
             auto_tx: None,
             delay_channels: None,
-        }
+        })
     }
 
-    pub fn get_weak(&self) -> Weak<MainWindow> {
+    pub(crate) fn get_weak(&self) -> Weak<MainWindow> {
         self.weak.clone()
     }
 
-    pub fn set_text_tx(&mut self, text_tx: Sender<Arc<RwLock<DisplayText>>>) {
+    pub(crate) fn set_cg(&mut self, cg: u64) {
+        *self.cg.borrow_mut() = cg;
+    }
+
+    pub(crate) fn set_text_tx(&mut self, text_tx: Sender<Arc<RwLock<DisplayText>>>) {
         self.text_tx = Some(text_tx);
     }
 
-    pub fn set_auto_tx(&mut self, auto_tx: Sender<Duration>) {
+    pub(crate) fn set_auto_tx(&mut self, auto_tx: Sender<Duration>) {
         self.auto_tx = Some(auto_tx);
     }
 
-    pub fn set_delay_channels(
+    pub(crate) fn set_delay_channels(
         &mut self,
         delay_tx: DelayTX,
         delay_move_tx: DelayTX,
@@ -101,12 +100,12 @@ impl Executor {
         });
     }
 
-    pub fn unlock(&mut self, index: usize) {
+    pub(crate) fn unlock(&mut self, index: usize) {
         let mut cg = self.cg.borrow_mut();
         *cg |= 1u64 << index;
     }
 
-    pub fn execute_backlog(&self) -> Result<(), EngineError> {
+    pub(crate) fn execute_backlog(&self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
             let backlog = script.backlog();
@@ -116,7 +115,7 @@ impl Executor {
         Ok(())
     }
 
-    pub fn execute_backlog_change(&mut self, offset: i32) -> Result<(), EngineError> {
+    pub(crate) fn execute_backlog_change(&mut self, offset: i32) -> Result<(), EngineError> {
         {
             let mut script = self.script.borrow_mut();
             script.set_offset(offset);
@@ -124,14 +123,14 @@ impl Executor {
         self.execute_backlog()
     }
 
-    pub fn execute_backlog_jump(&mut self, name: String, index: i32) -> Result<(), EngineError> {
+    pub(crate) fn execute_backlog_jump(&mut self, name: String, index: i32) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             window.set_is_backlog(false);
         }
         self.execute_load(name, index)
     }
 
-    pub fn execute_save(&mut self, index: i32) -> Result<(), EngineError> {
+    pub(crate) fn execute_save(&mut self, index: i32) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
             let bg = window.get_bg();
@@ -153,7 +152,7 @@ impl Executor {
                     save_items.push(item);
                 } else {
                     sava_data = SaveData::new(
-                        script.name.clone(),
+                        script.name().to_string(),
                         script.index(),
                         script.explain().to_string(),
                         bg.0.path().unwrap().to_str().unwrap().to_string(),
@@ -180,7 +179,7 @@ impl Executor {
         Ok(())
     }
 
-    pub fn execute_load(&mut self, name: String, index: i32) -> Result<(), EngineError> {
+    pub(crate) fn execute_load(&mut self, name: String, index: i32) -> Result<(), EngineError> {
         if !name.is_empty() {
             let weak = self.weak.clone();
             if let Some(window) = weak.upgrade() {
@@ -194,7 +193,7 @@ impl Executor {
         Ok(())
     }
 
-    pub fn execute_get_ex(&self) -> Result<(), EngineError> {
+    pub(crate) fn execute_get_ex(&self) -> Result<(), EngineError> {
         let mut ex_items = Vec::with_capacity(16);
 
         let cgs = *self.cg.borrow();
@@ -243,36 +242,38 @@ impl Executor {
         Ok(())
     }
 
-    pub fn execute_bgm_volume(&mut self) -> Result<(), EngineError> {
+    pub(crate) fn execute_bgm_volume(&mut self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
-            let bgm_player = &self.media_player.borrow_mut().bgm_player;
             let volume = window.get_main_volume() / 100.0;
             let bgm_volume = window.get_bgm_volume() / 100.0;
-            bgm_player.change_volume(volume * bgm_volume);
+            self.media_player
+                .borrow()
+                .change_bgm_volume(volume * bgm_volume);
         }
 
         Ok(())
     }
 
-    pub fn execute_voice_volume(&mut self) -> Result<(), EngineError> {
+    pub(crate) fn execute_voice_volume(&mut self) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
-            let voice_player = &self.media_player.borrow().voice_player;
             let volume = window.get_main_volume() / 100.0;
             let voice_volume = window.get_voice_volume() / 100.0;
-            voice_player.change_volume(volume * voice_volume);
+            self.media_player
+                .borrow()
+                .change_voice_volume(volume * voice_volume);
         }
 
         Ok(())
     }
 
-    pub fn execute_save_config(&self) -> Result<(), EngineError> {
+    pub(crate) fn execute_save_config(&self) -> Result<(), EngineError> {
         let weak = self.get_weak();
         save_user_config(weak)?;
 
         Ok(())
     }
 
-    pub fn execute_choose(&mut self, choice: SharedString) -> Result<(), EngineError> {
+    pub(crate) fn execute_choose(&mut self, choice: SharedString) -> Result<(), EngineError> {
         *self.choose_lock.borrow_mut() = false;
 
         let label: (String, String);
@@ -302,7 +303,7 @@ impl Executor {
         self.execute_jump(Jump::Label(label))
     }
 
-    pub fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
+    pub(crate) fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
         {
             let mut script = self.script.borrow_mut();
             let current_bgm = script.current_bgm().to_string();
@@ -356,7 +357,7 @@ impl Executor {
         Ok(())
     }
 
-    pub fn execute_auto(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
+    pub(crate) fn execute_auto(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
                 self.auto_tx
@@ -375,7 +376,7 @@ impl Executor {
         Ok(())
     }
 
-    pub fn execute_skip(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
+    pub(crate) fn execute_skip(&mut self, tx: Sender<()>, source: bool) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             if source {
                 tx.try_send(())?;
@@ -390,11 +391,11 @@ impl Executor {
         Ok(())
     }
 
-    pub fn execute_script(&mut self) -> Result<(), EngineError> {
+    pub(crate) fn execute_script(&mut self) -> Result<(), EngineError> {
         {
             let scr = self.script.clone();
             let scr = scr.borrow();
-            if scr.clear.contains(&scr.index()) {
+            if scr.in_clear() {
                 self.delay_channels.as_ref().unwrap().clear_all();
             } else {
                 self.delay_channels.as_ref().unwrap().skip_all();
@@ -470,7 +471,7 @@ impl Executor {
         Ok(())
     }
 
-    pub fn apply_command(&mut self, command: Command) -> Result<Duration, EngineError> {
+    pub(crate) fn apply_command(&mut self, command: Command) -> Result<Duration, EngineError> {
         let mut duration = Duration::from_secs(0);
 
         if let Some(window) = self.weak.upgrade() {
@@ -491,8 +492,7 @@ impl Executor {
             if let Play(bgm) = pre_bgm {
                 self.play_bgm(bgm)?;
             } else if let PreBgm::Stop = pre_bgm {
-                let bgm_player = &self.media_player.borrow().bgm_player;
-                bgm_player.stop();
+                self.media_player.borrow().stop_bgm();
             }
             if let Some(figures) = pre_fg {
                 for figure in figures.0.values() {
@@ -548,7 +548,6 @@ impl Executor {
                     ref voice,
                 } => {
                     if let Some(length) = VOICE_LENGTH.find(name) {
-                        let voice_player = &self.media_player.borrow().voice_player;
                         let volume = window.get_main_volume() / 100.0;
                         let voice_volume = window.get_voice_volume() / 100.0;
                         let character_volumes = window.get_character_volumes();
@@ -560,7 +559,7 @@ impl Executor {
                             } in character_volumes.iter()
                             {
                                 if ch_name == full_name {
-                                    voice_player.play_voice(
+                                    self.media_player.borrow().play_voice(
                                         &format!(
                                             "{}/{}/{}.ogg",
                                             ENGINE_CONFIG.voice_path(),
@@ -600,10 +599,9 @@ impl Executor {
         let weak = self.weak.clone();
 
         if let Some(window) = weak.upgrade() {
-            let bgm_player = &self.media_player.borrow().bgm_player;
             let volume = window.get_main_volume() / 100.0;
             let bgm_volume = window.get_bgm_volume() / 100.0;
-            bgm_player.play_loop(
+            self.media_player.borrow().play_bgm(
                 &format!("{}{}.ogg", ENGINE_CONFIG.bgm_path(), bgm),
                 volume * bgm_volume,
             )?;
@@ -970,7 +968,7 @@ impl Executor {
         Ok(())
     }
 
-    pub async fn execute_stop_video(&self) -> Result<(), EngineError> {
+    pub(crate) async fn execute_stop_video(&self) -> Result<(), EngineError> {
         {
             let mut video_context = self.video_context.borrow_mut();
 

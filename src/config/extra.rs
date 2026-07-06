@@ -4,25 +4,21 @@ use crate::executors::executor::Executor;
 use serde::{Deserialize, Serialize};
 use std::fs;
 
-lazy_static::lazy_static! {
-    pub static ref EXTRA_CONFIG: ExtraConfig = load_extra_config();
-}
-
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ExtraConfig {
+pub(crate) struct ExtraConfig {
     cg: CgConfig,
 }
 
 impl ExtraConfig {
-    pub fn cg(&self) -> u64 {
+    pub(crate) fn cg(&self) -> u64 {
         self.cg.cg()
     }
 }
 
 impl Executor {
-    pub fn load_extra(&mut self) {
-        let mut cg = self.cg.borrow_mut();
-        *cg = EXTRA_CONFIG.cg();
+    pub(crate) fn load_extra(&mut self) {
+        let extra_config = load_extra_config();
+        self.set_cg(extra_config.cg());
     }
 }
 
@@ -31,7 +27,7 @@ fn load_extra_config() -> ExtraConfig {
     toml::from_str(&content).unwrap()
 }
 
-pub fn save_extra_config(cg: u64) -> Result<(), EngineError> {
+pub(crate) fn save_extra_config(cg: u64) -> Result<(), EngineError> {
     let path = format!("{}/extra.toml", ENGINE_CONFIG.save_path());
     let content = toml::to_string(&ExtraConfig {
         cg: CgConfig::new(cg),

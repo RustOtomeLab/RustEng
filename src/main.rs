@@ -3,14 +3,14 @@ mod error;
 mod executors;
 mod media;
 mod parser;
-mod run;
 mod script;
 mod ui;
 
 use crate::error::EngineError;
-use crate::run::build;
+use crate::ui::initialize::ui;
 
 #[tokio::main]
 async fn main() -> Result<(), EngineError> {
-    build().await
+    ui().await?;
+    Ok(())
 }

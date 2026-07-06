@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use slint::Weak;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct TextConfig {
+pub(crate) struct TextConfig {
     speed: f32,
     opacity: f32,
 }
@@ -19,15 +19,15 @@ impl Default for TextConfig {
     }
 }
 impl TextConfig {
-    pub fn speed(&self) -> f32 {
+    pub(crate) fn speed(&self) -> f32 {
         self.speed
     }
 
-    pub fn opacity(&self) -> f32 {
+    pub(crate) fn opacity(&self) -> f32 {
         self.opacity
     }
 
-    pub fn from_weak(weak: Weak<MainWindow>) -> Self {
+    pub(crate) fn from_weak(weak: Weak<MainWindow>) -> Self {
         if let Some(window) = weak.upgrade() {
             TextConfig {
                 speed: window.get_text_speed(),
@@ -40,7 +40,7 @@ impl TextConfig {
 }
 
 impl Executor {
-    pub fn load_text(&mut self) {
+    pub(crate) fn load_text(&mut self) {
         let weak = self.get_weak();
         if let Some(window) = weak.upgrade() {
             window.set_text_speed(USER_CONFIG.speed());

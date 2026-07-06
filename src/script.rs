@@ -8,40 +8,40 @@ use std::{
     fs,
 };
 
-pub type Label = (String, String);
+pub(crate) type Label = (String, String);
 
 const WINDOW_SIZE: usize = 4;
 
 #[derive(Debug, Clone)]
-pub struct BackLog {
-    pub front: SharedString,
-    pub back: SharedString,
-    pub script: SharedString,
-    pub index: usize,
+pub(crate) struct BackLog {
+    pub(crate) front: SharedString,
+    pub(crate) back: SharedString,
+    pub(crate) script: SharedString,
+    pub(crate) index: usize,
 }
 
 #[derive(Debug, Clone)]
-pub struct Script {
-    pub(crate) name: String,
+pub(crate) struct Script {
+    name: String,
     explain: String,
     backlog_offset: usize,
     backlog: Vec<BackLog>,
-    pub(crate) commands: Vec<Commands>,
+    commands: Vec<Commands>,
     current_block: usize,
-    pub(crate) bgms: BTreeMap<usize, String>,
+    bgm: BTreeMap<usize, String>,
     current_bgm: String,
     pre_bgm: PreBgm,
-    pub(crate) backgrounds: BTreeMap<usize, Command>,
+    backgrounds: BTreeMap<usize, Command>,
     pre_bg: Option<Command>,
     figures: BTreeMap<usize, Figure>,
-    pub(crate) clear: HashSet<usize>,
+    clear: HashSet<usize>,
     pre_figures: Option<Figure>,
-    pub(crate) choices: HashMap<String, Label>,
-    pub(crate) labels: HashMap<String, usize>,
+    choices: HashMap<String, Label>,
+    labels: HashMap<String, usize>,
 }
 
 impl Script {
-    pub fn new() -> Script {
+    pub(crate) fn new() -> Script {
         Script {
             name: String::new(),
             explain: String::new(),
@@ -49,7 +49,7 @@ impl Script {
             backlog: Vec::new(),
             commands: Vec::new(),
             current_block: 0,
-            bgms: BTreeMap::new(),
+            bgm: BTreeMap::new(),
             current_bgm: String::new(),
             pre_bgm: PreBgm::None,
             backgrounds: BTreeMap::new(),
@@ -62,7 +62,7 @@ impl Script {
         }
     }
 
-    pub fn with_name(&mut self, name: &str) -> Result<(), EngineError> {
+    pub(crate) fn with_name(&mut self, name: &str) -> Result<(), EngineError> {
         self.name = name.to_string();
         let path = format!("{}{}.reg", ENGINE_CONFIG.script_path(), name);
         let script = fs::read_to_string(&path).map_err(|e| ScriptError::ReadFile {
@@ -73,13 +73,13 @@ impl Script {
         Ok(())
     }
 
-    pub fn next_command(&mut self) -> Option<&Commands> {
+    pub(crate) fn next_command(&mut self) -> Option<&Commands> {
         let command = self.commands.get(self.current_block);
         self.current_block += 1;
         command
     }
 
-    pub fn set_explain(&mut self, explain: &str) {
+    pub(crate) fn set_explain(&mut self, explain: &str) {
         let mut explain = explain;
         if explain.len() > 18 {
             explain = &explain[0..18];
@@ -87,11 +87,11 @@ impl Script {
         self.explain = format!("{}{}", explain, "...");
     }
 
-    pub fn set_index(&mut self, index: usize) {
+    pub(crate) fn set_index(&mut self, index: usize) {
         self.current_block = index;
     }
 
-    pub fn set_offset(&mut self, offset: i32) {
+    pub(crate) fn set_offset(&mut self, offset: i32) {
         let new_offset = (self.backlog_offset as i32 + offset).max(0);
         // 不能超过最大可偏移量
         let max_offset = self.max_offset();
@@ -102,23 +102,23 @@ impl Script {
         self.backlog.len().saturating_sub(WINDOW_SIZE)
     }
 
-    pub fn set_current_bgm(&mut self, bgm: String) {
+    pub(crate) fn set_current_bgm(&mut self, bgm: String) {
         self.current_bgm = bgm;
     }
 
-    pub fn set_pre_bgm(&mut self, pre_bgm: PreBgm) {
+    pub(crate) fn set_pre_bgm(&mut self, pre_bgm: PreBgm) {
         self.pre_bgm = pre_bgm;
     }
 
-    pub fn set_pre_bg(&mut self, pre_bg: Option<Command>) {
+    pub(crate) fn set_pre_bg(&mut self, pre_bg: Option<Command>) {
         self.pre_bg = pre_bg;
     }
 
-    pub fn set_pre_figures(&mut self, pre_figures: Option<Figure>) {
+    pub(crate) fn set_pre_figures(&mut self, pre_figures: Option<Figure>) {
         self.pre_figures = pre_figures;
     }
 
-    pub fn update_figures(
+    pub(crate) fn update_figures(
         &mut self,
         index: usize,
         distance: &str,
@@ -131,11 +131,31 @@ impl Script {
             .push(distance, position, command);
     }
 
-    pub fn set_backlog(&mut self, backlog: Vec<BackLog>) {
+    pub(crate) fn set_backlog(&mut self, backlog: Vec<BackLog>) {
         self.backlog = backlog;
     }
 
-    pub fn push_backlog(&mut self, name: SharedString, text: SharedString) {
+    pub(crate) fn insert_background(&mut self, index: usize, command: Command) {
+        self.backgrounds.insert(index, command);
+    }
+
+    pub(crate) fn insert_bgm(&mut self, index: usize, bgm: String) {
+        self.bgm.insert(index, bgm);
+    }
+
+    pub(crate) fn insert_choice(&mut self, choice: String, label: Label) {
+        self.choices.insert(choice, label);
+    }
+
+    pub(crate) fn insert_clear(&mut self, index: usize) {
+        self.clear.insert(index);
+    }
+
+    pub(crate) fn insert_label(&mut self, label: String, index: usize) {
+        self.labels.insert(label, index);
+    }
+
+    pub(crate) fn push_backlog(&mut self, name: SharedString, text: SharedString) {
         self.backlog.push(BackLog {
             front: name,
             back: text,
@@ -144,7 +164,11 @@ impl Script {
         });
     }
 
-    pub fn backlog(&self) -> Vec<(SharedString, SharedString, i32, SharedString)> {
+    pub(crate) fn push_command(&mut self, command: Commands) {
+        self.commands.push(command);
+    }
+
+    pub(crate) fn backlog(&self) -> Vec<(SharedString, SharedString, i32, SharedString)> {
         let total = self.backlog.len();
         if total == 0 {
             return vec![];
@@ -165,61 +189,61 @@ impl Script {
             .collect()
     }
 
-    pub fn take_backlog(self) -> Vec<BackLog> {
+    pub(crate) fn take_backlog(self) -> Vec<BackLog> {
         self.backlog
     }
 
-    pub fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn index(&self) -> usize {
+    pub(crate) fn index(&self) -> usize {
         self.current_block
     }
 
-    pub fn explain(&self) -> &str {
+    pub(crate) fn explain(&self) -> &str {
         &self.explain
     }
 
-    pub fn current_bgm(&self) -> &str {
+    pub(crate) fn current_bgm(&self) -> &str {
         &self.current_bgm
     }
 
-    pub fn pre_bg(&mut self) -> Option<Command> {
+    pub(crate) fn pre_bg(&mut self) -> Option<Command> {
         self.pre_bg.take()
     }
 
-    pub fn pre_bgm(&mut self) -> PreBgm {
+    pub(crate) fn pre_bgm(&mut self) -> PreBgm {
         let bgm = self.pre_bgm.clone();
         self.pre_bgm = PreBgm::None;
         bgm
     }
 
-    pub fn pre_figures(&mut self) -> Option<Figure> {
+    pub(crate) fn pre_figures(&mut self) -> Option<Figure> {
         self.pre_figures.take()
     }
 
-    pub fn find_label(&self, name: &str) -> Option<&usize> {
+    pub(crate) fn find_label(&self, name: &str) -> Option<&usize> {
         self.labels.get(name)
     }
 
-    pub fn get_choice_label(&self, name: &str) -> Option<&Label> {
+    pub(crate) fn get_choice_label(&self, name: &str) -> Option<&Label> {
         self.choices.get(name)
     }
 
-    pub fn get_bgm(&self, index: usize) -> Option<(&usize, &String)> {
-        self.bgms.range(..=index).next_back()
+    pub(crate) fn get_bgm(&self, index: usize) -> Option<(&usize, &String)> {
+        self.bgm.range(..=index).next_back()
     }
 
-    pub fn get_background(&self, index: usize) -> Option<(&usize, &Command)> {
+    pub(crate) fn get_background(&self, index: usize) -> Option<(&usize, &Command)> {
         self.backgrounds.range(..=index).next_back()
     }
 
-    pub fn get_figures(&self, index: usize) -> Option<(&usize, &Figure)> {
+    pub(crate) fn get_figures(&self, index: usize) -> Option<(&usize, &Figure)> {
         self.figures.range(..=index).next_back()
     }
 
-    pub fn change_figure(&mut self, index: usize, distance: &str, position: &str) -> Command {
+    pub(crate) fn change_figure(&mut self, index: usize, distance: &str, position: &str) -> Command {
         let pos = format!("{distance}{position}");
         let mut idx = 0;
         for i in (0..=index).rev() {
@@ -233,10 +257,14 @@ impl Script {
         let figure = self.figures.get_mut(&idx).unwrap();
         figure.0.remove(&pos).unwrap()
     }
+
+    pub(crate) fn in_clear(&self) -> bool {
+        self.clear.contains(&self.current_block)
+    }
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Figure(pub HashMap<String, Command>);
+pub(crate) struct Figure(pub(crate) HashMap<String, Command>);
 
 impl Figure {
     fn push(&mut self, distance: &str, position: &str, command: Command) {

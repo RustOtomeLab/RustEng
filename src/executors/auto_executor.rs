@@ -9,15 +9,15 @@ use tokio::{
     time::{Duration, Sleep},
 };
 
-pub struct AutoExecutor {
+pub(crate) struct AutoExecutor {
     timer: slint::Timer,
-    pub executor: Executor,
+    pub(crate) executor: Executor,
     is_auto: Arc<AtomicBool>,
     auto_rx: Option<Receiver<()>>,
 }
 
 impl AutoExecutor {
-    pub fn new(executor: Executor) -> (Self, Sender<()>, Sender<Duration>) {
+    pub(crate) fn new(executor: Executor) -> (Self, Sender<()>, Sender<Duration>) {
         let (tx, mut rx) = channel::<()>(10);
         let (auto_delay_tx, mut auto_delay_rx) = channel::<Duration>(10);
         let (auto_tx, auto_rx) = std::sync::mpsc::channel::<()>();
@@ -89,8 +89,8 @@ impl AutoExecutor {
         (executor, tx, auto_delay_tx)
     }
 
-    pub fn start_timer(&mut self) {
-        let executor = self.executor.clone();
+    pub(crate) fn start_timer(&mut self) {
+        let mut executor = self.executor.clone();
         let is_auto = self.is_auto.clone();
         let rx = self.auto_rx.take().unwrap();
 
@@ -99,13 +99,9 @@ impl AutoExecutor {
             Duration::from_millis(100),
             move || {
                 if is_auto.load(Ordering::Relaxed) && rx.try_recv().is_ok() {
-                    let mut executor = executor.clone();
-                    slint::spawn_local(async move {
-                        if let Err(e) = executor.execute_script() {
-                            eprintln!("auto execute_script failed: {e}");
-                        }
-                    })
-                    .expect("auto-play timer: no slint event loop");
+                    executor
+                        .execute_script()
+                        .expect("auto execute_script failed");
                 }
             },
         );

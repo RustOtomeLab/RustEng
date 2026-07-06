@@ -5,13 +5,13 @@ use crate::executors::{
 };
 use tokio::sync::mpsc::Sender;
 
-pub mod auto_executor;
-pub mod delay_executor;
-pub mod executor;
-pub mod skip_executor;
-pub mod text_executor;
+pub(crate) mod auto_executor;
+pub(crate) mod delay_executor;
+pub(crate) mod executor;
+pub(crate) mod skip_executor;
+pub(crate) mod text_executor;
 
-pub struct ExecutorTX {
+pub(crate) struct ExecutorTX {
     auto_tx: Sender<()>,
     skip_tx: Sender<()>,
     _text_executor: TextExecutor,
@@ -23,17 +23,17 @@ pub struct ExecutorTX {
 }
 
 impl ExecutorTX {
-    pub fn auto_tx(&self) -> Sender<()> {
+    pub(crate) fn auto_tx(&self) -> Sender<()> {
         self.auto_tx.clone()
     }
 
-    pub fn skip_tx(&self) -> Sender<()> {
+    pub(crate) fn skip_tx(&self) -> Sender<()> {
         self.skip_tx.clone()
     }
 }
 
-pub fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
-    let (mut text_executor, text_tx) = TextExecutor::new(executor.clone());
+pub(crate) fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
+    let (mut text_executor, text_tx) = TextExecutor::new(executor.get_weak());
     executor.set_text_tx(text_tx);
 
     let (mut delay_executor, delay_tx) = DelayExecutor::new(executor.clone());

@@ -1,1 +1,1 @@
-pub mod script_parser;
+pub(crate) mod script_parser;

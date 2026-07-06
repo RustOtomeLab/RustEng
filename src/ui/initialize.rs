@@ -1,20 +1,12 @@
 use crate::error::EngineError;
 use crate::executors::{executor::Executor, load_data};
-use crate::media::player::Player;
-use crate::script::Script;
-use std::{cell::RefCell, rc::Rc};
-
 slint::include_modules!();
 
-pub async fn ui(
-    script: Rc<RefCell<Script>>,
-    bgm_player: Player,
-    voice_player: Player,
-) -> Result<(), EngineError> {
+pub(crate) async fn ui() -> Result<(), EngineError> {
     let window = MainWindow::new()?;
     let weak = window.as_weak();
 
-    let mut executor = Executor::new(script, bgm_player, voice_player, weak);
+    let mut executor = Executor::new(weak)?;
 
     let executor_tx = load_data(&mut executor)?;
 

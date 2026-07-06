@@ -35,42 +35,42 @@ fn ensure_ffmpeg_initialized() {
     });
 }
 
-pub struct VideoContext {
+pub(crate) struct VideoContext {
     video_player: Option<VideoPlayer>,
     video_timer: Option<slint::Timer>,
 }
 
 impl VideoContext {
-    pub fn default() -> Self {
+    pub(crate) fn default() -> Self {
         VideoContext {
             video_player: None,
             video_timer: None,
         }
     }
 
-    pub fn set_video_player(&mut self, player: VideoPlayer) {
+    pub(crate) fn set_video_player(&mut self, player: VideoPlayer) {
         self.video_player = Some(player);
     }
 
-    pub fn set_video_timer(&mut self, timer: slint::Timer) {
+    pub(crate) fn set_video_timer(&mut self, timer: slint::Timer) {
         self.video_timer = Some(timer);
     }
 
-    pub fn get_video_player_ref(&self) -> Option<&VideoPlayer> {
+    pub(crate) fn get_video_player_ref(&self) -> Option<&VideoPlayer> {
         self.video_player.as_ref()
     }
 
-    pub fn get_video_player(&mut self) -> Option<VideoPlayer> {
+    pub(crate) fn get_video_player(&mut self) -> Option<VideoPlayer> {
         self.video_player.take()
     }
 
-    pub fn get_video_timer(&mut self) -> Option<slint::Timer> {
+    pub(crate) fn get_video_timer(&mut self) -> Option<slint::Timer> {
         self.video_timer.take()
     }
 }
 
 /// 一段视频的播放句柄。
-pub struct VideoPlayer {
+pub(crate) struct VideoPlayer {
     path: String,
     cancel: Arc<AtomicBool>,
     finished: Arc<AtomicBool>,
@@ -79,7 +79,7 @@ pub struct VideoPlayer {
 }
 
 impl VideoPlayer {
-    pub fn play(path: &str) -> Result<Self, MediaError> {
+    pub(crate) fn play(path: &str) -> Result<Self, MediaError> {
         ensure_ffmpeg_initialized();
 
         if !std::path::Path::new(path).exists() {
@@ -125,21 +125,21 @@ impl VideoPlayer {
         })
     }
 
-    pub fn stop(&self) {
+    pub(crate) fn stop(&self) {
         self.cancel.store(true, Ordering::Release);
     }
 
-    pub fn is_finished(&self) -> bool {
+    pub(crate) fn is_finished(&self) -> bool {
         self.finished.load(Ordering::Acquire)
     }
 
-    pub fn take_latest_frame(&self) -> Option<Image> {
+    pub(crate) fn take_latest_frame(&self) -> Option<Image> {
         let buf = self.latest_frame.lock().ok()?.take()?;
         Some(Image::from_rgba8(buf))
     }
 
     #[allow(dead_code)]
-    pub fn path(&self) -> &str {
+    pub(crate) fn path(&self) -> &str {
         &self.path
     }
 }

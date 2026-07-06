@@ -1,48 +1,73 @@
 use crate::error::MediaError;
 use rodio::{Decoder, OutputStream, Sink, Source};
-use std::{
-    fs::File,
-    io::BufReader,
-    sync::{Arc, Mutex},
-};
+use std::{cell::RefCell, fs::File, io::BufReader};
 
-pub struct MediaPlayer {
-    pub bgm_player: Player,
-    pub voice_player: Player,
+pub(crate) struct MediaPlayer {
+    bgm_player: Player,
+    voice_player: Player,
 }
 
 impl MediaPlayer {
-    pub fn stop_all(&self) {
+    pub(crate) fn new() -> Result<Self, MediaError> {
+        let bgm_player = Player::new()?;
+        let voice_player = Player::new()?;
+        Ok(Self {
+            bgm_player,
+            voice_player,
+        })
+    }
+
+    pub(crate) fn change_bgm_volume(&self, volume: f32) {
+        self.bgm_player.change_volume(volume);
+    }
+
+    pub(crate) fn change_voice_volume(&self, volume: f32) {
+        self.voice_player.change_volume(volume);
+    }
+
+    pub(crate) fn play_bgm(&self, path: &str, volume: f32) -> Result<(), MediaError> {
+        self.bgm_player.play_loop(path, volume)
+    }
+
+    pub(crate) fn play_voice(&self, path: &str, volume: f32) -> Result<(), MediaError> {
+        self.voice_player.play_voice(path, volume)
+    }
+
+    pub(crate) fn stop_bgm(&self) {
+        self.bgm_player.stop();
+    }
+
+    pub(crate) fn stop_all(&self) {
         self.bgm_player.stop();
         self.voice_player.stop();
     }
 }
 
-pub struct Player {
-    sink: Arc<Mutex<Option<Sink>>>,
+pub(crate) struct Player {
+    sink: RefCell<Option<Sink>>,
     _stream: OutputStream,
     stream_handle: rodio::OutputStreamHandle,
 }
 
 #[derive(Debug, Clone)]
-pub enum PreBgm {
+pub(crate) enum PreBgm {
     Play(String),
     Stop,
     None,
 }
 
 impl Player {
-    pub fn new() -> Result<Self, MediaError> {
+    pub(crate) fn new() -> Result<Self, MediaError> {
         let (_stream, handle) = OutputStream::try_default()?;
         Ok(Self {
-            sink: Arc::new(Mutex::new(None)),
+            sink: RefCell::new(None),
             _stream,
             stream_handle: handle,
         })
     }
 
-    pub fn play_loop(&self, path: &str, volume: f32) -> Result<(), MediaError> {
-        if let Some(s) = self.sink.lock().unwrap().take() {
+    pub(crate) fn play_loop(&self, path: &str, volume: f32) -> Result<(), MediaError> {
+        if let Some(s) = self.sink.borrow_mut().take() {
             s.stop();
         }
 
@@ -62,25 +87,25 @@ impl Player {
         sink.set_volume(volume);
         sink.play();
 
-        *self.sink.lock().unwrap() = Some(sink);
+        *self.sink.borrow_mut() = Some(sink);
         Ok(())
     }
 
-    pub fn stop(&self) {
-        if let Some(s) = self.sink.lock().unwrap().take() {
+    pub(crate) fn stop(&self) {
+        if let Some(s) = self.sink.borrow_mut().take() {
             s.stop();
         }
     }
 
-    pub fn change_volume(&self, volume: f32) {
-        let mut sink = self.sink.lock().unwrap();
+    pub(crate) fn change_volume(&self, volume: f32) {
+        let mut sink = self.sink.borrow_mut();
         if let Some(sink) = sink.as_mut() {
             sink.set_volume(volume);
         }
     }
 
-    pub fn play_voice(&self, path: &str, volume: f32) -> Result<(), MediaError> {
-        if let Some(s) = self.sink.lock().unwrap().take() {
+    pub(crate) fn play_voice(&self, path: &str, volume: f32) -> Result<(), MediaError> {
+        if let Some(s) = self.sink.borrow_mut().take() {
             s.stop();
         }
         let file = File::open(path).map_err(|e| MediaError::OpenFile {
@@ -97,7 +122,7 @@ impl Player {
         sink.set_volume(volume);
         sink.play();
 
-        *self.sink.lock().unwrap() = Some(sink);
+        *self.sink.borrow_mut() = Some(sink);
         Ok(())
     }
 }
