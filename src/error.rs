@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum EngineError {
+pub(crate) enum EngineError {
     #[error("script error: {0}")]
     Script(#[from] ScriptError),
 
@@ -31,7 +31,7 @@ impl<T> From<tokio::sync::mpsc::error::TrySendError<T>> for EngineError {
 }
 
 #[derive(Debug, Error)]
-pub enum ScriptError {
+pub(crate) enum ScriptError {
     #[error("invalid command at line {line}: {content}")]
     InvalidCommand { line: usize, content: String },
 
@@ -66,7 +66,7 @@ pub enum ScriptError {
 }
 
 #[derive(Debug, Error)]
-pub enum ExecutorError {
+pub(crate) enum ExecutorError {
     #[error("internal channel closed")]
     ChannelClosed,
 
@@ -82,7 +82,7 @@ pub enum ExecutorError {
 }
 
 #[derive(Debug, Error)]
-pub enum SaveError {
+pub(crate) enum SaveError {
     #[allow(dead_code)]
     #[error("failed to read save file `{path}`: {source}")]
     Read {
@@ -110,7 +110,7 @@ pub enum SaveError {
 }
 
 #[derive(Debug, Error)]
-pub enum MediaError {
+pub(crate) enum MediaError {
     #[error("failed to open media file `{path}`: {source}")]
     OpenFile {
         path: String,

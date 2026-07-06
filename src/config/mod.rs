@@ -5,75 +5,75 @@ use std::{
     fs,
 };
 
-pub mod figure;
-pub mod initialize;
-pub mod save_load;
+pub(crate) mod figure;
+pub(crate) mod initialize;
+pub(crate) mod save_load;
 
-pub mod cg;
-pub mod character_volume;
-pub mod extra;
-pub mod system;
-pub mod text;
-pub mod user;
-pub mod voice;
-pub mod volume;
+pub(crate) mod cg;
+pub(crate) mod character_volume;
+pub(crate) mod extra;
+pub(crate) mod system;
+pub(crate) mod text;
+pub(crate) mod user;
+pub(crate) mod voice;
+pub(crate) mod volume;
 
 lazy_static::lazy_static! {
-    pub static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
+    pub(crate) static ref ENGINE_CONFIG: EngineConfig = load_engine_config();
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct EngineConfig {
+pub(crate) struct EngineConfig {
     initialize: InitializeConfig,
     character: Character,
 }
 
 impl EngineConfig {
-    pub fn script_path(&self) -> &str {
+    pub(crate) fn script_path(&self) -> &str {
         &self.initialize.script_path
     }
 
-    pub fn background_path(&self) -> &str {
+    pub(crate) fn background_path(&self) -> &str {
         &self.initialize.background_path
     }
 
-    pub fn cg_path(&self) -> &str {
+    pub(crate) fn cg_path(&self) -> &str {
         &self.initialize.cg_path
     }
 
-    pub fn voice_path(&self) -> &str {
+    pub(crate) fn voice_path(&self) -> &str {
         &self.initialize.voice_path
     }
 
-    pub fn bgm_path(&self) -> &str {
+    pub(crate) fn bgm_path(&self) -> &str {
         &self.initialize.bgm_path
     }
 
-    pub fn figure_path(&self) -> &str {
+    pub(crate) fn figure_path(&self) -> &str {
         &self.initialize.figure_path
     }
 
-    pub fn video_path(&self) -> &str {
+    pub(crate) fn video_path(&self) -> &str {
         &self.initialize.video_path
     }
 
-    pub fn video_extension(&self) -> &str {
+    pub(crate) fn video_extension(&self) -> &str {
         &self.initialize.video_extension
     }
 
-    pub fn save_path(&self) -> &str {
+    pub(crate) fn save_path(&self) -> &str {
         &self.initialize.save_path
     }
 
-    pub fn character_name_list(&self) -> HashSet<&String> {
+    pub(crate) fn character_name_list(&self) -> HashSet<&String> {
         self.character.name_list()
     }
 
-    pub fn character_full_name_list(&self) -> HashSet<&String> {
+    pub(crate) fn character_full_name_list(&self) -> HashSet<&String> {
         self.character.full_name_list()
     }
 
-    pub fn character_list(&self) -> &HashMap<String, String> {
+    pub(crate) fn character_list(&self) -> &HashMap<String, String> {
         self.character.list()
     }
 }

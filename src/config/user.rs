@@ -9,11 +9,11 @@ use slint::Weak;
 use std::fs;
 
 lazy_static::lazy_static! {
-    pub static ref USER_CONFIG: UserConfig = load_user_config();
+    pub(crate) static ref USER_CONFIG: UserConfig = load_user_config();
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct UserConfig {
+pub(crate) struct UserConfig {
     auto: AutoConfig,
     text: TextConfig,
     volume: VolumeConfig,
@@ -30,39 +30,39 @@ impl UserConfig {
         }
     }
 
-    pub fn delay(&self) -> f32 {
+    pub(crate) fn delay(&self) -> f32 {
         self.auto.delay()
     }
 
-    pub fn is_wait(&self) -> bool {
+    pub(crate) fn is_wait(&self) -> bool {
         self.auto.is_wait()
     }
 
-    pub fn main_volume(&self) -> f32 {
+    pub(crate) fn main_volume(&self) -> f32 {
         self.volume.main()
     }
 
-    pub fn bgm_volume(&self) -> f32 {
+    pub(crate) fn bgm_volume(&self) -> f32 {
         self.volume.bgm()
     }
 
-    pub fn voice_volume(&self) -> f32 {
+    pub(crate) fn voice_volume(&self) -> f32 {
         self.volume.voice()
     }
 
-    pub fn speed(&self) -> f32 {
+    pub(crate) fn speed(&self) -> f32 {
         self.text.speed()
     }
 
-    pub fn opacity(&self) -> f32 {
+    pub(crate) fn opacity(&self) -> f32 {
         self.text.opacity()
     }
 
-    pub fn character_volume(&self, name: &str) -> f32 {
+    pub(crate) fn character_volume(&self, name: &str) -> f32 {
         *self.character_volume.volumes.get(name).unwrap()
     }
 
-    pub fn from_weak(weak: Weak<MainWindow>) -> Self {
+    pub(crate) fn from_weak(weak: Weak<MainWindow>) -> Self {
         UserConfig {
             auto: AutoConfig::from_weak(weak.clone()),
             text: TextConfig::from_weak(weak.clone()),
@@ -95,7 +95,7 @@ fn load_user_config() -> UserConfig {
     }
 }
 
-pub fn save_user_config(weak: Weak<MainWindow>) -> Result<(), EngineError> {
+pub(crate) fn save_user_config(weak: Weak<MainWindow>) -> Result<(), EngineError> {
     let path = format!("{}/user.toml", ENGINE_CONFIG.save_path());
     write_config(&path, &UserConfig::from_weak(weak))?;
 

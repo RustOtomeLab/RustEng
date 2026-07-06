@@ -22,19 +22,19 @@ impl Default for VolumeConfig {
 }
 
 impl VolumeConfig {
-    pub fn main(&self) -> f32 {
+    pub(crate) fn main(&self) -> f32 {
         self.main
     }
 
-    pub fn bgm(&self) -> f32 {
+    pub(crate) fn bgm(&self) -> f32 {
         self.bgm
     }
 
-    pub fn voice(&self) -> f32 {
+    pub(crate) fn voice(&self) -> f32 {
         self.voice
     }
 
-    pub fn from_weak(weak: Weak<MainWindow>) -> Self {
+    pub(crate) fn from_weak(weak: Weak<MainWindow>) -> Self {
         if let Some(window) = weak.upgrade() {
             VolumeConfig {
                 main: window.get_main_volume(),
@@ -48,7 +48,7 @@ impl VolumeConfig {
 }
 
 impl Executor {
-    pub fn load_volume(&self) {
+    pub(crate) fn load_volume(&self) {
         let weak = self.get_weak();
         if let Some(window) = weak.upgrade() {
             window.set_main_volume(USER_CONFIG.main_volume());

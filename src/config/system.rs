@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use slint::Weak;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct AutoConfig {
+pub(crate) struct AutoConfig {
     delay: f32,
     is_wait: bool,
 }
@@ -20,15 +20,15 @@ impl Default for AutoConfig {
 }
 
 impl AutoConfig {
-    pub fn delay(&self) -> f32 {
+    pub(crate) fn delay(&self) -> f32 {
         self.delay
     }
 
-    pub fn is_wait(&self) -> bool {
+    pub(crate) fn is_wait(&self) -> bool {
         self.is_wait
     }
 
-    pub fn from_weak(weak: Weak<MainWindow>) -> Self {
+    pub(crate) fn from_weak(weak: Weak<MainWindow>) -> Self {
         if let Some(window) = weak.upgrade() {
             AutoConfig {
                 delay: window.get_delay(),
@@ -41,7 +41,7 @@ impl AutoConfig {
 }
 
 impl Executor {
-    pub fn load_auto(&mut self) {
+    pub(crate) fn load_auto(&mut self) {
         let weak = self.get_weak();
         if let Some(window) = weak.upgrade() {
             window.set_is_wait(USER_CONFIG.is_wait());

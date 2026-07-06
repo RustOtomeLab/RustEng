@@ -8,14 +8,14 @@ use std::{
 };
 use tokio::sync::mpsc::{channel, Sender};
 
-pub struct SkipExecutor {
+pub(crate) struct SkipExecutor {
     timer: slint::Timer,
-    pub executor: Executor,
+    pub(crate) executor: Executor,
     is_skip: Arc<AtomicBool>,
 }
 
 impl SkipExecutor {
-    pub fn new(executor: Executor) -> (Self, Sender<()>) {
+    pub(crate) fn new(executor: Executor) -> (Self, Sender<()>) {
         let (tx, mut rx) = channel::<()>(10);
         let is_skip = Arc::new(AtomicBool::new(false));
 
@@ -46,7 +46,7 @@ impl SkipExecutor {
         (executor, tx)
     }
 
-    pub fn start_timer(&mut self) {
+    pub(crate) fn start_timer(&mut self) {
         let executor = self.executor.clone();
         let is_skip = self.is_skip.clone();
 

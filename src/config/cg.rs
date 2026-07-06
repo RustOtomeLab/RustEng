@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
 
 lazy_static::lazy_static! {
-    pub static ref CG_LENGTH: CgLength = load_cg();
+    pub(crate) static ref CG_LENGTH: CgLength = load_cg();
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -12,11 +12,11 @@ pub(crate) struct CgConfig {
 }
 
 impl CgConfig {
-    pub fn new(cg: u64) -> Self {
+    pub(crate) fn new(cg: u64) -> Self {
         Self { cg }
     }
 
-    pub fn cg(&self) -> u64 {
+    pub(crate) fn cg(&self) -> u64 {
         self.cg
     }
 }
@@ -34,17 +34,17 @@ struct LengthWrapper {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct CgLength {
+pub(crate) struct CgLength {
     cg_by_name: HashMap<String, (usize, u64)>,
     cg_by_id: HashMap<usize, (String, u64)>,
 }
 
 impl CgLength {
-    pub fn find_by_name(&self, name: &str) -> Option<&(usize, u64)> {
+    pub(crate) fn find_by_name(&self, name: &str) -> Option<&(usize, u64)> {
         self.cg_by_name.get(name)
     }
 
-    pub fn find_by_id(&self, index: u64) -> Option<&(String, u64)> {
+    pub(crate) fn find_by_id(&self, index: u64) -> Option<&(String, u64)> {
         self.cg_by_id.get(&(index as usize))
     }
 }

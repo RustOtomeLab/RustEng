@@ -4,14 +4,14 @@ use std::sync::{mpsc::Receiver, Arc, RwLock};
 use tokio::sync::mpsc::{channel, Sender};
 use tokio::time::{sleep, Duration};
 
-pub struct TextExecutor {
+pub(crate) struct TextExecutor {
     timer: slint::Timer,
     weak: Weak<MainWindow>,
     text_rx: Option<Receiver<String>>,
 }
 
 impl TextExecutor {
-    pub fn new(weak: Weak<MainWindow>) -> (Self, Sender<Arc<RwLock<DisplayText>>>) {
+    pub(crate) fn new(weak: Weak<MainWindow>) -> (Self, Sender<Arc<RwLock<DisplayText>>>) {
         let (full_text_tx, mut full_text_rx) = channel::<Arc<RwLock<DisplayText>>>(10);
         let (text_tx, text_rx) = std::sync::mpsc::channel::<String>();
         let timer = slint::Timer::default();
@@ -54,7 +54,7 @@ impl TextExecutor {
         (executor, full_text_tx)
     }
 
-    pub fn start_timer(&mut self) {
+    pub(crate) fn start_timer(&mut self) {
         let weak = self.weak.clone();
         let rx = self.text_rx.take().unwrap();
 
@@ -80,9 +80,9 @@ impl TextExecutor {
     }
 }
 
-pub type TextTX = Sender<Arc<RwLock<DisplayText>>>;
+pub(crate) type TextTX = Sender<Arc<RwLock<DisplayText>>>;
 
-pub struct DisplayText {
+pub(crate) struct DisplayText {
     pub(crate) full_text: String,
     pub(crate) speed: Duration,
     current_index: usize,
@@ -90,7 +90,7 @@ pub struct DisplayText {
 }
 
 impl DisplayText {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             full_text: String::new(),
             speed: Duration::default(),
@@ -99,14 +99,14 @@ impl DisplayText {
         }
     }
 
-    pub fn start_animation(&mut self, text: String, speed: f32) {
+    pub(crate) fn start_animation(&mut self, text: String, speed: f32) {
         self.full_text = text;
         self.speed = Duration::from_millis(speed as u64);
         self.current_index = 0;
         self.is_running = true;
     }
 
-    pub fn end(&mut self) {
+    pub(crate) fn end(&mut self) {
         self.current_index = self.full_text.chars().count() - 1;
     }
 

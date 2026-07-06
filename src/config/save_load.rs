@@ -6,7 +6,7 @@ use slint::{Image, ToSharedString, VecModel};
 use std::{fs, path::Path, rc::Rc};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct SaveData {
+pub(crate) struct SaveData {
     pub(crate) script: String,
     pub(crate) block_index: usize,
     pub(crate) explain: String,
@@ -14,7 +14,7 @@ pub struct SaveData {
 }
 
 impl SaveData {
-    pub fn new(
+    pub(crate) fn new(
         script: String,
         block_index: usize,
         explain: String,
@@ -30,7 +30,7 @@ impl SaveData {
 }
 
 impl Executor {
-    pub fn load_save_data(&mut self) -> Result<(), EngineError> {
+    pub(crate) fn load_save_data(&mut self) -> Result<(), EngineError> {
         let mut load_items = Vec::with_capacity(16);
         for i in 0..16 {
             let path = format!("{}{}.toml", ENGINE_CONFIG.save_path(), i);
