@@ -3,7 +3,7 @@ import { SaveItem, SaveView } from "components/save.slint";
 import { LoadView } from "components/load.slint";
 import { ExItem, ExtraView } from "components/extra.slint";
 import { SettingsView } from "components/main_config.slint";
-import { StoryView } from "components/story.slint";
+import { StoryView, FigureItem } from "components/story.slint";
 import { CharacterVolume } from "components/config/volume.slint";
 
 export component MainWindow inherits Window {
@@ -19,23 +19,7 @@ export component MainWindow inherits Window {
     in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
     in property<[{ index: int, text: string }]> choose-branch;
     in property <{ img: image, x_offset: float, y_offset: float, zoom: float }> bg;
-    in property <{ body: image, rate: float, offset: float }> fg-no-0;
-    in property <{ face: image, face-x: float, face-y: float }> face-no-0;
-    in property <{ body: image, rate: float, offset: float }> fg-z1-0;
-    in property <{ face: image, face-x: float, face-y: float }> face-z1-0;
-    in property <{ x_offset: length, y_offset: length }> offset-z1-0;
-    in property <{ body: image, rate: float, offset: float }> fg-z1-1;
-    in property <{ face: image, face-x: float, face-y: float }> face-z1-1;
-    in property <{ x_offset: length, y_offset: length }> offset-z1-1;
-    in property <{ body: image, rate: float, offset: float }> fg-z1--1;
-    in property <{ face: image, face-x: float, face-y: float }> face-z1--1;
-    in property <{ x_offset: length, y_offset: length }> offset-z1--1;
-    in property <{ body: image, rate: float, offset: float }> fg-z1-2;
-    in property <{ face: image, face-x: float, face-y: float }> face-z1-2;
-    in property <{ x_offset: length, y_offset: length }> offset-z1-2;
-    in property <{ body: image, rate: float, offset: float }> fg-z1--2;
-    in property <{ face: image, face-x: float, face-y: float }> face-z1--2;
-    in property <{ x_offset: length, y_offset: length }> offset-z1--2;
+    in property <[FigureItem]> figure-items;
     in property<bool> is-fullscreen: false;
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
@@ -171,23 +155,7 @@ export component MainWindow inherits Window {
             choose-branch: root.choose-branch;
             bg: root.bg;
             current-choose: root.current-choose;
-            fg-no-0: root.fg-no-0;
-            face-no-0: root.face-no-0;
-            fg-z1--1: root.fg-z1--1;
-            face-z1--1: root.face-z1--1;
-            offset-z1--1: root.offset-z1--1;
-            fg-z1--2: root.fg-z1--2;
-            face-z1--2: root.face-z1--2;
-            offset-z1--2: root.offset-z1--2;
-            fg-z1-0: root.fg-z1-0;
-            face-z1-0: root.face-z1-0;
-            offset-z1-0: root.offset-z1-0;
-            fg-z1-2: root.fg-z1-2;
-            face-z1-2: root.face-z1-2;
-            offset-z1-2: root.offset-z1-2;
-            fg-z1-1: root.fg-z1-1;
-            face-z1-1: root.face-z1-1;
-            offset-z1-1: root.offset-z1-1;
+            figure-items: root.figure-items;
             dialogue-opacity: root.dialogue-opacity;
 
             is-video <=> root.is-video;
