@@ -19,13 +19,15 @@ As the name suggests, this is a **GalGame** game engine based on **Rust**, provi
 * Subtitles
 * Voice-overs
 * BGM
+* Video
 * Character sprites and expressions
 * Auto-play
 * Branching choices
 * History log and navigation
 * Save and load
+* Extra
 * Resize window while maintaining aspect ratio
-* Fullscreen toggle with F11 shortcut
+* Shortcut
 
 
 ## 🔳Planned Features
@@ -37,7 +39,7 @@ As the name suggests, this is a **GalGame** game engine based on **Rust**, provi
 * [Configuration File Documentation](docs/en_US/how_to_use_config.md)
 
 > [!IMPORTANT]
-> This repository includes two test script files and other test resources. You can also prepare your own test files. Please refer to the two documents above for file requirements.
+> This repository includes test script files and other test resources. You can also prepare your own test files. Please refer to the two documents above for file requirements.
 
 #### *🌟 Give it a star if you like it!*
 
