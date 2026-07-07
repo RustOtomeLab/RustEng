@@ -1,8 +1,15 @@
 import { CustomButton } from "common/button.slint";
 import { Colors } from "../styles/colors.slint";
 
+export struct SaveItem {
+    name: string,
+    index: int,
+    bg: image,
+    explain: string,
+}
+
 export component Save {
-    in property <{name:string, index:int, bg:image, explain:string}> save-item;
+    in property <SaveItem> save-item;
 
     callback clicked();
 
@@ -36,13 +43,7 @@ export component Save {
 export component SaveView {
     in property <length> container-width;
     in property <length> container-height;
-    in property <[{name:string, index:int, bg:image, explain:string}]> save-items;
-    in property <[int]> indexs: [
-            0, 1, 2, 3,
-            4, 5, 6, 7,
-            8, 9, 10, 11,
-            12, 13, 14, 15,
-        ];
+    in property <[SaveItem]> save-items;
 
     callback back();
     callback save(int);
@@ -69,19 +70,13 @@ export component SaveView {
             width: parent.width * 0.88;
             height: parent.height * 0.85;
 
-            for i in 4 :Rectangle {
-                y: i * 21.625 / 85 * parent.height;
+            for si[i] in save-items :Save {
+                y: (Math.floor(i / 4)) * 21.625 / 85 * parent.height;
+                x: (Math.mod(i, 4)) * 24 / 88 * parent.width;
+                width: 18 / 88 * parent.width;
                 height: 10.125 / 85 * parent.height / 9 * 16;
-
-                for j in 4: Save {
-                    x: j * 24 / 88 * parent.width;
-                    y: 0;
-                    width: 18 / 88 * parent.width;
-                    height: parent.height;
-                    save-item: save-items[(i * 4 + j)];
-                    clicked => { save(indexs[(i * 4 + j)]); }
-
-                }
+                save-item: si;
+                clicked => { save(i) }
             }
         }
     }

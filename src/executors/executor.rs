@@ -13,7 +13,7 @@ use crate::media::{
 };
 use crate::parser::script_parser::{Command, Commands};
 use crate::script::{Label, Script};
-use crate::ui::initialize::{CharacterVolume, MainWindow};
+use crate::ui::initialize::{CharacterVolume, ExItem, MainWindow, SaveItem};
 use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::{
     cell::RefCell,
@@ -123,7 +123,11 @@ impl Executor {
         self.execute_backlog()
     }
 
-    pub(crate) fn execute_backlog_jump(&mut self, name: String, index: i32) -> Result<(), EngineError> {
+    pub(crate) fn execute_backlog_jump(
+        &mut self,
+        name: String,
+        index: i32,
+    ) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             window.set_is_backlog(false);
         }
@@ -134,46 +138,31 @@ impl Executor {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
             let bg = window.get_bg();
-            let mut save_items = Vec::with_capacity(16);
             let exists_save_items = window.get_save_items();
-            for (i, item) in exists_save_items.iter().enumerate() {
-                let mut sava_data = SaveData::new(
-                    item.3.to_string(),
-                    item.2 as usize,
-                    item.1.to_string(),
-                    item.0
-                        .path()
-                        .unwrap_or("".as_ref())
-                        .to_str()
-                        .unwrap()
-                        .to_string(),
-                );
-                if i != index as usize {
-                    save_items.push(item);
-                } else {
-                    sava_data = SaveData::new(
-                        script.name().to_string(),
-                        script.index(),
-                        script.explain().to_string(),
-                        bg.0.path().unwrap().to_str().unwrap().to_string(),
-                    );
-                    save_items.push((
-                        bg.0.clone(),
-                        SharedString::from(script.explain()),
-                        script.index() as i32,
-                        SharedString::from(script.name()),
-                    ));
-                }
-                fs::write(
-                    format!("{}{}.toml", ENGINE_CONFIG.save_path(), i),
-                    toml::to_string_pretty(&sava_data).map_err(SaveError::from)?,
-                )
-                .map_err(|e| SaveError::Write {
-                    path: format!("{}{}.toml", ENGINE_CONFIG.save_path(), i),
-                    source: e,
-                })?;
-            }
-            window.set_save_items(Rc::new(VecModel::from(save_items)).into());
+            exists_save_items.set_row_data(
+                index as usize,
+                SaveItem {
+                    bg: bg.0.clone(),
+                    explain: SharedString::from(script.explain()),
+                    index: script.index() as i32,
+                    name: SharedString::from(script.name()),
+                },
+            );
+            fs::write(
+                format!("{}{}.toml", ENGINE_CONFIG.save_path(), index),
+                toml::to_string_pretty(&SaveData::new(
+                    script.name().to_string(),
+                    script.index(),
+                    script.explain().to_string(),
+                    bg.0.path().unwrap().to_str().unwrap().to_string(),
+                ))
+                .map_err(SaveError::from)?,
+            )
+            .map_err(|e| SaveError::Write {
+                path: format!("{}{}.toml", ENGINE_CONFIG.save_path(), index),
+                source: e,
+            })?;
+            window.set_save_items(exists_save_items);
         }
 
         Ok(())
@@ -194,7 +183,7 @@ impl Executor {
     }
 
     pub(crate) fn execute_get_ex(&self) -> Result<(), EngineError> {
-        let mut ex_items = Vec::with_capacity(16);
+        let ex_items = Rc::new(VecModel::from(Vec::new()));
 
         let cgs = *self.cg.borrow();
         let mut i = 1;
@@ -221,22 +210,22 @@ impl Executor {
                         }
                     }
                     i += *length;
-                    ex_items.push((Rc::new(VecModel::from(images)).into(), l as i32, is_lock))
+                    ex_items.push(ExItem {
+                        bg: Rc::new(VecModel::from(images)).into(),
+                        indexs: l as i32,
+                        is_lock,
+                    })
                 } else {
                     return Err(ExecutorError::CgMetadataMissing(i).into());
                 }
             } else {
                 i += 1;
-                ex_items.push((
-                    Rc::new(VecModel::from(vec![Image::default()])).into(),
-                    0,
-                    true,
-                ))
+                ex_items.push(ExItem::default())
             }
         }
 
         if let Some(window) = self.weak.upgrade() {
-            window.set_ex_items(Rc::new(VecModel::from(ex_items)).into());
+            window.set_ex_items(ex_items.into());
         }
 
         Ok(())
@@ -307,9 +296,7 @@ impl Executor {
         {
             let mut script = self.script.borrow_mut();
             let current_bgm = script.current_bgm().to_string();
-            let mut pre_bg = None;
             let mut pre_bgm = PreBgm::None;
-            let mut pre_figures = None;
             let backlog = script.to_owned().take_backlog();
             let jump_index = match label {
                 Jump::Label((name, label)) => {
@@ -343,13 +330,13 @@ impl Executor {
                     pre_bgm = PreBgm::Stop;
                 }
                 {
-                    pre_bg = script.get_background(index).map(|(_, bg)| bg.clone());
-                    pre_figures = script.get_figures(index).map(|(_, fg)| fg.clone());
+                    let pre_bg = script.get_background(index).map(|(_, bg)| bg.clone());
+                    script.set_pre_bg(pre_bg);
+                    let pre_figures = script.get_figures(index).map(|(_, fg)| fg.clone());
+                    script.set_pre_figures(pre_figures);
                 }
             }
-            script.set_pre_bg(pre_bg);
             script.set_pre_bgm(pre_bgm);
-            script.set_pre_figures(pre_figures);
             script.set_index(current_block);
         }
         self.clean_fg("All", "All")?;

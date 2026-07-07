@@ -1,6 +1,7 @@
 use crate::config::ENGINE_CONFIG;
 use crate::error::{EngineError, SaveError};
 use crate::executors::executor::Executor;
+use crate::ui::initialize::SaveItem;
 use serde::{Deserialize, Serialize};
 use slint::{Image, ToSharedString, VecModel};
 use std::{fs, path::Path, rc::Rc};
@@ -45,22 +46,22 @@ impl Executor {
                     source: e,
                 })?;
                 let image = Image::load_from_path(Path::new(&image_path)).unwrap_or_default();
-                load_items.push((
-                    image,
-                    explain.to_shared_string(),
-                    block_index as i32,
-                    script.to_shared_string(),
-                ));
+                load_items.push(SaveItem {
+                    bg: image,
+                    explain: explain.to_shared_string(),
+                    index: block_index as i32,
+                    name: script.to_shared_string(),
+                });
             } else {
                 let sava_data =
                     SaveData::new("".to_string(), 0, "空的".to_string(), "".to_string());
                 let content = toml::to_string_pretty(&sava_data).map_err(SaveError::from)?;
-                load_items.push((
-                    Image::default(),
-                    sava_data.explain.to_shared_string(),
-                    sava_data.block_index as i32,
-                    sava_data.script.to_shared_string(),
-                ));
+                load_items.push(SaveItem {
+                    bg: Image::default(),
+                    explain: "空的".to_shared_string(),
+                    index: 0,
+                    name: "".to_shared_string(),
+                });
                 fs::write(&path, content).map_err(|e| SaveError::Write {
                     path: path.clone(),
                     source: e,
