@@ -1,7 +1,7 @@
 import { MainMenu } from "components/main_menu.slint";
 import { SaveItem, SaveView } from "components/save.slint";
 import { LoadView } from "components/load.slint";
-import { ExtraView } from "components/extra.slint";
+import { ExItem, ExtraView } from "components/extra.slint";
 import { SettingsView } from "components/main_config.slint";
 import { StoryView } from "components/story.slint";
 import { CharacterVolume } from "components/config/volume.slint";
@@ -53,13 +53,7 @@ export component MainWindow inherits Window {
     in-out property <int> last-screen: 0;
 
     in property <[SaveItem]> save-items;
-
-    in property <[{indexs:int, bg:[image], is-lock:bool}]> ex-items: [
-        {is-lock:true},{is-lock:true},{is-lock:true},{is-lock:true},
-        {is-lock:true},{is-lock:true},{is-lock:true},{is-lock:true},
-        {is-lock:true},{is-lock:true},{is-lock:true},{is-lock:true},
-        {is-lock:true},{is-lock:true},{is-lock:true},{is-lock:true},
-    ];
+    in property <[ExItem]> ex-items;
 
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;

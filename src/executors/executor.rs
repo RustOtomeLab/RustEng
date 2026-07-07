@@ -13,7 +13,7 @@ use crate::media::{
 };
 use crate::parser::script_parser::{Command, Commands};
 use crate::script::{Label, Script};
-use crate::ui::initialize::{CharacterVolume, MainWindow, SaveItem};
+use crate::ui::initialize::{CharacterVolume, ExItem, MainWindow, SaveItem};
 use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::{
     cell::RefCell,
@@ -183,7 +183,7 @@ impl Executor {
     }
 
     pub(crate) fn execute_get_ex(&self) -> Result<(), EngineError> {
-        let mut ex_items = Vec::with_capacity(16);
+        let ex_items = Rc::new(VecModel::from(Vec::new()));
 
         let cgs = *self.cg.borrow();
         let mut i = 1;
@@ -210,22 +210,22 @@ impl Executor {
                         }
                     }
                     i += *length;
-                    ex_items.push((Rc::new(VecModel::from(images)).into(), l as i32, is_lock))
+                    ex_items.push(ExItem {
+                        bg: Rc::new(VecModel::from(images)).into(),
+                        indexs: l as i32,
+                        is_lock,
+                    })
                 } else {
                     return Err(ExecutorError::CgMetadataMissing(i).into());
                 }
             } else {
                 i += 1;
-                ex_items.push((
-                    Rc::new(VecModel::from(vec![Image::default()])).into(),
-                    0,
-                    true,
-                ))
+                ex_items.push(ExItem::default())
             }
         }
 
         if let Some(window) = self.weak.upgrade() {
-            window.set_ex_items(Rc::new(VecModel::from(ex_items)).into());
+            window.set_ex_items(ex_items.into());
         }
 
         Ok(())
