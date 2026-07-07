@@ -14,10 +14,10 @@ const WINDOW_SIZE: usize = 4;
 
 #[derive(Debug, Clone)]
 pub(crate) struct BackLog {
-    pub(crate) front: SharedString,
-    pub(crate) back: SharedString,
-    pub(crate) script: SharedString,
-    pub(crate) index: usize,
+    front: SharedString,
+    back: SharedString,
+    script: SharedString,
+    index: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -243,7 +243,12 @@ impl Script {
         self.figures.range(..=index).next_back()
     }
 
-    pub(crate) fn change_figure(&mut self, index: usize, distance: &str, position: &str) -> Command {
+    pub(crate) fn change_figure(
+        &mut self,
+        index: usize,
+        distance: &str,
+        position: &str,
+    ) -> Command {
         let pos = format!("{distance}{position}");
         let mut idx = 0;
         for i in (0..=index).rev() {
