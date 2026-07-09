@@ -39,14 +39,12 @@ pub(crate) enum Command {
     Move {
         name: String,
         distance: String,
-        body: String,
-        face: String,
         position: String,
         action: String,
         repeat: i32,
         delay: Option<String>,
     },
-    Clear(String, String),
+    Clear(String),
     Choice((String, HashMap<String, Label>)),
     Jump(Label),
     Label,
@@ -77,8 +75,6 @@ impl Command {
         if let Command::Move {
             name,
             distance,
-            body,
-            face,
             position,
             ..
         } = self
@@ -86,37 +82,10 @@ impl Command {
             Command::Move {
                 name: name.to_string(),
                 distance: distance.to_string(),
-                body: body.to_string(),
-                face: face.to_string(),
                 position: position.to_string(),
                 action: "back".to_string(),
                 repeat: 1,
                 delay: Some("150".to_string()),
-            }
-        } else {
-            unreachable!()
-        }
-    }
-
-    pub(crate) fn back_and_clean(&self) -> Command {
-        if let Command::Move {
-            name,
-            distance,
-            body,
-            face,
-            position,
-            ..
-        } = self
-        {
-            Command::Move {
-                name: name.to_string(),
-                distance: distance.to_string(),
-                body: body.to_string(),
-                face: face.to_string(),
-                position: position.to_string(),
-                action: "back_and_clean".to_string(),
-                repeat: 1,
-                delay: Some("1".to_string()),
             }
         } else {
             unreachable!()
@@ -300,14 +269,10 @@ impl Script {
                                 parts.next(),
                                 parts.next(),
                                 parts.next(),
-                                parts.next(),
-                                parts.next(),
                             ) {
                                 (
                                     Some(name),
                                     Some(distance),
-                                    Some(body),
-                                    Some(face),
                                     Some(position),
                                     Some(action),
                                     Some(repeat),
@@ -316,8 +281,6 @@ impl Script {
                                     let command = Move {
                                         name: name.to_string(),
                                         distance: distance.to_string(),
-                                        body: body.to_string(),
-                                        face: face.to_string(),
                                         position: position.to_string(),
                                         action: action.to_string(),
                                         repeat: repeat.parse::<i32>().map_err(ScriptError::from)?,
@@ -343,16 +306,7 @@ impl Script {
                         }
                         "clear" => {
                             self.insert_clear(*block_index);
-                            if let Some((dis, pos)) = arg.split_once("|") {
-                                Clear(dis.to_string(), pos.to_string())
-                            } else if arg == "All" {
-                                Clear(arg.to_string(), arg.to_string())
-                            } else {
-                                return Err(EngineError::from(ScriptError::InvalidCommand {
-                                    line: *line_num,
-                                    content: line.to_string(),
-                                }));
-                            }
+                            Clear(arg.to_string())
                         }
                         "jump" => match arg.split_once(":") {
                             Some((name, label)) if !name.is_empty() && !label.is_empty() => {

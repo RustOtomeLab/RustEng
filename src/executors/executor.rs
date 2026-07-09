@@ -13,7 +13,7 @@ use crate::media::{
 };
 use crate::parser::script_parser::{Command, Commands};
 use crate::script::{Label, Script};
-use crate::ui::initialize::{CharacterVolume, ExItem, MainWindow, SaveItem};
+use crate::ui::initialize::{CharacterVolume, ExItem, FigureItem, MainWindow, SaveItem};
 use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::{
     cell::RefCell,
@@ -30,12 +30,41 @@ pub(crate) enum Jump {
     Index((String, i32)),
 }
 
-fn figure_default() -> (Image, f32, f32) {
-    (Image::default(), 0.0, 0.0)
-}
+fn parse_position(position: &str, distance: &str) -> (f32, f32, f32) {
+    let (width_ratio, default_base_y) = match distance {
+        "z1" => (0.34, 0.125),   // 1/8
+        "no" => (0.25, 0.16667), // 1/6
+        _ => (0.34, 0.125),
+    };
 
-fn face_default() -> (Image, f32, f32) {
-    (Image::default(), 0.0, 0.0)
+    let (base_x, base_y) = if position.starts_with('(') && position.ends_with(')') {
+        let inner = &position[1..position.len() - 1];
+        let parts: Vec<&str> = inner.split(',').collect();
+        if parts.len() == 2 {
+            (
+                parts[0].trim().parse().unwrap_or(0.33),
+                parts[1].trim().parse().unwrap_or(default_base_y),
+            )
+        } else {
+            (0.33, default_base_y)
+        }
+    } else {
+        let bx = match position {
+            "-2" | "vl" => 0.16,
+            "-1" | "sl" => 0.0,
+            "0" | "m" => 0.33,
+            "1" | "sr" => 0.66,
+            "2" | "vr" => 0.5,
+            _ => 0.33,
+        };
+        if distance == "no" {
+            (0.375, default_base_y)
+        } else {
+            (bx, default_base_y)
+        }
+    };
+
+    (base_x, base_y, width_ratio)
 }
 
 #[derive(Clone)]
@@ -47,6 +76,8 @@ pub(crate) struct Executor {
     text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
     video_context: Rc<RefCell<VideoContext>>,
+    figure_items: Rc<VecModel<FigureItem>>,
+    figure_id: Rc<RefCell<i32>>,
     text_tx: Option<TextTX>,
     auto_tx: Option<Sender<Duration>>,
     delay_channels: Option<DelayChannels>,
@@ -57,6 +88,11 @@ impl Executor {
         let mut script = Script::new();
         script.with_name("ky01")?;
 
+        let figure_items = Rc::new(VecModel::<FigureItem>::default());
+        if let Some(window) = weak.upgrade() {
+            window.set_figure_items(figure_items.clone().into());
+        }
+
         Ok(Executor {
             script: Rc::new(RefCell::new(script)),
             media_player: Rc::new(RefCell::new(MediaPlayer::new()?)),
@@ -65,6 +101,8 @@ impl Executor {
             text: Arc::new(RwLock::new(DisplayText::new())),
             choose_lock: Rc::new(RefCell::new(false)),
             video_context: Rc::new(RefCell::new(VideoContext::default())),
+            figure_items,
+            figure_id: Rc::new(RefCell::new(0)),
             text_tx: None,
             auto_tx: None,
             delay_channels: None,
@@ -339,7 +377,7 @@ impl Executor {
             script.set_pre_bgm(pre_bgm);
             script.set_index(current_block);
         }
-        self.clean_fg("All", "All")?;
+        self.clean_fg("All")?;
 
         Ok(())
     }
@@ -571,7 +609,7 @@ impl Executor {
                 Command::Move { .. } => {
                     self.show_move(&command)?;
                 }
-                Command::Clear(distance, position) => self.clean_fg(&distance, &position)?,
+                Command::Clear(name) => self.clean_fg(&name)?,
                 Command::Jump(jump) => {
                     self.execute_jump(Jump::Label(jump))?;
                 }
@@ -634,7 +672,6 @@ impl Executor {
     }
 
     pub(crate) fn show_fg(&self, fg: &Command) -> Result<(), EngineError> {
-        let weak = self.weak.clone();
         let Command::Figure {
             name,
             distance,
@@ -647,66 +684,72 @@ impl Executor {
             unreachable!()
         };
 
-        if let Some(window) = weak.upgrade() {
-            if delay.is_some() {
-                self.delay_channels.as_ref().unwrap().send_delay(fg)?;
-                return Ok(());
-            }
-            if let (Some(body_para), Some(face_para), Some(offset)) = FIGURE_CONFIG.find(name) {
-                let body_exist = match (&position[..], &distance[..]) {
-                    ("-1", "z1") => window.get_fg_z1__1(),
-                    ("-2", "z1") => window.get_fg_z1__2(),
-                    ("0", "z1") => window.get_fg_z1_0(),
-                    ("2", "z1") => window.get_fg_z1_2(),
-                    ("1", "z1") => window.get_fg_z1_1(),
-                    ("0", "no") => window.get_fg_no_0(),
-                    _ => unreachable!(),
-                }
-                .0
-                .path()
-                .unwrap_or(Path::new(""))
-                .to_str()
-                .unwrap()
-                .to_string();
-                let ready_body = format!(
-                    "{}{}/{}/{}.png",
-                    ENGINE_CONFIG.figure_path(),
-                    name,
-                    distance,
-                    body
-                );
+        if delay.is_some() {
+            self.delay_channels.as_ref().unwrap().send_delay(fg)?;
+            return Ok(());
+        }
 
-                if body_exist != ready_body {
-                    let rate = body_para.get(body).unwrap();
-                    let body = Image::load_from_path(Path::new(&ready_body)).unwrap();
-                    match (&position[..], &distance[..]) {
-                        ("-1", "z1") => window.set_fg_z1__1((body, *offset, *rate)),
-                        ("-2", "z1") => window.set_fg_z1__2((body, *offset, *rate)),
-                        ("0", "z1") => window.set_fg_z1_0((body, *offset, *rate)),
-                        ("2", "z1") => window.set_fg_z1_2((body, *offset, *rate)),
-                        ("1", "z1") => window.set_fg_z1_1((body, *offset, *rate)),
-                        ("0", "no") => window.set_fg_no_0((body, *offset, *rate)),
-                        _ => unreachable!(),
-                    }
+        if let (Some(body_para), Some(face_para), Some(offset)) = FIGURE_CONFIG.find(name) {
+            let rate = *body_para.get(body).unwrap();
+            let body_img = Image::load_from_path(Path::new(&format!(
+                "{}{}/{}/{}.png",
+                ENGINE_CONFIG.figure_path(),
+                name,
+                distance,
+                body
+            )))
+            .unwrap();
+            let (face_x, face_y) = face_para.get(face).unwrap();
+            let face_img = Image::load_from_path(Path::new(&format!(
+                "{}{}/{}/{}.png",
+                ENGINE_CONFIG.figure_path(),
+                name,
+                distance,
+                face
+            )))
+            .unwrap();
+
+            let (base_x, base_y, width_ratio) = parse_position(position, distance);
+
+            let model = self.figure_items.clone();
+            let mut found_idx = None;
+            for i in 0..model.row_count() {
+                let item = model.row_data(i).unwrap();
+                if item.name == name {
+                    found_idx = Some(i);
+                    break;
                 }
-                let (face_x, face_y) = face_para.get(face).unwrap();
-                let face = Image::load_from_path(Path::new(&format!(
-                    "{}{}/{}/{}.png",
-                    ENGINE_CONFIG.figure_path(),
-                    name,
-                    distance,
-                    face
-                )))
-                .unwrap();
-                match (&position[..], &distance[..]) {
-                    ("-1", "z1") => window.set_face_z1__1((face, *face_x, *face_y)),
-                    ("-2", "z1") => window.set_face_z1__2((face, *face_x, *face_y)),
-                    ("0", "z1") => window.set_face_z1_0((face, *face_x, *face_y)),
-                    ("2", "z1") => window.set_face_z1_2((face, *face_x, *face_y)),
-                    ("1", "z1") => window.set_face_z1_1((face, *face_x, *face_y)),
-                    ("0", "no") => window.set_face_no_0((face, *face_x, *face_y)),
-                    _ => unreachable!(),
-                }
+            }
+
+            let id = if let Some(i) = found_idx {
+                model.row_data(i).unwrap().id
+            } else {
+                let mut id_counter = self.figure_id.borrow_mut();
+                *id_counter += 1;
+                *id_counter
+            };
+
+            let item = FigureItem {
+                id,
+                name: name.to_shared_string(),
+                distance: distance.to_shared_string(),
+                body: body_img,
+                face: face_img,
+                rate,
+                offset: *offset,
+                face_x: *face_x,
+                face_y: *face_y,
+                base_x,
+                base_y,
+                x_offset: 0.0,
+                y_offset: 0.0,
+                width_ratio,
+            };
+
+            if let Some(i) = found_idx {
+                model.set_row_data(i, item);
+            } else {
+                model.push(item);
             }
         }
 
@@ -714,12 +757,9 @@ impl Executor {
     }
 
     pub(crate) fn show_move(&self, fg_move: &Command) -> Result<(), EngineError> {
-        let weak = self.weak.clone();
         let Command::Move {
             name,
             distance,
-            body,
-            face,
             position,
             action,
             repeat,
@@ -729,175 +769,134 @@ impl Executor {
             unreachable!()
         };
 
-        if let Some(window) = weak.upgrade() {
-            if delay.is_some() {
-                self.delay_channels.as_ref().unwrap().send_delay(fg_move)?;
-                return Ok(());
-            }
+        if delay.is_some() {
+            self.delay_channels.as_ref().unwrap().send_delay(fg_move)?;
+            return Ok(());
+        }
 
-            let offset: (f32, f32) = match &action[..] {
-                "to2" => {
-                    if *repeat != 1 {
-                        let back = fg_move.back();
-                        let action = Command::Move {
-                            name: name.to_string(),
-                            distance: distance.to_string(),
-                            body: body.to_string(),
-                            face: face.to_string(),
-                            position: position.to_string(),
-                            action: "to2".to_string(),
-                            repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
-                            delay: Some("301".to_string()),
-                        };
-                        self.delay_channels
-                            .as_ref()
-                            .unwrap()
-                            .send_loop(action, back);
-                    } else {
-                        let tx = self.delay_channels.as_ref().unwrap();
-                        tx.send_move(Command::Figure {
-                            name: name.to_string(),
-                            distance: distance.to_string(),
-                            body: body.to_string(),
-                            face: face.to_string(),
-                            position: "2".to_string(),
-                            delay: Some("150".to_string()),
-                        })?;
-                        tx.send_move(fg_move.back_and_clean())?;
-                    }
-                    match (&position[..], &distance[..]) {
-                        ("-1", "z1") => (window.get_container_width() * 0.5, 0.0),
-                        ("-2", "z1") => (window.get_container_width() * 0.34, 0.0),
-                        ("0", "z1") => (window.get_container_width() * 0.17, 0.0),
-                        ("1", "z1") => (-window.get_container_width() * 0.16, 0.0),
-                        _ => unreachable!(),
-                    }
-                }
-                "to0" => {
-                    let tx = self.delay_channels.as_ref().unwrap();
-                    tx.send_move(Command::Figure {
+        let container_height = if let Some(window) = self.weak.upgrade() {
+            window.get_container_height()
+        } else {
+            0.0
+        };
+
+        match &action[..] {
+            "to2" | "to0" => {
+                let target_pos = if action == "to2" { "2" } else { "0" };
+                if *repeat != 1 {
+                    let back = fg_move.back();
+                    let next = Command::Move {
                         name: name.to_string(),
                         distance: distance.to_string(),
-                        body: body.to_string(),
-                        face: face.to_string(),
-                        position: "0".to_string(),
-                        delay: Some("150".to_string()),
-                    })?;
-                    tx.send_move(fg_move.back_and_clean())?;
-
-                    match (&position[..], &distance[..]) {
-                        ("-1", "z1") => (window.get_container_width() * 0.33, 0.0),
-                        ("-2", "z1") => (window.get_container_width() * 0.17, 0.0),
-                        ("2", "z1") => (-window.get_container_width() * 0.17, 0.0),
-                        ("1", "z1") => (-window.get_container_width() * 0.33, 0.0),
-                        _ => unreachable!(),
-                    }
+                        position: position.to_string(),
+                        action: action.clone(),
+                        repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
+                        delay: Some("301".to_string()),
+                    };
+                    self.delay_channels.as_ref().unwrap().send_loop(next, back);
                 }
-                "nod" => {
-                    if *repeat != 1 {
-                        let back = fg_move.back();
-                        let nod = Command::Move {
+                self.move_figure(name, target_pos, distance)?;
+            }
+            "nod" => {
+                if *repeat != 1 {
+                    let back = fg_move.back();
+                    let nod = Command::Move {
+                        name: name.to_string(),
+                        distance: distance.to_string(),
+                        position: position.to_string(),
+                        action: "nod".to_string(),
+                        repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
+                        delay: Some("301".to_string()),
+                    };
+                    self.delay_channels.as_ref().unwrap().send_loop(nod, back);
+                } else {
+                    self.delay_channels
+                        .as_ref()
+                        .unwrap()
+                        .send_move(Command::Move {
                             name: name.to_string(),
                             distance: distance.to_string(),
-                            body: body.to_string(),
-                            face: face.to_string(),
                             position: position.to_string(),
-                            action: "nod".to_string(),
-                            repeat: if *repeat > 1 { *repeat - 1 } else { -1 },
-                            delay: Some("301".to_string()),
-                        };
-                        self.delay_channels.as_ref().unwrap().send_loop(nod, back);
-                    } else {
-                        self.delay_channels
-                            .as_ref()
-                            .unwrap()
-                            .send_move(Command::Move {
-                                name: name.to_string(),
-                                distance: distance.to_string(),
-                                body: body.to_string(),
-                                face: face.to_string(),
-                                position: position.to_string(),
-                                action: "back".to_string(),
-                                repeat: *repeat,
-                                delay: Some("150".to_string()),
-                            })?;
-                    }
-                    (0.0, window.get_container_height() / 40.0)
+                            action: "back".to_string(),
+                            repeat: *repeat,
+                            delay: Some("150".to_string()),
+                        })?;
                 }
-                "back" => (0.0, 0.0),
-                "back_and_clean" => {
-                    match (&position[..], &distance[..]) {
-                        ("-1", "z1") => {
-                            window.set_fg_z1__1(figure_default());
-                            window.set_face_z1__1(face_default());
-                        }
-                        ("-2", "z1") => {
-                            window.set_fg_z1__2(figure_default());
-                            window.set_face_z1__2(face_default());
-                        }
-                        ("2", "z1") => {
-                            window.set_fg_z1_2(figure_default());
-                            window.set_face_z1_2(face_default());
-                        }
-                        ("0", "z1") => {
-                            window.set_fg_z1_0(figure_default());
-                            window.set_face_z1_0(face_default());
-                        }
-                        ("1", "z1") => {
-                            window.set_fg_z1_1(figure_default());
-                            window.set_face_z1_1(face_default());
-                        }
-                        _ => unreachable!(),
-                    }
-                    (0.0, 0.0)
-                }
-                _ => unreachable!(),
-            };
-
-            match (&position[..], &distance[..]) {
-                ("-1", "z1") => window.set_offset_z1__1(offset),
-                ("-2", "z1") => window.set_offset_z1__2(offset),
-                ("0", "z1") => window.set_offset_z1_0(offset),
-                ("2", "z1") => window.set_offset_z1_2(offset),
-                ("1", "z1") => window.set_offset_z1_1(offset),
-                _ => unreachable!(),
+                self.set_figure_offset(name, 0.0, container_height / 40.0)?;
             }
+            "back" => {
+                let (base_x, _, _) = parse_position(position, distance);
+                let model = self.figure_items.clone();
+                for i in 0..model.row_count() {
+                    let item = model.row_data(i).unwrap();
+                    if item.name == name {
+                        let mut new_item = item.clone();
+                        new_item.base_x = base_x;
+                        new_item.x_offset = 0.0;
+                        new_item.y_offset = 0.0;
+                        model.set_row_data(i, new_item);
+                        break;
+                    }
+                }
+            }
+            _ => unreachable!(),
         }
 
         Ok(())
     }
 
-    fn clean_fg(&self, distance: &str, position: &str) -> Result<(), EngineError> {
-        let weak = self.weak.clone();
-        if let Some(window) = weak.upgrade() {
-            match (position, distance) {
-                ("-2", "z1") => {
-                    window.set_fg_z1__2(figure_default());
-                    window.set_face_z1__2(face_default());
+    fn move_figure(&self, name: &str, target_pos: &str, distance: &str) -> Result<(), EngineError> {
+        let (base_x, _, _) = parse_position(target_pos, distance);
+        let model = self.figure_items.clone();
+        for i in 0..model.row_count() {
+            let item = model.row_data(i).unwrap();
+            if item.name == name {
+                let mut new_item = item.clone();
+                new_item.base_x = base_x;
+                new_item.x_offset = 0.0;
+                model.set_row_data(i, new_item);
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn set_figure_offset(
+        &self,
+        name: &str,
+        x_offset: f32,
+        y_offset: f32,
+    ) -> Result<(), EngineError> {
+        let model = self.figure_items.clone();
+        for i in 0..model.row_count() {
+            let item = model.row_data(i).unwrap();
+            if item.name == name {
+                let mut new_item = item.clone();
+                new_item.x_offset = x_offset;
+                new_item.y_offset = y_offset;
+                model.set_row_data(i, new_item);
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn clean_fg(&self, target: &str) -> Result<(), EngineError> {
+        let model = self.figure_items.clone();
+
+        if target == "All" {
+            while model.row_count() > 0 {
+                model.remove(0);
+            }
+        } else {
+            // 从后往前删，避免索引错位
+            let mut i = model.row_count();
+            while i > 0 {
+                i -= 1;
+                let item = model.row_data(i).unwrap();
+                if item.name == target {
+                    model.remove(i);
                 }
-                ("2", "z1") => {
-                    window.set_fg_z1_2(figure_default());
-                    window.set_face_z1_2(face_default());
-                }
-                ("0", "z1") => {
-                    window.set_fg_z1_0(figure_default());
-                    window.set_face_z1_0(face_default());
-                }
-                ("0", "no") => {
-                    window.set_fg_no_0(figure_default());
-                    window.set_face_no_0(face_default());
-                }
-                ("All", "All") => {
-                    window.set_fg_z1__2(figure_default());
-                    window.set_face_z1__2(face_default());
-                    window.set_fg_z1_0(figure_default());
-                    window.set_face_z1_2(face_default());
-                    window.set_fg_z1_2(figure_default());
-                    window.set_face_z1_0(face_default());
-                    window.set_fg_no_0(figure_default());
-                    window.set_face_no_0(face_default());
-                }
-                _ => unreachable!(),
             }
         }
 

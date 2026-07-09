@@ -80,7 +80,7 @@ Here are the various operations and their usage:
 
 * * ```b0059``` is the PNG file for the sprite's facial expression.
 
-* * ```0``` represents the sprite's horizontal position (from left to right: -2, -1, 0, 1, 2).
+* * ```0``` represents the sprite's horizontal position. Supports named positions (```vl``` very left, ```sl``` slightly left, ```m``` middle, ```sr``` slightly right, ```vr``` very right; compatible with legacy -2, -1, 0, 1, 2), and also accepts ```(x,y)``` coordinates directly.
 
 * * ```1000``` is a delay value (in milliseconds), which can **postpone** this operation. The delay can be **empty** (the ```|``` separator **can be omitted** if empty).
 
@@ -88,15 +88,25 @@ Here are the various operations and their usage:
 
 * #### Animation:
 
-* * ```@move rar|z1|rar_z1a0200|z1a0041|-2|nod|3|4200```: Here, ```@move``` is the identifier for playing an animation. Parts are separated by **vertical bars** ```|```.
+* * ```@move rar|z1|-2|nod|3|4200```: Here, ```@move``` is the identifier for playing an animation. Parts are separated by **vertical bars** ```|```.
 
-* * The initial parts must **match exactly** the corresponding sprite that the animation is applied to.
+* * ```rar``` is the character's name.
+
+* * ```z1``` indicates the sprite's depth/layer (z-order).
+
+* * ```-2``` represents the sprite's current position (same format as the ```@fg``` position parameter).
 
 * * ```nod``` represents a nodding action. Other actions include ```tox``` (where x is the target position, e.g., ```to2``` to move the sprite to position 2).
 
 * * ```3``` represents the number of times the action loops. ```-1``` means infinite looping.
 
 * * ```4200``` is a delay value (in milliseconds), which can **postpone** this operation. The delay can be **empty** (the ```|``` separator **can be omitted** if empty).
+
+* #### Clear Sprite:
+
+* * ```@clear rir```: Here, ```@clear``` is the identifier for clearing sprites, followed by the character's name.
+
+* * ```@clear All```: Clears all sprites.
 
 * #### Label:
 
