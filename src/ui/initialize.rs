@@ -117,6 +117,22 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
         }
     });
 
+    window.on_backlog_replay({
+        let executor = executor.clone();
+        move |name, voice| {
+            executor
+                .play_voice(&name.to_string(), &voice.to_string())
+                .expect("Backlog resume panicked");
+        }
+    });
+
+    window.on_replay_voice({
+        let mut executor = executor.clone();
+        move || {
+            executor.execute_replay().expect("Backlog resume panicked");
+        }
+    });
+
     window.on_clicked({
         let mut executor = executor.clone();
         move || {

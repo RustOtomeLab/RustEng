@@ -1,6 +1,6 @@
 import { CustomButton } from "common/button.slint";
 import { CustomRoundButton } from "common/round_button.slint";
-import { BackLogView } from "backlog.slint";
+import { BackLogItem, BackLogView } from "backlog.slint";
 import { Colors } from "../styles/colors.slint";
 
 export struct FigureItem {
@@ -28,7 +28,7 @@ export component StoryView {
     in property <string> dialogue-3;
     in property <string> speaker;
     in property <[{ index: int, text: string }]> choose-branch;
-    in property <[{ front: string, back: string, script: string, index: int }]> backlogs;
+    in property <[BackLogItem]> backlogs;
     in property <{ img: image, x_offset: float, y_offset: float, zoom: float }> bg;
     in property <[FigureItem]> figure-items;
     in property <int> current-choose: 0;
@@ -45,9 +45,11 @@ export component StoryView {
     callback backlog();
     callback backlog-change(int);
     callback backlog-jump(string, int);
+    callback backlog_replay(string, string);
     callback clicked();
     callback choose(string);
     callback settings();
+    callback replay_voice();
     callback save-game();
     callback load-game();
     callback stop-video();
@@ -197,7 +199,16 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.73 - self.width;
+                x: parent.width * 0.61 - self.width;
+                y: 0;
+                text: "语音";
+                clicked => { root.replay-voice(); }
+            }
+
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.67 - self.width;
                 y: 0;
                 text: "存档";
                 clicked => { root.save-game(); }
@@ -206,7 +217,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.79 - self.width;
+                x: parent.width * 0.73 - self.width;
                 y: 0;
                 text: "读档";
                 clicked => { root.load-game(); }
@@ -215,7 +226,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.85 - self.width;
+                x: parent.width * 0.79 - self.width;
                 y: 0;
                 text: "自动";
                 is-on: is-auto;
@@ -229,7 +240,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.91 - self.width;
+                x: parent.width * 0.85 - self.width;
                 y: 0;
                 text: "快进";
                 is-on: is-skip;
@@ -237,6 +248,20 @@ export component StoryView {
                     is-skip = !is-skip;
                     is-auto = false;
                     root.skip-play(true);
+                }
+            }
+
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.91 - self.width;
+                y: 0;
+                text: "履历";
+                clicked => {
+                    is-backlog = !is-backlog;
+                    is-auto = false;
+                    is-skip = false;
+                    root.backlog();
                 }
             }
 
@@ -258,6 +283,7 @@ export component StoryView {
             back => { is_backlog = false; }
             backlog-change(i) => { root.backlog-change(i); }
             backlog-jump(s, i) => { root.backlog-jump(s, i); }
+            backlog-replay(n, v) => { root.backlog-replay(n, v) }
         }
 
         // 视频层（最上层）

@@ -172,6 +172,14 @@ impl Executor {
         self.execute_load(name, index)
     }
 
+    pub(crate) fn execute_replay(&mut self) -> Result<(), EngineError> {
+        let script = self.script.borrow();
+        if let Some((name, voice)) = script.last_voice() {
+            self.play_voice(&name, &voice)?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn execute_save(&mut self, index: i32) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
@@ -295,9 +303,7 @@ impl Executor {
 
     pub(crate) fn execute_save_config(&self) -> Result<(), EngineError> {
         let weak = self.get_weak();
-        save_user_config(weak)?;
-
-        Ok(())
+        save_user_config(weak)
     }
 
     pub(crate) fn execute_choose(&mut self, choice: SharedString) -> Result<(), EngineError> {
@@ -550,15 +556,24 @@ impl Executor {
                     for (index, choice) in choices.iter().enumerate() {
                         choose_branch.push((index as i32, SharedString::from(choice.0.clone())));
                     }
-                    script.push_backlog("选择支".to_shared_string(), explain.to_shared_string());
+                    script.push_backlog(
+                        "选择支".to_shared_string(),
+                        explain.to_shared_string(),
+                        None,
+                    );
                     window.set_choose_branch(Rc::new(VecModel::from(choose_branch)).into());
                     window.set_current_choose(choices.len() as i32);
                 }
                 Command::Dialogue { speaker, text } => {
                     {
                         let mut script = self.script.borrow_mut();
+                        let voice = script.pre_voice();
                         script.set_explain(&text);
-                        script.push_backlog(speaker.to_shared_string(), text.to_shared_string());
+                        script.push_backlog(
+                            speaker.to_shared_string(),
+                            text.replace("{nns}", "").to_shared_string(),
+                            voice,
+                        );
                     }
                     window.set_speaker(SharedString::from(speaker));
                     {
@@ -572,33 +587,9 @@ impl Executor {
                     ref name,
                     ref voice,
                 } => {
-                    if let Some(length) = VOICE_LENGTH.find(name) {
-                        let volume = window.get_main_volume() / 100.0;
-                        let voice_volume = window.get_voice_volume() / 100.0;
-                        let character_volumes = window.get_character_volumes();
-                        {
-                            let full_name = ENGINE_CONFIG.character_list().get(name).unwrap();
-                            for CharacterVolume {
-                                name: ch_name,
-                                volume: ch_volume,
-                            } in character_volumes.iter()
-                            {
-                                if ch_name == full_name {
-                                    self.media_player.borrow().play_voice(
-                                        &format!(
-                                            "{}/{}/{}.ogg",
-                                            ENGINE_CONFIG.voice_path(),
-                                            name,
-                                            voice
-                                        ),
-                                        volume * voice_volume * ch_volume / 100.0,
-                                    )?;
-                                    break;
-                                }
-                            }
-                        }
-                        duration += *length.get(voice).unwrap();
-                    }
+                    let mut script = self.script.borrow_mut();
+                    script.set_pre_voice((name.to_shared_string(), voice.to_shared_string()));
+                    duration += self.play_voice(name, voice)?;
                 }
                 Command::PlayVideo(name) => {
                     self.start_video(&name)?;
@@ -633,6 +624,39 @@ impl Executor {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn play_voice(
+        &self,
+        name: &String,
+        voice: &String,
+    ) -> Result<Duration, EngineError> {
+        let weak = self.weak.clone();
+
+        if let (Some(length), Some(window)) = (VOICE_LENGTH.find(name), weak.upgrade()) {
+            let volume = window.get_main_volume() / 100.0;
+            let voice_volume = window.get_voice_volume() / 100.0;
+            let character_volumes = window.get_character_volumes();
+            {
+                let full_name = ENGINE_CONFIG.character_list().get(name).unwrap();
+                for CharacterVolume {
+                    name: ch_name,
+                    volume: ch_volume,
+                } in character_volumes.iter()
+                {
+                    if ch_name == full_name {
+                        self.media_player.borrow().play_voice(
+                            &format!("{}/{}/{}.ogg", ENGINE_CONFIG.voice_path(), name, voice),
+                            volume * voice_volume * ch_volume / 100.0,
+                        )?;
+                        break;
+                    }
+                }
+            }
+            return Ok(*length.get(voice).unwrap());
+        }
+
+        Ok(Duration::from_secs(0))
     }
 
     fn show_bg(&mut self, bg: &Command) -> Result<(), EngineError> {

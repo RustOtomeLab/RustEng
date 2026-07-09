@@ -2,6 +2,7 @@ use crate::config::ENGINE_CONFIG;
 use crate::error::{EngineError, ScriptError};
 use crate::media::player::PreBgm;
 use crate::parser::script_parser::{Command, Commands};
+use crate::ui::initialize::BackLogItem;
 use slint::{SharedString, ToSharedString};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -13,24 +14,17 @@ pub(crate) type Label = (String, String);
 const WINDOW_SIZE: usize = 4;
 
 #[derive(Debug, Clone)]
-pub(crate) struct BackLog {
-    front: SharedString,
-    back: SharedString,
-    script: SharedString,
-    index: usize,
-}
-
-#[derive(Debug, Clone)]
 pub(crate) struct Script {
     name: String,
     explain: String,
     backlog_offset: usize,
-    backlog: Vec<BackLog>,
+    backlog: Vec<BackLogItem>,
     commands: Vec<Commands>,
     current_block: usize,
     bgm: BTreeMap<usize, String>,
     current_bgm: String,
     pre_bgm: PreBgm,
+    pre_voice: Option<(SharedString, SharedString)>,
     backgrounds: BTreeMap<usize, Command>,
     pre_bg: Option<Command>,
     figures: BTreeMap<usize, Figure>,
@@ -52,6 +46,7 @@ impl Script {
             bgm: BTreeMap::new(),
             current_bgm: String::new(),
             pre_bgm: PreBgm::None,
+            pre_voice: None,
             backgrounds: BTreeMap::new(),
             pre_bg: None,
             figures: BTreeMap::new(),
@@ -110,6 +105,10 @@ impl Script {
         self.pre_bgm = pre_bgm;
     }
 
+    pub(crate) fn set_pre_voice(&mut self, pre_voice: (SharedString, SharedString)) {
+        self.pre_voice = Some(pre_voice);
+    }
+
     pub(crate) fn set_pre_bg(&mut self, pre_bg: Option<Command>) {
         self.pre_bg = pre_bg;
     }
@@ -131,7 +130,7 @@ impl Script {
             .push(distance, position, command);
     }
 
-    pub(crate) fn set_backlog(&mut self, backlog: Vec<BackLog>) {
+    pub(crate) fn set_backlog(&mut self, backlog: Vec<BackLogItem>) {
         self.backlog = backlog;
     }
 
@@ -155,12 +154,20 @@ impl Script {
         self.labels.insert(label, index);
     }
 
-    pub(crate) fn push_backlog(&mut self, name: SharedString, text: SharedString) {
-        self.backlog.push(BackLog {
+    pub(crate) fn push_backlog(
+        &mut self,
+        name: SharedString,
+        text: SharedString,
+        voice: Option<(SharedString, SharedString)>,
+    ) {
+        let (chara, voice) = voice.unwrap_or_default();
+        self.backlog.push(BackLogItem {
             front: name,
             back: text,
             script: self.name.to_shared_string(),
-            index: self.current_block,
+            index: self.current_block as i32,
+            chara,
+            voice,
         });
     }
 
@@ -168,7 +175,7 @@ impl Script {
         self.commands.push(command);
     }
 
-    pub(crate) fn backlog(&self) -> Vec<(SharedString, SharedString, i32, SharedString)> {
+    pub(crate) fn backlog(&self) -> Vec<BackLogItem> {
         let total = self.backlog.len();
         if total == 0 {
             return vec![];
@@ -176,20 +183,18 @@ impl Script {
 
         let end = total.saturating_sub(self.backlog_offset);
         let start = end.saturating_sub(WINDOW_SIZE);
-        self.backlog[start..end]
-            .iter()
-            .map(|backlog| {
-                (
-                    backlog.back.to_shared_string(),
-                    backlog.front.to_shared_string(),
-                    backlog.index as i32,
-                    backlog.script.to_shared_string(),
-                )
-            })
-            .collect()
+        self.backlog[start..end].to_vec()
     }
 
-    pub(crate) fn take_backlog(self) -> Vec<BackLog> {
+    pub(crate) fn last_voice(&self) -> Option<(String, String)> {
+        let backlog = self.backlog.last().unwrap();
+        if backlog.voice.is_empty() && backlog.chara.is_empty() {
+            return None;
+        }
+        Some((backlog.chara.to_string(), backlog.voice.to_string()))
+    }
+
+    pub(crate) fn take_backlog(self) -> Vec<BackLogItem> {
         self.backlog
     }
 
@@ -217,6 +222,10 @@ impl Script {
         let bgm = self.pre_bgm.clone();
         self.pre_bgm = PreBgm::None;
         bgm
+    }
+
+    pub(crate) fn pre_voice(&mut self) -> Option<(SharedString, SharedString)> {
+        self.pre_voice.take()
     }
 
     pub(crate) fn pre_figures(&mut self) -> Option<Figure> {
