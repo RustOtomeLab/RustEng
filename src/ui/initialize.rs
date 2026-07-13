@@ -27,8 +27,10 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
 
     window.on_save({
         let mut executor = executor.clone();
-        move |index| {
-            executor.execute_save(index).expect("Save panicked");
+        move |index, page_num| {
+            executor
+                .execute_save(index, page_num)
+                .expect("Save panicked");
         }
     });
 

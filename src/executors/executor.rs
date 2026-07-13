@@ -1,8 +1,9 @@
+use crate::config::cg::get_cg;
 use crate::config::{
-    cg::CG_LENGTH, extra::save_extra_config, figure::FIGURE_CONFIG, save_load::SaveData,
+    cg::CG_CONFIG, extra::save_extra_config, figure::FIGURE_CONFIG, save_load::SaveData,
     user::save_user_config, voice::VOICE_LENGTH, ENGINE_CONFIG,
 };
-use crate::error::{EngineError, ExecutorError, SaveError};
+use crate::error::{EngineError, SaveError};
 use crate::executors::{
     delay_executor::{DelayChannels, DelayTX},
     text_executor::{DisplayText, TextTX},
@@ -13,7 +14,7 @@ use crate::media::{
 };
 use crate::parser::script_parser::{Command, Commands};
 use crate::script::{Label, Script};
-use crate::ui::initialize::{CharacterVolume, ExItem, FigureItem, MainWindow, SaveItem};
+use crate::ui::initialize::{CharacterVolume, FigureItem, MainWindow, SaveItem};
 use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
 use std::{
     cell::RefCell,
@@ -71,7 +72,7 @@ fn parse_position(position: &str, distance: &str) -> (f32, f32, f32) {
 pub(crate) struct Executor {
     script: Rc<RefCell<Script>>,
     media_player: Rc<RefCell<MediaPlayer>>,
-    cg: Rc<RefCell<u64>>,
+    cg: Rc<RefCell<Vec<u64>>>,
     weak: Weak<MainWindow>,
     text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
@@ -96,7 +97,7 @@ impl Executor {
         Ok(Executor {
             script: Rc::new(RefCell::new(script)),
             media_player: Rc::new(RefCell::new(MediaPlayer::new()?)),
-            cg: Rc::new(RefCell::new(0)),
+            cg: Rc::new(RefCell::new(Vec::new())),
             weak,
             text: Arc::new(RwLock::new(DisplayText::new())),
             choose_lock: Rc::new(RefCell::new(false)),
@@ -113,7 +114,7 @@ impl Executor {
         self.weak.clone()
     }
 
-    pub(crate) fn set_cg(&mut self, cg: u64) {
+    pub(crate) fn set_cg(&mut self, cg: Vec<u64>) {
         *self.cg.borrow_mut() = cg;
     }
 
@@ -140,7 +141,7 @@ impl Executor {
 
     pub(crate) fn unlock(&mut self, index: usize) {
         let mut cg = self.cg.borrow_mut();
-        *cg |= 1u64 << index;
+        cg[index / 64] |= 1u64 << index;
     }
 
     pub(crate) fn execute_backlog(&self) -> Result<(), EngineError> {
@@ -180,12 +181,13 @@ impl Executor {
         Ok(())
     }
 
-    pub(crate) fn execute_save(&mut self, index: i32) -> Result<(), EngineError> {
+    pub(crate) fn execute_save(&mut self, index: i32, page_num: i32) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
             let bg = window.get_bg();
             let exists_save_items = window.get_save_items();
-            exists_save_items.set_row_data(
+            let save_page = exists_save_items.row_data(page_num as usize).unwrap();
+            save_page.set_row_data(
                 index as usize,
                 SaveItem {
                     bg: bg.0.clone(),
@@ -194,6 +196,7 @@ impl Executor {
                     name: SharedString::from(script.name()),
                 },
             );
+            exists_save_items.set_row_data(page_num as usize, save_page);
             fs::write(
                 format!("{}{}.toml", ENGINE_CONFIG.save_path(), index),
                 toml::to_string_pretty(&SaveData::new(
@@ -229,49 +232,10 @@ impl Executor {
     }
 
     pub(crate) fn execute_get_ex(&self) -> Result<(), EngineError> {
-        let ex_items = Rc::new(VecModel::from(Vec::new()));
-
-        let cgs = *self.cg.borrow();
-        let mut i = 1;
-        while i <= 63 {
-            if cgs & (1 << i) != 0 {
-                if let Some((_, length)) = CG_LENGTH.find_by_id(i) {
-                    let (mut images, mut l, is_lock) = (Vec::new(), *length, false);
-                    for j in 1..=*length {
-                        if cgs & (1 << (j + i - 1)) != 0 {
-                            if let Some((name, _)) = CG_LENGTH.find_by_id(j + i - 1) {
-                                images.push(
-                                    Image::load_from_path(Path::new(&format!(
-                                        "{}{}.png",
-                                        ENGINE_CONFIG.cg_path(),
-                                        name
-                                    )))
-                                    .unwrap(),
-                                );
-                            } else {
-                                return Err(ExecutorError::CgMetadataMissing(j + i - 1).into());
-                            }
-                        } else {
-                            l -= 1;
-                        }
-                    }
-                    i += *length;
-                    ex_items.push(ExItem {
-                        bg: Rc::new(VecModel::from(images)).into(),
-                        indexs: l as i32,
-                        is_lock,
-                    })
-                } else {
-                    return Err(ExecutorError::CgMetadataMissing(i).into());
-                }
-            } else {
-                i += 1;
-                ex_items.push(ExItem::default())
-            }
-        }
+        let ex_items = get_cg(self.cg.clone())?;
 
         if let Some(window) = self.weak.upgrade() {
-            window.set_ex_items(ex_items.into());
+            window.set_ex_items(ex_items);
         }
 
         Ok(())
@@ -673,9 +637,9 @@ impl Executor {
         };
 
         let path = if *is_cg {
-            if let Some((index, _)) = CG_LENGTH.find_by_name(name) {
+            if let Some((index, _)) = CG_CONFIG.find_by_name(name) {
                 self.unlock(*index);
-                save_extra_config(*self.cg.borrow())?;
+                save_extra_config(self.cg.clone())?;
             }
             ENGINE_CONFIG.cg_path()
         } else {

@@ -1,4 +1,95 @@
+[[save_data]]
 script = "ky02"
 block_index = 4
 explain = "14514..."
 image_path = "./source/background/bg026a.png"
+
+[[save_data]]
+script = ""
+block_index = 0
+explain = "空的"
+image_path = ""
+
+[[save_data]]
+script = "ky01"
+block_index = 1
+explain = "壬戌之秋，七..."
+image_path = "./source/background/bg022a.png"
+
+[[save_data]]
+script = "ky02"
+block_index = 1
+explain = "换个场景..."
+image_path = "./source/background/bg026a.png"
+
+[[save_data]]
+script = "ky02"
+block_index = 3
+explain = "11414..."
+image_path = "./source/background/bg026a.png"
+
+[[save_data]]
+script = "ky01"
+block_index = 2
+explain = "はじめまして..."
+image_path = "./source/background/bg022a.png"
+
+[[save_data]]
+script = "ky01"
+block_index = 3
+explain = "え、ええ、喜..."
+image_path = "./source/background/bg022a.png"
+
+[[save_data]]
+script = "ky03"
+block_index = 1
+explain = "start..."
+image_path = "./source/background/bg037a.png"
+
+[[save_data]]
+script = "ky03"
+block_index = 4
+explain = "おととい和泉..."
+image_path = "./source/background/bg037a.png"
+
+[[save_data]]
+script = "ky03"
+block_index = 8
+explain = "ありがとうご..."
+image_path = "./source/background/bg037a.png"
+
+[[save_data]]
+script = ""
+block_index = 0
+explain = "空的"
+image_path = ""
+
+[[save_data]]
+script = ""
+block_index = 0
+explain = "空的"
+image_path = ""
+
+[[save_data]]
+script = ""
+block_index = 0
+explain = "空的"
+image_path = ""
+
+[[save_data]]
+script = ""
+block_index = 0
+explain = "空的"
+image_path = ""
+
+[[save_data]]
+script = ""
+block_index = 0
+explain = "空的"
+image_path = ""
+
+[[save_data]]
+script = ""
+block_index = 0
+explain = "空的"
+image_path = ""

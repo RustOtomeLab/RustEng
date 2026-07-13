@@ -11,6 +11,5 @@ use crate::ui::initialize::ui;
 
 #[tokio::main]
 async fn main() -> Result<(), EngineError> {
-    ui().await?;
-    Ok(())
+    ui().await
 }

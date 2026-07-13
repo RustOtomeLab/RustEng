@@ -32,13 +32,12 @@ export component MainWindow inherits Window {
     in property<int> current-choose: 0;
     in-out property <bool> is-video: false;
     in property <image> video-frame;
-    property <bool> has-focus: true;
 
     in-out property <int> current-screen: 0;
     in-out property <int> last-screen: 0;
 
-    in property <[SaveItem]> save-items;
-    in property <[ExItem]> ex-items;
+    in property <[[SaveItem]]> save-items;
+    in property <[[ExItem]]> ex-items;
 
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;
@@ -207,7 +206,7 @@ export component MainWindow inherits Window {
 
             save-items <=> root.save-items;
 
-            save(index) => { root.save(index); }
+            save(index,page-num) => { root.save(index, page-num); }
             back => { root.current-screen = 2; }
         }
 
@@ -244,7 +243,7 @@ export component MainWindow inherits Window {
     callback backlog_replay(string, string);
     callback choose(string);
     callback replay-voice();
-    callback save(int);
+    callback save(int, int);
     callback load(string, int);
     callback get-ex();
     callback exit();

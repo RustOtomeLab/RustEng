@@ -43,10 +43,12 @@ export component Save {
 export component SaveView {
     in property <length> container-width;
     in property <length> container-height;
-    in property <[SaveItem]> save-items;
+    in property <[[SaveItem]]> save-items;
+    property <int> page-size: 10;
+    property <int> page-num: 1;
 
     callback back();
-    callback save(int);
+    callback save(int, int);
 
     Rectangle {
         width: container-width;
@@ -64,19 +66,30 @@ export component SaveView {
             clicked => { root.back(); }
         }
 
+        for i in page-size: CustomButton {
+            x: parent.width * (0.96 - 0.04 * (page-size - i));
+            y: parent.height * 0.04;
+            text: i + 1;
+            button-width: parent.width * 0.03;
+            button-height: parent.height * 0.06;
+            font-size: parent.width * 0.0135;
+            is-on: i + 1 == page-num;
+            clicked => { page-num = i + 1 }
+        }
+
         Rectangle {
             x: parent.width * 0.05;
             y: parent.height * 0.12;
             width: parent.width * 0.88;
             height: parent.height * 0.85;
 
-            for si[i] in save-items :Save {
+            for si[i] in save-items[page-num - 1]: Save {
                 y: (Math.floor(i / 4)) * 21.625 / 85 * parent.height;
                 x: (Math.mod(i, 4)) * 24 / 88 * parent.width;
                 width: 18 / 88 * parent.width;
                 height: 10.125 / 85 * parent.height / 9 * 16;
                 save-item: si;
-                clicked => { save(i) }
+                clicked => { save(i, page-num - 1) }
             }
         }
     }
