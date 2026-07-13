@@ -47,4 +47,12 @@
 
 ## 📈Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=RustOtomeLab/RustEng&type=date&legend=top-left)](https://www.star-history.com/#RustOtomeLab/RustEng&type=date&legend=top-left)
+## Star History
+
+<a href="https://www.star-history.com/?type=date&legend=top-left&repos=RustOtomeLab%2FRustEng">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=RustOtomeLab/RustEng&type=date&theme=dark&legend=top-left&sealed_token=_CEI_x8uU_Oa7Y7SW3X56p7VFfjqCPnTGW4dVz_7DVE1IQwGOpOOIr89ptzTD5xi_O2EZRXPFcbtbftSSXwPG7GScdYgrHwdnn1oSLOTof5NC_VH3spC24isChW3oTmu0ghGmK9fQGhswgZK4V789JYGlWIU3yLAVWt2DuPD2mt18h3jxDRXE0czXHQi" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=RustOtomeLab/RustEng&type=date&legend=top-left&sealed_token=_CEI_x8uU_Oa7Y7SW3X56p7VFfjqCPnTGW4dVz_7DVE1IQwGOpOOIr89ptzTD5xi_O2EZRXPFcbtbftSSXwPG7GScdYgrHwdnn1oSLOTof5NC_VH3spC24isChW3oTmu0ghGmK9fQGhswgZK4V789JYGlWIU3yLAVWt2DuPD2mt18h3jxDRXE0czXHQi" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=RustOtomeLab/RustEng&type=date&legend=top-left&sealed_token=_CEI_x8uU_Oa7Y7SW3X56p7VFfjqCPnTGW4dVz_7DVE1IQwGOpOOIr89ptzTD5xi_O2EZRXPFcbtbftSSXwPG7GScdYgrHwdnn1oSLOTof5NC_VH3spC24isChW3oTmu0ghGmK9fQGhswgZK4V789JYGlWIU3yLAVWt2DuPD2mt18h3jxDRXE0czXHQi" />
+ </picture>
+</a>
