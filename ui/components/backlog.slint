@@ -17,6 +17,8 @@ export component BackLogView {
     in property <[BackLogItem]> backlogs;
     property <int> backlog_len: backlogs.length;
 
+    in property <bool> is-bold;
+
     callback back();
     callback backlog-change(int);
     callback backlog-jump(string, int);
@@ -77,6 +79,7 @@ export component BackLogView {
                     color: white;
                     wrap: word-wrap;
                     font-size: parent.height * 0.15;
+                    font-weight: root.is-bold ? 700 : 400;
                     x: 0;
                     y: 0;
                 }
@@ -98,6 +101,7 @@ export component BackLogView {
                     color: white;
                     wrap: word-wrap;
                     font-size: parent.height * 0.18;
+                    font-weight: root.is-bold ? 700 : 400;
                     x: 0;
                     y: parent.height * 0.28;
                 }

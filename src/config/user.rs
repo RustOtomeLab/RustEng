@@ -57,6 +57,14 @@ impl UserConfig {
     pub(crate) fn opacity(&self) -> f32 {
         self.text.opacity()
     }
+    
+    pub(crate) fn is_bold(&self) -> bool {
+        self.text.is_bold()
+    }
+    
+    pub(crate) fn is_shadow(&self) -> bool {
+        self.text.is_shadow()
+    }
 
     pub(crate) fn character_volume(&self, name: &str) -> f32 {
         *self.character_volume.volumes.get(name).unwrap()

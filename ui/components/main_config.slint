@@ -21,6 +21,8 @@ export component SettingsView {
     in-out property <float> delay;
     in-out property <float> text-speed;
     in-out property <float> dialogue-opacity;
+    in-out property <bool> is-bold;
+    in-out property <bool> show-shadow;
     property <int> config-view: 0;
 
     callback back();
@@ -140,6 +142,8 @@ export component SettingsView {
                 width: parent.width;
                 
                 dialogue-opacity <=> root.dialogue-opacity;
+                is-bold <=> root.is-bold;
+                show-shadow <=> root.show-shadow;
                 text-speed <=> root.text-speed;
             }
 

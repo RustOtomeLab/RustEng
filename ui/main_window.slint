@@ -27,11 +27,14 @@ export component MainWindow inherits Window {
     in-out property <bool> is-wait;
     in-out property <float> delay;
     in-out property <float> text-speed;
-    in-out property <float> dialogue-opacity;
     in-out property <bool> is-skip;
     in property<int> current-choose: 0;
     in-out property <bool> is-video: false;
     in property <image> video-frame;
+
+    in-out property <float> dialogue-opacity;
+    in-out property <bool> is-bold;
+    in-out property <bool> show-shadow;
 
     in-out property <int> current-screen: 0;
     in-out property <int> last-screen: 0;
@@ -136,6 +139,8 @@ export component MainWindow inherits Window {
             is-wait <=> root.is-wait;
             delay <=> root.delay;
             dialogue-opacity <=> root.dialogue-opacity;
+            is-bold <=> root.is-bold;
+            show-shadow <=> root.show-shadow;
             text-speed <=> root.text-speed;
 
             back => { 
@@ -160,6 +165,8 @@ export component MainWindow inherits Window {
             current-choose: root.current-choose;
             figure-items: root.figure-items;
             dialogue-opacity: root.dialogue-opacity;
+            is-bold: root.is-bold;
+            show-shadow: root.show-shadow;
 
             is-video <=> root.is-video;
             video-frame: root.video-frame;
