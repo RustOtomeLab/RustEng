@@ -1,8 +1,13 @@
+use crate::config::font::SYSTEM_FONTS;
 use crate::config::user::USER_CONFIG;
 use crate::executors::executor::Executor;
 use crate::ui::initialize::MainWindow;
 use serde::{Deserialize, Serialize};
 use slint::Weak;
+
+fn default_font() -> String {
+    SYSTEM_FONTS.default_font()
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct TextConfig {
@@ -10,6 +15,9 @@ pub(crate) struct TextConfig {
     opacity: f32,
     is_bold: bool,
     show_shadow: bool,
+    // 老 user.toml 缺该字段也能解析
+    #[serde(default = "default_font")]
+    font: String,
 }
 
 impl Default for TextConfig {
@@ -19,6 +27,7 @@ impl Default for TextConfig {
             opacity: 0.8,
             is_bold: false,
             show_shadow: false,
+            font: SYSTEM_FONTS.default_font(),
         }
     }
 }
@@ -39,6 +48,14 @@ impl TextConfig {
         self.show_shadow
     }
 
+    pub(crate) fn font(&self) -> &str {
+        &self.font
+    }
+
+    pub(crate) fn set_font(&mut self, font: String) {
+        self.font = font;
+    }
+
     pub(crate) fn from_weak(weak: Weak<MainWindow>) -> Self {
         if let Some(window) = weak.upgrade() {
             TextConfig {
@@ -46,6 +63,7 @@ impl TextConfig {
                 opacity: window.get_dialogue_opacity(),
                 is_bold: window.get_is_bold(),
                 show_shadow: window.get_show_shadow(),
+                font: window.get_dialogue_font().into(),
             }
         } else {
             unreachable!()
@@ -61,6 +79,14 @@ impl Executor {
             window.set_dialogue_opacity(USER_CONFIG.opacity());
             window.set_is_bold(USER_CONFIG.is_bold());
             window.set_show_shadow(USER_CONFIG.is_shadow());
+            window.set_dialogue_font(USER_CONFIG.font().into());
+
+            let list: Vec<slint::SharedString> = SYSTEM_FONTS
+                .families()
+                .iter()
+                .map(|s| s.into())
+                .collect();
+            window.set_font_list(slint::ModelRc::new(slint::VecModel::from(list)));
         }
     }
 }

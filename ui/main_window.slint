@@ -35,6 +35,8 @@ export component MainWindow inherits Window {
     in-out property <float> dialogue-opacity;
     in-out property <bool> is-bold;
     in-out property <bool> show-shadow;
+    in-out property <string> dialogue-font;
+    in property <[string]> font-list;
 
     in-out property <int> current-screen: 0;
     in-out property <int> last-screen: 0;
@@ -142,6 +144,8 @@ export component MainWindow inherits Window {
             is-bold <=> root.is-bold;
             show-shadow <=> root.show-shadow;
             text-speed <=> root.text-speed;
+            dialogue-font <=> root.dialogue-font;
+            font-list: root.font-list;
 
             back => { 
                 root.save-config();
@@ -167,6 +171,7 @@ export component MainWindow inherits Window {
             dialogue-opacity: root.dialogue-opacity;
             is-bold: root.is-bold;
             show-shadow: root.show-shadow;
+            dialogue-font: root.dialogue-font;
 
             is-video <=> root.is-video;
             video-frame: root.video-frame;

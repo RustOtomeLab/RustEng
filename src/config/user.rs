@@ -1,6 +1,6 @@
 use crate::config::{
-    character_volume::CharacterVolumeConfig, system::AutoConfig, text::TextConfig,
-    volume::VolumeConfig, ENGINE_CONFIG,
+    character_volume::CharacterVolumeConfig, font::SYSTEM_FONTS, system::AutoConfig,
+    text::TextConfig, volume::VolumeConfig, ENGINE_CONFIG,
 };
 use crate::error::{EngineError, SaveError};
 use crate::ui::initialize::MainWindow;
@@ -66,6 +66,10 @@ impl UserConfig {
         self.text.is_shadow()
     }
 
+    pub(crate) fn font(&self) -> &str {
+        self.text.font()
+    }
+
     pub(crate) fn character_volume(&self, name: &str) -> f32 {
         *self.character_volume.volumes.get(name).unwrap()
     }
@@ -87,6 +91,13 @@ fn load_user_config() -> UserConfig {
         Ok(content) => match toml::from_str::<UserConfig>(&content) {
             Ok(mut config) => {
                 config.character_volume.fill_missing();
+
+                let resolved = SYSTEM_FONTS.resolve(config.text.font());
+                if resolved != config.text.font() {
+                    config.text.set_font(resolved);
+                    let _ = write_config(&path, &config);
+                }
+
                 config
             }
             Err(_) => {

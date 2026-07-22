@@ -1,0 +1,92 @@
+import { Colors } from "../../styles/colors.slint";
+import { ScrollView } from "std-widgets.slint";
+
+export component FontDrawer {
+    in property <[string]> font-list;
+    in-out property <string> selected-font;
+
+    property <bool> is-open: false;
+    property <length> row-height: self.height;
+    property <int> max-visible-rows: 8;
+    property <length> list-content-height: root.row-height * root.font-list.length;
+    property <length> list-view-height: min(list-content-height, root.row-height * root.max-visible-rows);
+    callback font-changed(string);
+
+    Rectangle {
+        width: parent.width;
+        height: root.row-height;
+        background: Colors.slider-background;
+        border-radius: parent.height * 0.1;
+
+        Text {
+            x: parent.width * 0.05;
+            y: 0;
+            width: parent.width * 0.8;
+            height: parent.height;
+            text: root.selected-font;
+            font-family: root.selected-font;
+            font-size: parent.height * 0.5;
+            color: Colors.text-light;
+            vertical-alignment: center;
+        }
+
+        Text {
+            x: parent.width * 0.88;
+            width: parent.width * 0.1;
+            height: parent.height;
+            text: root.is-open ? "▲" : "▼";
+            font-size: parent.height * 0.4;
+            color: Colors.text-light;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+
+        TouchArea {
+            clicked => { root.is-open = !root.is-open; }
+        }
+    }
+
+    if root.is-open: Rectangle {
+        y: root.row-height * 1.05;
+        width: parent.width;
+        height: root.list-view-height;
+        background: Colors.border-color;
+        border-radius: parent.width * 0.02;
+        clip: true;
+
+        ScrollView {
+            width: parent.width;
+            height: parent.height;
+            viewport-height: root.list-content-height;
+
+            for font[i] in root.font-list: Rectangle {
+                x: 0;
+                y: i * root.row-height;
+                width: parent.width;
+                height: root.row-height;
+                background: (root.selected-font == font)
+                    ? Colors.overlay-background
+                    : transparent;
+
+                Text {
+                    x: parent.width * 0.05;
+                    width: parent.width * 0.9;
+                    height: parent.height;
+                    text: font;
+                    font-family: font;
+                    font-size: parent.height * 0.5;
+                    color: Colors.text-light;
+                    vertical-alignment: center;
+                }
+
+                TouchArea {
+                    clicked => {
+                        root.selected-font = font;
+                        root.is-open = false;
+                        root.font-changed(font);
+                    }
+                }
+            }
+        }
+    }
+}

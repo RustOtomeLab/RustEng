@@ -23,6 +23,8 @@ export component SettingsView {
     in-out property <float> dialogue-opacity;
     in-out property <bool> is-bold;
     in-out property <bool> show-shadow;
+    in-out property <string> dialogue-font;
+    in property <[string]> font-list;
     property <int> config-view: 0;
 
     callback back();
@@ -145,6 +147,8 @@ export component SettingsView {
                 is-bold <=> root.is-bold;
                 show-shadow <=> root.show-shadow;
                 text-speed <=> root.text-speed;
+                dialogue-font <=> root.dialogue-font;
+                font-list: root.font-list;
             }
 
             if config-view == 3: VolumeConfig {

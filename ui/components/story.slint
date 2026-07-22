@@ -39,6 +39,7 @@ export component StoryView {
     in property <float> dialogue-opacity;
     in property <bool> is-bold;
     in property <bool> show-shadow;
+    in property <string> dialogue-font;
 
     in-out property <bool> is-video: false;
     in property <image> video-frame;
@@ -136,6 +137,7 @@ export component StoryView {
                 text: root.speaker;
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: #00000066;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -146,6 +148,7 @@ export component StoryView {
                 y: 0;
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -157,6 +160,7 @@ export component StoryView {
                 text: root.dialogue-1;
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: #00000066;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -167,6 +171,7 @@ export component StoryView {
                 y: parent.height * 0.2;
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -178,6 +183,7 @@ export component StoryView {
                 text: root.dialogue-2;
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: #00000066;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -188,6 +194,7 @@ export component StoryView {
                 y: parent.height * 0.35;
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -199,6 +206,7 @@ export component StoryView {
                 text: root.dialogue-3;
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: #00000066;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -209,6 +217,7 @@ export component StoryView {
                 y: parent.height * 0.5;
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -327,6 +336,7 @@ export component StoryView {
             container-width: parent.width;
             container-height: parent.height;
             is-bold: root.is-bold;
+            dialogue-font: root.dialogue-font;
             backlogs <=> root.backlogs;
             back => { is_backlog = false; }
             backlog-change(i) => { root.backlog-change(i); }

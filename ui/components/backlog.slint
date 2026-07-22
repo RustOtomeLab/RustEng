@@ -18,6 +18,7 @@ export component BackLogView {
     property <int> backlog_len: backlogs.length;
 
     in property <bool> is-bold;
+    in property <string> dialogue-font;
 
     callback back();
     callback backlog-change(int);
@@ -80,6 +81,7 @@ export component BackLogView {
                     wrap: word-wrap;
                     font-size: parent.height * 0.15;
                     font-weight: root.is-bold ? 700 : 400;
+                    font-family: root.dialogue-font;
                     x: 0;
                     y: 0;
                 }
@@ -102,6 +104,7 @@ export component BackLogView {
                     wrap: word-wrap;
                     font-size: parent.height * 0.18;
                     font-weight: root.is-bold ? 700 : 400;
+                    font-family: root.dialogue-font;
                     x: 0;
                     y: parent.height * 0.28;
                 }

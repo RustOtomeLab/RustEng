@@ -1,5 +1,6 @@
 import { CustomButton } from "../common/button.slint";
 import { VolumeSlider } from "../common/volume_slider.slint";
+import { FontDrawer } from "../common/drawer.slint";
 import { Colors } from "../../styles/colors.slint";
 import { Switch } from "std-widgets.slint";
 
@@ -8,6 +9,8 @@ export component TextConfig {
     in-out property <float> dialogue-opacity;
     in-out property <bool> is-bold;
     in-out property <bool> show-shadow;
+    in-out property <string> dialogue-font;
+    in property <[string]> font-list;
     
     callback volume-changed();
     callback voice-volume-changed();
@@ -70,6 +73,23 @@ export component TextConfig {
             y: parent.height * 0.24;
             x: parent.height * 0.252 + parent.width * 0.02;
             checked <=> root.show-shadow;
+        }
+
+        Text {
+            y: parent.height * 0.32;
+            x: parent.width * 0.02;
+            text: "对话字体";
+            font-size: parent.height * 0.035 * 0.8;
+            color: Colors.text-light;
+        }
+
+        FontDrawer {
+            y: parent.height * 0.32;
+            x: parent.height * 0.252 + parent.width * 0.02;
+            width: parent.width * 0.3;
+            height: parent.height * 0.05;
+            font-list: root.font-list;
+            selected-font <=> root.dialogue-font;
         }
     }
 }
