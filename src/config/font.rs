@@ -64,7 +64,6 @@ impl SystemFonts {
 }
 
 fn supports_chinese(db: &Database, id: fontdb::ID) -> bool {
-    // '中' 为最具代表性的常用汉字，命中即认为支持中文
     const PROBE: char = '中';
     db.with_face_data(id, |data, index| {
         ttf_parser::Face::parse(data, index)
