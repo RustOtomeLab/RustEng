@@ -12,6 +12,7 @@ pub(crate) mod save_load;
 pub(crate) mod cg;
 pub(crate) mod character_volume;
 pub(crate) mod extra;
+pub(crate) mod font;
 pub(crate) mod system;
 pub(crate) mod text;
 pub(crate) mod user;

@@ -13,6 +13,8 @@ toml = "0.9.5"
 lazy_static = "1.5.0"
 thiserror = "1.0"
 ffmpeg-next = "8.1"
+fontdb = "0.23"
+ttf-parser = "0.25"
 
 [build-dependencies]
 slint-build = "1.17.1"

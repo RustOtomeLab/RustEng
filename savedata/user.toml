@@ -5,6 +5,8 @@ is_wait = true
 [text]
 speed = 50.0
 opacity = 0.8
+is_bold = false
+show_shadow = true
 
 [volume]
 main = 100.0
@@ -12,5 +14,5 @@ bgm = 100.0
 voice = 100.0
 
 [character_volume]
-"美倉礼良" = 100.0
 "聖莉々子" = 100.0
+"美倉礼良" = 100.0

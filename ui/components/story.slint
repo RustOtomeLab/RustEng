@@ -35,7 +35,11 @@ export component StoryView {
     in-out property <bool> is_backlog;
     in-out property <bool> is-auto;
     in-out property <bool> is-skip;
+
     in property <float> dialogue-opacity;
+    in property <bool> is-bold;
+    in property <bool> show-shadow;
+    in property <string> dialogue-font;
 
     in-out property <bool> is-video: false;
     in property <image> video-frame;
@@ -127,41 +131,93 @@ export component StoryView {
             height: parent.height * 0.25;
             background: rgba(0, 0, 0, dialogue-opacity);
 
+            if root.show-shadow: Text {
+                x: parent.width / 64 + parent.width / 1200;
+                y: parent.width / 1200;
+                text: root.speaker;
+                font-size: parent.height * 2 / 15;
+                font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
+                color: #00000066;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
             Text {
                 text: root.speaker;
                 x: parent.width / 64;
                 y: 0;
                 font-size: parent.height * 2 / 15;
+                font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
             }
 
+            if root.show-shadow: Text {
+                x: parent.width / 64 + parent.width / 1200;
+                y: parent.height * 0.2 + parent.width / 1200;
+                text: root.dialogue-1;
+                font-size: parent.height * 2 / 15;
+                font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
+                color: #00000066;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
             Text {
                 text: root.dialogue-1;
                 x: parent.width / 64;
                 y: parent.height * 0.2;
                 font-size: parent.height * 2 / 15;
+                font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
             }
-            
+
+            if root.show-shadow: Text {
+                x: parent.width / 64 + parent.width / 1200;
+                y: parent.height * 0.35 + parent.width / 1200;
+                text: root.dialogue-2;
+                font-size: parent.height * 2 / 15;
+                font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
+                color: #00000066;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
             Text {
                 text: root.dialogue-2;
                 x: parent.width / 64;
                 y: parent.height * 0.35;
                 font-size: parent.height * 2 / 15;
+                font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
             }
-            
+
+            if root.show-shadow: Text {
+                x: parent.width / 64 + parent.width / 1200;
+                y: parent.height * 0.5 + parent.width / 1200;
+                text: root.dialogue-3;
+                font-size: parent.height * 2 / 15;
+                font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
+                color: #00000066;
+                wrap: word-wrap;
+                width: parent.width * 31 / 32;
+            }
             Text {
                 text: root.dialogue-3;
                 x: parent.width / 64;
                 y: parent.height * 0.5;
                 font-size: parent.height * 2 / 15;
+                font-weight: root.is-bold ? 700 : 400;
+                font-family: root.dialogue-font;
                 color: Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
@@ -279,6 +335,8 @@ export component StoryView {
         if root.is_backlog && !root.is-video: BackLogView {
             container-width: parent.width;
             container-height: parent.height;
+            is-bold: root.is-bold;
+            dialogue-font: root.dialogue-font;
             backlogs <=> root.backlogs;
             back => { is_backlog = false; }
             backlog-change(i) => { root.backlog-change(i); }
