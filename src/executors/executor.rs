@@ -12,7 +12,7 @@ use crate::media::{
     player::{MediaPlayer, PreBgm, PreBgm::Play},
     video_player::{VideoContext, VideoPlayer},
 };
-use crate::parser::script_parser::{Command, Commands};
+use crate::parser::script_parser::{Command, Commands, Parser};
 use crate::script::{Label, Script};
 use crate::ui::initialize::{CharacterVolume, FigureItem, MainWindow, SaveItem};
 use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
@@ -86,8 +86,7 @@ pub(crate) struct Executor {
 
 impl Executor {
     pub(crate) fn new(weak: Weak<MainWindow>) -> Result<Executor, EngineError> {
-        let mut script = Script::new();
-        script.with_name("ky01")?;
+        let script = Parser::load("ky01")?;
 
         let figure_items = Rc::new(VecModel::<FigureItem>::default());
         if let Some(window) = weak.upgrade() {
@@ -307,8 +306,7 @@ impl Executor {
             let jump_index = match label {
                 Jump::Label((name, label)) => {
                     if name != script.name() {
-                        let mut scr = Script::new();
-                        scr.with_name(&name)?;
+                        let mut scr = Parser::load(&name)?;
                         scr.set_backlog(backlog);
                         *script = scr;
                     }
@@ -316,8 +314,7 @@ impl Executor {
                 }
                 Jump::Index((name, index)) => {
                     if name != script.name() {
-                        let mut scr = Script::new();
-                        scr.with_name(&name)?;
+                        let mut scr = Parser::load(&name)?;
                         scr.set_backlog(backlog);
                         *script = scr;
                     }
