@@ -58,5 +58,7 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      # 不用 --all-targets：项目没有测试，且它会额外以 test 模式编译 bin，
+      # 导致仅被 main 使用的代码被误判为 dead_code。默认只编译 lib + bin 即可。
       - name: Run clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy -- -D warnings
