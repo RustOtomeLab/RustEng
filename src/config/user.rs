@@ -57,11 +57,11 @@ impl UserConfig {
     pub(crate) fn opacity(&self) -> f32 {
         self.text.opacity()
     }
-    
+
     pub(crate) fn is_bold(&self) -> bool {
         self.text.is_bold()
     }
-    
+
     pub(crate) fn is_shadow(&self) -> bool {
         self.text.is_shadow()
     }

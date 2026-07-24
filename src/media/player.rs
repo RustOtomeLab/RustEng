@@ -49,10 +49,11 @@ pub(crate) struct Player {
     stream_handle: rodio::OutputStreamHandle,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub(crate) enum PreBgm {
     Play(String),
     Stop,
+    #[default]
     None,
 }
 
