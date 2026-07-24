@@ -1,0 +1,61 @@
+name: CI
+
+# 触发条件：push 到主分支，或者向主分支发起 PR 时运行
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+# 取消同一分支上正在进行的旧任务，节省 CI 资源
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ---------- 代码格式检查 ----------
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      # fmt 只检查格式，不需要系统依赖，跑得很快
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  # ---------- Clippy 静态检查 ----------
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      # clippy 需要真正编译代码，因此要装 ffmpeg / slint 的系统依赖
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libavcodec-dev libavformat-dev libavutil-dev \
+            libavfilter-dev libavdevice-dev libswscale-dev libswresample-dev \
+            libfontconfig1-dev
+
+      # 缓存依赖编译结果，加速后续 CI
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
