@@ -319,8 +319,12 @@ impl Parser {
                                         );
                                         cmd.change_position(position);
                                         let (_, pos) = action.split_once('o').unwrap();
-                                        self.script
-                                            .update_figures(self.block_index, distance, pos, cmd);
+                                        self.script.update_figures(
+                                            self.block_index,
+                                            distance,
+                                            pos,
+                                            cmd,
+                                        );
                                     }
                                     command
                                 }

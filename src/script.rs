@@ -14,6 +14,73 @@ pub(crate) struct PreItems {
     pre_figures: Option<Figure>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub(crate) struct Timeline {
+    bgm: BTreeMap<usize, String>,
+    backgrounds: BTreeMap<usize, Command>,
+    figures: BTreeMap<usize, Figure>,
+}
+
+impl Timeline {
+    fn insert_bgm(&mut self, index: usize, bgm: String) {
+        self.bgm.insert(index, bgm);
+    }
+
+    fn insert_background(&mut self, index: usize, command: Command) {
+        self.backgrounds.insert(index, command);
+    }
+
+    fn update_figures(&mut self, index: usize, distance: &str, position: &str, command: Command) {
+        self.figures
+            .entry(index)
+            .or_default()
+            .push(distance, position, command);
+    }
+
+    fn change_figure(&mut self, index: usize, distance: &str, position: &str) -> Command {
+        let pos = format!("{distance}{position}");
+        let mut idx = 0;
+        for i in (0..=index).rev() {
+            if let Some(fg) = self.figures.get(&i) {
+                if fg.0.contains_key(&pos) {
+                    idx = i;
+                    break;
+                }
+            }
+        }
+        let figure = self.figures.get_mut(&idx).unwrap();
+        figure.0.remove(&pos).unwrap()
+    }
+
+    fn pre_items(&self, index: usize, current_bgm: &str) -> PreItems {
+        let pre_bgm = match self.bgm.range(..=index).next_back() {
+            Some((_, bgm)) => {
+                if current_bgm != bgm {
+                    Play(bgm.to_string())
+                } else {
+                    PreBgm::None
+                }
+            }
+            None => PreBgm::Stop,
+        };
+        let pre_bg = self
+            .backgrounds
+            .range(..=index)
+            .next_back()
+            .map(|(_, bg)| bg.clone());
+        let pre_figures = self
+            .figures
+            .range(..=index)
+            .next_back()
+            .map(|(_, fg)| fg.clone());
+        PreItems {
+            pre_bg,
+            pre_bgm,
+            pre_figures,
+        }
+    }
+}
+
 const WINDOW_SIZE: usize = 4;
 
 #[derive(Debug, Clone)]
@@ -24,11 +91,9 @@ pub(crate) struct Script {
     backlog: Vec<BackLogItem>,
     commands: Vec<Commands>,
     current_block: usize,
-    bgm: BTreeMap<usize, String>,
     current_bgm: String,
     pre_voice: Option<(SharedString, SharedString)>,
-    backgrounds: BTreeMap<usize, Command>,
-    figures: BTreeMap<usize, Figure>,
+    timeline: Timeline,
     clear: HashSet<usize>,
     choices: HashMap<String, Label>,
     labels: HashMap<String, usize>,
@@ -44,11 +109,9 @@ impl Script {
             backlog: Vec::new(),
             commands: Vec::new(),
             current_block: 0,
-            bgm: BTreeMap::new(),
             current_bgm: String::new(),
             pre_voice: None,
-            backgrounds: BTreeMap::new(),
-            figures: BTreeMap::new(),
+            timeline: Timeline::default(),
             clear: HashSet::new(),
             choices: HashMap::new(),
             labels: HashMap::new(),
@@ -95,31 +158,7 @@ impl Script {
 
     pub(crate) fn set_pre_items(&mut self, jump_index: Option<usize>) {
         if let Some(index) = jump_index {
-            let pre_bgm = match self.bgm.range(..=index).next_back() {
-                Some((_, bgm)) => {
-                    if &self.current_bgm != bgm {
-                        Play(bgm.to_string())
-                    } else {
-                        PreBgm::None
-                    }
-                }
-                None => PreBgm::Stop,
-            };
-            let pre_bg = self
-                .backgrounds
-                .range(..=index)
-                .next_back()
-                .map(|(_, bg)| bg.clone());
-            let pre_figures = self
-                .figures
-                .range(..=index)
-                .next_back()
-                .map(|(_, fg)| fg.clone());
-            self.pre_items = PreItems {
-                pre_bg,
-                pre_bgm,
-                pre_figures,
-            };
+            self.pre_items = self.timeline.pre_items(index, &self.current_bgm);
             self.current_block = index;
         }
     }
@@ -131,10 +170,8 @@ impl Script {
         position: &str,
         command: Command,
     ) {
-        self.figures
-            .entry(index)
-            .or_default()
-            .push(distance, position, command);
+        self.timeline
+            .update_figures(index, distance, position, command);
     }
 
     pub(crate) fn set_backlog(&mut self, backlog: Vec<BackLogItem>) {
@@ -142,11 +179,11 @@ impl Script {
     }
 
     pub(crate) fn insert_background(&mut self, index: usize, command: Command) {
-        self.backgrounds.insert(index, command);
+        self.timeline.insert_background(index, command);
     }
 
     pub(crate) fn insert_bgm(&mut self, index: usize, bgm: String) {
-        self.bgm.insert(index, bgm);
+        self.timeline.insert_bgm(index, bgm);
     }
 
     pub(crate) fn insert_choice(&mut self, choice: String, label: Label) {
@@ -245,18 +282,7 @@ impl Script {
         distance: &str,
         position: &str,
     ) -> Command {
-        let pos = format!("{distance}{position}");
-        let mut idx = 0;
-        for i in (0..=index).rev() {
-            if let Some(fg) = self.figures.get(&i) {
-                if fg.0.contains_key(&pos) {
-                    idx = i;
-                    break;
-                }
-            }
-        }
-        let figure = self.figures.get_mut(&idx).unwrap();
-        figure.0.remove(&pos).unwrap()
+        self.timeline.change_figure(index, distance, position)
     }
 
     pub(crate) fn in_clear(&self) -> bool {
