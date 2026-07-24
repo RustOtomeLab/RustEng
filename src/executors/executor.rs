@@ -12,7 +12,7 @@ use crate::media::{
     player::{MediaPlayer, PreBgm, PreBgm::Play},
     video_player::{VideoContext, VideoPlayer},
 };
-use crate::parser::script_parser::{Command, Commands};
+use crate::parser::script_parser::{Command, Commands, Parser};
 use crate::script::{Label, Script};
 use crate::ui::initialize::{CharacterVolume, FigureItem, MainWindow, SaveItem};
 use slint::{Image, Model, SharedString, ToSharedString, VecModel, Weak};
@@ -86,8 +86,7 @@ pub(crate) struct Executor {
 
 impl Executor {
     pub(crate) fn new(weak: Weak<MainWindow>) -> Result<Executor, EngineError> {
-        let mut script = Script::new();
-        script.with_name("ky01")?;
+        let script = Parser::load("ky01")?;
 
         let figure_items = Rc::new(VecModel::<FigureItem>::default());
         if let Some(window) = weak.upgrade() {
@@ -303,14 +302,11 @@ impl Executor {
     pub(crate) fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
         {
             let mut script = self.script.borrow_mut();
-            let current_bgm = script.current_bgm().to_string();
-            let mut pre_bgm = PreBgm::None;
             let backlog = script.to_owned().take_backlog();
             let jump_index = match label {
                 Jump::Label((name, label)) => {
                     if name != script.name() {
-                        let mut scr = Script::new();
-                        scr.with_name(&name)?;
+                        let mut scr = Parser::load(&name)?;
                         scr.set_backlog(backlog);
                         *script = scr;
                     }
@@ -318,8 +314,7 @@ impl Executor {
                 }
                 Jump::Index((name, index)) => {
                     if name != script.name() {
-                        let mut scr = Script::new();
-                        scr.with_name(&name)?;
+                        let mut scr = Parser::load(&name)?;
                         scr.set_backlog(backlog);
                         *script = scr;
                     }
@@ -327,25 +322,7 @@ impl Executor {
                 }
             };
 
-            let mut current_block = script.index();
-            if let Some(index) = jump_index {
-                current_block = index;
-                if let Some((_, bgm)) = script.get_bgm(index) {
-                    if &current_bgm != bgm {
-                        pre_bgm = Play(bgm.to_string());
-                    }
-                } else if script.get_bgm(index).is_none() {
-                    pre_bgm = PreBgm::Stop;
-                }
-                {
-                    let pre_bg = script.get_background(index).map(|(_, bg)| bg.clone());
-                    script.set_pre_bg(pre_bg);
-                    let pre_figures = script.get_figures(index).map(|(_, fg)| fg.clone());
-                    script.set_pre_figures(pre_figures);
-                }
-            }
-            script.set_pre_bgm(pre_bgm);
-            script.set_index(current_block);
+            script.set_pre_items(jump_index);
         }
         self.clean_fg("All")?;
 
@@ -470,16 +447,9 @@ impl Executor {
         let mut duration = Duration::from_secs(0);
 
         if let Some(window) = self.weak.upgrade() {
-            let pre_bg;
-            let pre_bgm;
-            let pre_fg;
-
-            {
-                let mut scr = self.script.borrow_mut();
-                pre_bg = scr.pre_bg();
-                pre_bgm = scr.pre_bgm();
-                pre_fg = scr.pre_figures();
-            }
+            let mut scr = self.script.borrow_mut();
+            let (pre_bg, pre_bgm, pre_figures) = scr.pre_items();
+            drop(scr);
 
             if let Some(bg) = pre_bg {
                 self.show_bg(&bg)?;
@@ -489,7 +459,7 @@ impl Executor {
             } else if let PreBgm::Stop = pre_bgm {
                 self.media_player.borrow().stop_bgm();
             }
-            if let Some(figures) = pre_fg {
+            if let Some(figures) = pre_figures {
                 for figure in figures.0.values() {
                     self.show_fg(&figure.clone())?;
                 }
@@ -933,7 +903,7 @@ impl Executor {
                             eprintln!("video auto-stop failed: {e}");
                         }
                     })
-                    .expect("video timer: no slint event loop");
+                    .expect("video timer: no event loop");
                 }
             },
         );
