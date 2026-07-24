@@ -61,11 +61,15 @@ jobs:
           ffmpeg-version: release
           linking-type: shared
 
-      # 让 ffmpeg-next 的 build.rs 能通过 pkg-config 找到 FFmpeg，并在链接期定位 .so
+      # setup-ffmpeg 的预编译包不含 pkg-config 的 .pc 文件，
+      # 因此改用 ffmpeg-sys-next 支持的 FFMPEG_DIR 变量，让它直接按目录链接。
       - name: Export FFmpeg env
         run: |
           FF_DIR="${{ steps.ffmpeg.outputs.ffmpeg-path }}"
-          echo "PKG_CONFIG_PATH=${FF_DIR}/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "FFmpeg dir = ${FF_DIR}"
+          echo "----- 目录结构 (方便排查) -----"
+          ls -R "${FF_DIR}" | head -n 60
+          echo "FFMPEG_DIR=${FF_DIR}" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=${FF_DIR}/lib" >> "$GITHUB_ENV"
 
       # 缓存依赖编译结果，加速后续 CI
