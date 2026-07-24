@@ -28,7 +28,7 @@ impl SystemFonts {
             families: set.into_iter().collect(),
         }
     }
-    
+
     pub(crate) fn families(&self) -> &[String] {
         &self.families
     }
@@ -36,14 +36,19 @@ impl SystemFonts {
     fn contains(&self, name: &str) -> bool {
         self.families.iter().any(|f| f == name)
     }
-    
+
     pub(crate) fn default_font(&self) -> String {
         let candidates: &[&str] = if cfg!(target_os = "macos") {
             &["PingFang SC", "Hiragino Sans GB", "STHeiti", "Helvetica"]
         } else if cfg!(target_os = "windows") {
             &["Microsoft YaHei", "SimSun", "SimHei", "Segoe UI"]
         } else {
-            &["Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", "DejaVu Sans"]
+            &[
+                "Noto Sans CJK SC",
+                "Source Han Sans SC",
+                "WenQuanYi Micro Hei",
+                "DejaVu Sans",
+            ]
         };
 
         candidates
@@ -53,7 +58,7 @@ impl SystemFonts {
             .or_else(|| self.families.first().cloned())
             .unwrap_or_default()
     }
-    
+
     pub(crate) fn resolve(&self, configured: &str) -> String {
         if !configured.is_empty() && self.contains(configured) {
             configured.to_string()
@@ -70,5 +75,5 @@ fn supports_chinese(db: &Database, id: fontdb::ID) -> bool {
             .map(|face| face.glyph_index(PROBE).is_some())
             .unwrap_or(false)
     })
-        .unwrap_or(false)
+    .unwrap_or(false)
 }

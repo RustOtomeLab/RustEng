@@ -81,11 +81,8 @@ impl Executor {
             window.set_show_shadow(USER_CONFIG.is_shadow());
             window.set_dialogue_font(USER_CONFIG.font().into());
 
-            let list: Vec<slint::SharedString> = SYSTEM_FONTS
-                .families()
-                .iter()
-                .map(|s| s.into())
-                .collect();
+            let list: Vec<slint::SharedString> =
+                SYSTEM_FONTS.families().iter().map(|s| s.into()).collect();
             window.set_font_list(slint::ModelRc::new(slint::VecModel::from(list)));
         }
     }
