@@ -1,8 +1,6 @@
-[cg]
 cg = [1022]
 
 [read]
-read = [
-    {name = "ky01", index = 4},
-    {name = "ky02", index = 6},
-]
+ky02 = 0
+ky03 = 2
+ky01 = 3

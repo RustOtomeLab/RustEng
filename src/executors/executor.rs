@@ -3,7 +3,7 @@ use crate::config::{
     cg::CG_CONFIG, figure::FIGURE_CONFIG, save_load::SaveData,
     user::save_user_config, voice::VOICE_LENGTH, ENGINE_CONFIG,
 };
-use crate::data::user::save_user_data;
+use crate::data::UserData;
 use crate::error::{EngineError, SaveError};
 use crate::executors::{delay_executor::{DelayChannels, DelayTX}, text_executor::{DisplayText, TextTX}, Status};
 use crate::media::{
@@ -23,6 +23,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::mpsc::Sender;
+use tokio::sync::watch;
 
 pub(crate) enum Jump {
     Label(Label),
@@ -70,7 +71,8 @@ fn parse_position(position: &str, distance: &str) -> (f32, f32, f32) {
 pub(crate) struct Executor {
     script: Rc<RefCell<Script>>,
     media_player: Rc<RefCell<MediaPlayer>>,
-    cg: Rc<RefCell<Vec<u64>>>,
+    user_data: Rc<RefCell<UserData>>,
+    save_tx: Option<watch::Sender<Option<UserData>>>,
     weak: Weak<MainWindow>,
     text: Arc<RwLock<DisplayText>>,
     choose_lock: Rc<RefCell<bool>>,
@@ -85,7 +87,12 @@ pub(crate) struct Executor {
 
 impl Executor {
     pub(crate) fn new(weak: Weak<MainWindow>) -> Result<Executor, EngineError> {
-        let script = Parser::load("ky01")?;
+        let mut script = Parser::load("ky01")?;
+
+        // 加载用户存档，并把启动剧本的已读进度注入 Script
+        let user_data = UserData::load();
+        let read_block = user_data.read.get(script.name()).copied().unwrap_or(0);
+        script.set_read_block(read_block);
 
         let figure_items = Rc::new(VecModel::<FigureItem>::default());
         if let Some(window) = weak.upgrade() {
@@ -95,7 +102,8 @@ impl Executor {
         Ok(Executor {
             script: Rc::new(RefCell::new(script)),
             media_player: Rc::new(RefCell::new(MediaPlayer::new()?)),
-            cg: Rc::new(RefCell::new(Vec::new())),
+            user_data: Rc::new(RefCell::new(user_data)),
+            save_tx: None,
             weak,
             text: Arc::new(RwLock::new(DisplayText::new())),
             choose_lock: Rc::new(RefCell::new(false)),
@@ -113,8 +121,20 @@ impl Executor {
         self.weak.clone()
     }
 
-    pub(crate) fn set_cg(&mut self, cg: Vec<u64>) {
-        *self.cg.borrow_mut() = cg;
+    pub(crate) fn set_save_tx(&mut self, save_tx: watch::Sender<Option<UserData>>) {
+        self.save_tx = Some(save_tx);
+    }
+
+    /// 读取某剧本已记录的已读进度（不存在则为 0）
+    fn read_of(&self, name: &str) -> usize {
+        self.user_data.borrow().read.get(name).copied().unwrap_or(0)
+    }
+
+    /// 向异步保存 task 推送最新快照（非阻塞）
+    fn request_save(&self) {
+        if let Some(tx) = &self.save_tx {
+            let _ = tx.send(Some(self.user_data.borrow().clone()));
+        }
     }
 
     pub(crate) fn set_text_tx(&mut self, text_tx: Sender<Arc<RwLock<DisplayText>>>) {
@@ -150,8 +170,8 @@ impl Executor {
     }
 
     pub(crate) fn unlock(&mut self, index: usize) {
-        let mut cg = self.cg.borrow_mut();
-        cg[index / 64] |= 1u64 << index;
+        let mut ud = self.user_data.borrow_mut();
+        ud.cg[index / 64] |= 1u64 << index;
     }
 
     pub(crate) fn execute_backlog(&mut self) -> Result<(), EngineError> {
@@ -244,7 +264,7 @@ impl Executor {
     }
 
     pub(crate) fn execute_get_ex(&self) -> Result<(), EngineError> {
-        let ex_items = get_cg(self.cg.clone())?;
+        let ex_items = get_cg(&self.user_data.borrow().cg)?;
 
         if let Some(window) = self.weak.upgrade() {
             window.set_ex_items(ex_items);
@@ -321,6 +341,7 @@ impl Executor {
                     if name != script.name() {
                         let mut scr = Parser::load(&name)?;
                         scr.set_backlog(backlog);
+                        scr.set_read_block(self.read_of(&name));
                         *script = scr;
                     }
                     script.find_label(&label).copied()
@@ -329,6 +350,7 @@ impl Executor {
                     if name != script.name() {
                         let mut scr = Parser::load(&name)?;
                         scr.set_backlog(backlog);
+                        scr.set_read_block(self.read_of(&name));
                         *script = scr;
                     }
                     Some(index as usize)
@@ -459,6 +481,20 @@ impl Executor {
                 delay
             }
         };
+
+        // 同步当前剧本的已读进度到 user_data，并异步实时保存
+        {
+            let (name, rb) = {
+                let scr = self.script.borrow();
+                (scr.name().to_string(), scr.read_block())
+            };
+            let mut ud = self.user_data.borrow_mut();
+            let entry = ud.read.entry(name).or_insert(0);
+            if rb > *entry {
+                *entry = rb;
+            }
+        }
+        self.request_save();
 
         if is_wait {
             duration += delay;
@@ -637,7 +673,7 @@ impl Executor {
         let path = if *is_cg {
             if let Some((index, _)) = CG_CONFIG.find_by_name(name) {
                 self.unlock(*index);
-                save_user_data(self.cg.clone())?;
+                self.request_save();
             }
             ENGINE_CONFIG.cg_path()
         } else {

@@ -3,7 +3,7 @@ use crate::error::{EngineError, ExecutorError};
 use crate::ui::initialize::ExItem;
 use serde::{Deserialize, Serialize};
 use slint::{Image, ModelRc, VecModel};
-use std::{cell::RefCell, path::Path, rc::Rc};
+use std::{path::Path, rc::Rc};
 use std::{collections::HashMap, fs};
 
 lazy_static::lazy_static! {
@@ -62,9 +62,7 @@ fn load_cg() -> CgConfig {
     }
 }
 
-pub(crate) fn get_cg(cg: Rc<RefCell<Vec<u64>>>) -> Result<ModelRc<ModelRc<ExItem>>, EngineError> {
-    let cg_map = cg.borrow();
-
+pub(crate) fn get_cg(cg_map: &[u64]) -> Result<ModelRc<ModelRc<ExItem>>, EngineError> {
     let mut ex_items: Vec<ModelRc<ExItem>> = Vec::with_capacity(10);
     let mut i = 1;
     let mut ex_page: Vec<ExItem> = Vec::new();

@@ -125,6 +125,14 @@ impl Script {
         self.name = name.to_string();
     }
 
+    pub(crate) fn set_read_block(&mut self, read_block: usize) {
+        self.read_block = read_block;
+    }
+
+    pub(crate) fn read_block(&self) -> usize {
+        self.read_block
+    }
+
     pub(crate) fn next_command(&mut self) -> Option<&Commands> {
         let command = self.commands.get(self.current_block);
         if self.read_block <= self.current_block {

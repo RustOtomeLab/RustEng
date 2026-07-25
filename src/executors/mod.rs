@@ -1,3 +1,4 @@
+use crate::data::spawn_save_task;
 use crate::error::EngineError;
 use crate::executors::{
     auto_executor::AutoExecutor, delay_executor::DelayExecutor, executor::Executor,
@@ -65,13 +66,13 @@ pub(crate) fn load_data(executor: &mut Executor) -> Result<ExecutorCluster, Engi
     skip_executor.start_timer();
     
     executor.set_status_channel(auto_tx, skip_tx);
+    executor.set_save_tx(spawn_save_task());
 
     executor.load_save_data()?;
     executor.load_volume();
     executor.load_character_volumes();
     executor.load_auto();
     executor.load_text();
-    executor.load_cg();
 
     Ok(ExecutorCluster {
         _text_executor: text_executor,
