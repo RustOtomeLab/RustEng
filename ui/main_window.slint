@@ -182,19 +182,9 @@ export component MainWindow inherits Window {
             is-auto <=> root.is-auto;
             is-skip <=> root.is-skip;
 
-            auto-play(b) => {
-                root.auto-play(b);
-                root.skip-play(false);
-            }
-            skip-play(b) => {
-                root.skip-play(b);
-                root.auto-play(false);
-            }
-            backlog => {
-                root.auto-play(false);
-                root.skip-play(false);
-                root.backlog();
-            }
+            auto-play(b) => { root.auto-play(b); }
+            skip-play(b) => { root.skip-play(b); }
+            backlog => { root.backlog(); }
             backlog-change(i) => { root.backlog-change(i); }
             backlog-jump(s, i) => { root.backlog-jump(s, i); }
             backlog-replay(n, v) => { root.backlog-replay(n, v) }
@@ -203,12 +193,15 @@ export component MainWindow inherits Window {
             replay-voice => { root.replay-voice(); }
             save-game => {
                 esc_story(3);
+                root.normal-play();
             }
             load-game => {
                 esc_story(4);
+                root.normal-play();
             }
             settings => {
                 esc_story(1);
+                root.normal-play();
             }
         }
 
@@ -243,6 +236,7 @@ export component MainWindow inherits Window {
 
     callback auto-play(bool);
     callback skip-play(bool);
+    callback normal-play();
     callback clicked();
     callback toggle-fullscreen();
     callback volume-changed();

@@ -3,7 +3,6 @@ use crate::executors::{
     auto_executor::AutoExecutor, delay_executor::DelayExecutor, executor::Executor,
     skip_executor::SkipExecutor, text_executor::TextExecutor,
 };
-use tokio::sync::mpsc::Sender;
 
 pub(crate) mod auto_executor;
 pub(crate) mod delay_executor;
@@ -11,9 +10,13 @@ pub(crate) mod executor;
 pub(crate) mod skip_executor;
 pub(crate) mod text_executor;
 
-pub(crate) struct ExecutorTX {
-    auto_tx: Sender<()>,
-    skip_tx: Sender<()>,
+pub(crate) enum Status {
+    Auto,
+    Skip,
+    Normal,
+}
+
+pub(crate) struct ExecutorCluster {
     _text_executor: TextExecutor,
     _auto_executor: AutoExecutor,
     _skip_executor: SkipExecutor,
@@ -22,17 +25,7 @@ pub(crate) struct ExecutorTX {
     _loop_move_executor: DelayExecutor,
 }
 
-impl ExecutorTX {
-    pub(crate) fn auto_tx(&self) -> Sender<()> {
-        self.auto_tx.clone()
-    }
-
-    pub(crate) fn skip_tx(&self) -> Sender<()> {
-        self.skip_tx.clone()
-    }
-}
-
-pub(crate) fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineError> {
+pub(crate) fn load_data(executor: &mut Executor) -> Result<ExecutorCluster, EngineError> {
     let (mut text_executor, text_tx) = TextExecutor::new(executor.get_weak());
     executor.set_text_tx(text_tx);
 
@@ -70,17 +63,17 @@ pub(crate) fn load_data(executor: &mut Executor) -> Result<ExecutorTX, EngineErr
     loop_move_executor.start_timer();
     auto_executor.start_timer();
     skip_executor.start_timer();
+    
+    executor.set_status_channel(auto_tx, skip_tx);
 
     executor.load_save_data()?;
     executor.load_volume();
     executor.load_character_volumes();
     executor.load_auto();
     executor.load_text();
-    executor.load_extra();
+    executor.load_cg();
 
-    Ok(ExecutorTX {
-        auto_tx,
-        skip_tx,
+    Ok(ExecutorCluster {
         _text_executor: text_executor,
         _auto_executor: auto_executor,
         _skip_executor: skip_executor,

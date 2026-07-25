@@ -10,21 +10,6 @@ lazy_static::lazy_static! {
     pub(crate) static ref CG_CONFIG: CgConfig = load_cg();
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct CgMap {
-    cg: Vec<u64>,
-}
-
-impl CgMap {
-    pub(crate) fn new(cg: Vec<u64>) -> Self {
-        Self { cg }
-    }
-
-    pub(crate) fn cg(self) -> Vec<u64> {
-        self.cg
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct Length {
     name: String,

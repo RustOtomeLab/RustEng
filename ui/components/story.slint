@@ -65,8 +65,6 @@ export component StoryView {
         scroll-event(event) => {
             if (root.is-video) {
                 accept
-            } else if (event.delta-y == 0) {
-                accept
             } else if (event.delta-y > 0) {
                 root.backlog();
                 is_backlog = true;
@@ -288,11 +286,7 @@ export component StoryView {
                 y: 0;
                 text: "自动";
                 is-on: is-auto;
-                clicked => {
-                    is-auto = !is-auto;
-                    is-skip = false;
-                    root.auto-play(true);
-                }
+                clicked => { root.auto-play(is-auto); }
             }
 
             CustomRoundButton {
@@ -302,11 +296,7 @@ export component StoryView {
                 y: 0;
                 text: "快进";
                 is-on: is-skip;
-                clicked => {
-                    is-skip = !is-skip;
-                    is-auto = false;
-                    root.skip-play(true);
-                }
+                clicked => { root.skip-play(is-skip); }
             }
 
             CustomRoundButton {
@@ -317,8 +307,6 @@ export component StoryView {
                 text: "履历";
                 clicked => {
                     is-backlog = !is-backlog;
-                    is-auto = false;
-                    is-skip = false;
                     root.backlog();
                 }
             }
