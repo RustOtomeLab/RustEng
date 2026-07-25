@@ -1,5 +1,5 @@
 use crate::config::ENGINE_CONFIG;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
 use tokio::time::Duration;
 
@@ -7,16 +7,9 @@ lazy_static::lazy_static! {
     pub(crate) static ref VOICE_LENGTH: VoiceLength = load_voice();
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Length {
-    name: String,
-    #[serde(deserialize_with = "deserialize_duration_from_secs")]
-    length: Duration,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 struct LengthWrapper {
-    cast: Vec<Length>,
+    cast: HashMap<String, u64>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -44,18 +37,10 @@ fn load_voice() -> VoiceLength {
             char.to_string(),
             item.cast
                 .into_iter()
-                .map(|length| (length.name, length.length))
+                .map(|(name, secs)| (name, Duration::from_secs(secs)))
                 .collect(),
         );
     }
 
     VoiceLength { voice_length }
-}
-
-pub(crate) fn deserialize_duration_from_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let seconds = u64::deserialize(deserializer)?;
-    Ok(Duration::from_secs(seconds))
 }
