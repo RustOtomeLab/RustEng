@@ -1,4 +1,5 @@
 use crate::executors::executor::Executor;
+use crate::executors::Status;
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -7,7 +8,6 @@ use std::{
     time::Duration,
 };
 use tokio::sync::mpsc::{channel, Sender};
-use crate::executors::Status;
 
 pub(crate) struct SkipExecutor {
     timer: slint::Timer,
@@ -63,9 +63,11 @@ impl SkipExecutor {
                                 eprintln!("skip execute_script failed: {e}");
                             }
                         })
-                            .expect("skip-play timer: no slint event loop");
+                        .expect("skip-play timer: no slint event loop");
                     } else {
-                        executor.execute_status(Status::Normal, false).expect("skip-play execute_status failed");
+                        executor
+                            .execute_status(Status::Normal, false)
+                            .expect("skip-play execute_status failed");
                     }
                 }
             },

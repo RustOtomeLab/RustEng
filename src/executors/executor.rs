@@ -1,11 +1,15 @@
 use crate::config::cg::get_cg;
 use crate::config::{
-    cg::CG_CONFIG, figure::FIGURE_CONFIG, save_load::SaveData,
-    user::save_user_config, voice::VOICE_LENGTH, ENGINE_CONFIG,
+    cg::CG_CONFIG, figure::FIGURE_CONFIG, save_load::SaveData, user::save_user_config,
+    voice::VOICE_LENGTH, ENGINE_CONFIG,
 };
 use crate::data::UserData;
 use crate::error::{EngineError, SaveError};
-use crate::executors::{delay_executor::{DelayChannels, DelayTX}, text_executor::{DisplayText, TextTX}, Status};
+use crate::executors::{
+    delay_executor::{DelayChannels, DelayTX},
+    text_executor::{DisplayText, TextTX},
+    Status,
+};
 use crate::media::{
     player::{MediaPlayer, PreBgm, PreBgm::Play},
     video_player::{VideoContext, VideoPlayer},
@@ -163,7 +167,7 @@ impl Executor {
 
     pub(crate) fn get_status_channel(&self) -> Option<(Sender<()>, Sender<()>)> {
         if let Some((auto_tx, skip_tx)) = self.status_channel.as_ref() {
-            return Some((auto_tx.clone(), skip_tx.clone()))
+            return Some((auto_tx.clone(), skip_tx.clone()));
         }
         None
     }
@@ -373,7 +377,11 @@ impl Executor {
         Ok(())
     }
 
-    pub(crate) fn execute_status(&mut self, status: Status, symbol: bool) -> Result<(), EngineError> {
+    pub(crate) fn execute_status(
+        &mut self,
+        status: Status,
+        symbol: bool,
+    ) -> Result<(), EngineError> {
         let (auto_tx, skip_tx) = self.get_status_channel().unwrap();
 
         if let Some(window) = self.weak.upgrade() {
@@ -396,7 +404,7 @@ impl Executor {
                 }
                 Status::Skip => {
                     if !self.can_skip() {
-                        return Ok(())
+                        return Ok(());
                     }
 
                     if symbol {

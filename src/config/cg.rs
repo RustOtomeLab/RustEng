@@ -3,8 +3,8 @@ use crate::error::{EngineError, ExecutorError};
 use crate::ui::initialize::ExItem;
 use serde::{Deserialize, Serialize};
 use slint::{Image, ModelRc, VecModel};
-use std::{path::Path, rc::Rc};
 use std::{collections::HashMap, fs};
+use std::{path::Path, rc::Rc};
 
 lazy_static::lazy_static! {
     pub(crate) static ref CG_CONFIG: CgConfig = load_cg();

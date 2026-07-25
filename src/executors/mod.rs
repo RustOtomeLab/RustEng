@@ -63,7 +63,9 @@ pub(crate) fn load_data(executor: &mut Executor) -> Result<ExecutorCluster, Engi
     delay_move_executor.start_timer();
     loop_move_executor.start_timer();
     auto_executor.start_timer();
-    skip_executor.executor.set_status_channel(auto_tx.clone(), skip_tx.clone());
+    skip_executor
+        .executor
+        .set_status_channel(auto_tx.clone(), skip_tx.clone());
     skip_executor.start_timer();
 
     executor.set_status_channel(auto_tx, skip_tx);

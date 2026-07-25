@@ -159,7 +159,7 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
                 .expect("TODO: panic message");
         }
     });
-    
+
     window.on_normal_play({
         let mut executor = executor.clone();
         move || {

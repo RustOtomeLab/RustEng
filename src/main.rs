@@ -1,11 +1,11 @@
 mod config;
+mod data;
 mod error;
 mod executors;
 mod media;
 mod parser;
 mod script;
 mod ui;
-mod data;
 
 use crate::error::EngineError;
 use crate::ui::initialize::ui;
