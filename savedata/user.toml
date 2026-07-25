@@ -7,6 +7,7 @@ speed = 50.0
 opacity = 0.8
 is_bold = false
 show_shadow = true
+font = "PingFang SC"
 
 [volume]
 main = 100.0

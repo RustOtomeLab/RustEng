@@ -25,6 +25,7 @@ export component MainWindow inherits Window {
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
     in-out property <bool> is-wait;
+    in-out property <bool> skip-conf;
     in-out property <float> delay;
     in-out property <float> text-speed;
     in-out property <bool> is-skip;
@@ -36,6 +37,7 @@ export component MainWindow inherits Window {
     in-out property <bool> is-bold;
     in-out property <bool> show-shadow;
     in-out property <string> dialogue-font;
+    in-out property <bool> is-read;
     in property <[string]> font-list;
 
     in-out property <int> current-screen: 0;
@@ -55,8 +57,6 @@ export component MainWindow inherits Window {
     out property <length> container-height: container-size * 9 / 16;
 
     function esc_story(screen: int) {
-        root.auto-play(false);
-        root.skip-play(false);
         root.last-screen = 2;
         root.current-screen = screen;
     }
@@ -139,6 +139,7 @@ export component MainWindow inherits Window {
             voice-volume <=> root.voice-volume;
             character_volumes <=> root.character_volumes;
             is-wait <=> root.is-wait;
+            skip-conf <=> root.skip-conf;
             delay <=> root.delay;
             dialogue-opacity <=> root.dialogue-opacity;
             is-bold <=> root.is-bold;
@@ -172,6 +173,7 @@ export component MainWindow inherits Window {
             is-bold: root.is-bold;
             show-shadow: root.show-shadow;
             dialogue-font: root.dialogue-font;
+            is-read: root.is-read;
 
             is-video <=> root.is-video;
             video-frame: root.video-frame;
@@ -182,19 +184,9 @@ export component MainWindow inherits Window {
             is-auto <=> root.is-auto;
             is-skip <=> root.is-skip;
 
-            auto-play(b) => {
-                root.auto-play(b);
-                root.skip-play(false);
-            }
-            skip-play(b) => {
-                root.skip-play(b);
-                root.auto-play(false);
-            }
-            backlog => {
-                root.auto-play(false);
-                root.skip-play(false);
-                root.backlog();
-            }
+            auto-play(b) => { root.auto-play(b); }
+            skip-play(b) => { root.skip-play(b); }
+            backlog => { root.backlog(); }
             backlog-change(i) => { root.backlog-change(i); }
             backlog-jump(s, i) => { root.backlog-jump(s, i); }
             backlog-replay(n, v) => { root.backlog-replay(n, v) }
@@ -203,12 +195,15 @@ export component MainWindow inherits Window {
             replay-voice => { root.replay-voice(); }
             save-game => {
                 esc_story(3);
+                root.normal-play();
             }
             load-game => {
                 esc_story(4);
+                root.normal-play();
             }
             settings => {
                 esc_story(1);
+                root.normal-play();
             }
         }
 
@@ -243,6 +238,7 @@ export component MainWindow inherits Window {
 
     callback auto-play(bool);
     callback skip-play(bool);
+    callback normal-play();
     callback clicked();
     callback toggle-fullscreen();
     callback volume-changed();

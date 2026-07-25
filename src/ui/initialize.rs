@@ -1,5 +1,5 @@
 use crate::error::EngineError;
-use crate::executors::{executor::Executor, load_data};
+use crate::executors::{executor::Executor, load_data, Status};
 slint::include_modules!();
 
 pub(crate) async fn ui() -> Result<(), EngineError> {
@@ -8,7 +8,7 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
 
     let mut executor = Executor::new(weak)?;
 
-    let executor_tx = load_data(&mut executor)?;
+    let _executor_cluster = load_data(&mut executor)?;
 
     let mut is_fullscreen = false;
     let weak_for_fullscreen = executor.get_weak();
@@ -95,7 +95,7 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
     });
 
     window.on_backlog({
-        let executor = executor.clone();
+        let mut executor = executor.clone();
         move || {
             executor.execute_backlog().expect("Backlog panicked");
         }
@@ -144,22 +144,27 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
 
     window.on_auto_play({
         let mut executor = executor.clone();
-        let tx = executor_tx.auto_tx();
-        move |source| {
-            let tx = tx.clone();
+        move |symbol| {
             executor
-                .execute_auto(tx, source)
+                .execute_status(Status::Auto, symbol)
                 .expect("TODO: panic message");
         }
     });
 
     window.on_skip_play({
         let mut executor = executor.clone();
-        let tx = executor_tx.skip_tx();
-        move |source| {
-            let tx = tx.clone();
+        move |symbol| {
             executor
-                .execute_skip(tx, source)
+                .execute_status(Status::Skip, symbol)
+                .expect("TODO: panic message");
+        }
+    });
+
+    window.on_normal_play({
+        let mut executor = executor.clone();
+        move || {
+            executor
+                .execute_status(Status::Normal, false)
                 .expect("TODO: panic message");
         }
     });

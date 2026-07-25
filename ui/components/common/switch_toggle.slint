@@ -1,0 +1,32 @@
+import { Switch } from "std-widgets.slint";
+import { Colors } from "../../styles/colors.slint";
+
+// 文本 + 开关：label 在左，Switch 紧随其后
+export component SwitchToggle {
+    in property <string> label;
+    in-out property <bool> checked;
+    in property <float> texts;
+
+    callback toggled();
+
+    Rectangle {
+        Text {
+            x: 0;
+            y: 0;
+            width: parent.width * 0.3;
+            text: label;
+            font-size: parent.height * 0.8;
+            color: Colors.text-light;
+            vertical-alignment: center;
+        }
+
+        Switch {
+            x: parent.height * 1.2 * texts;
+            y: 0;
+            checked <=> root.checked;
+            toggled => {
+                root.toggled();
+            }
+        }
+    }
+}

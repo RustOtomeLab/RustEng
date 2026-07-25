@@ -3,38 +3,22 @@ use crate::error::{EngineError, ExecutorError};
 use crate::ui::initialize::ExItem;
 use serde::{Deserialize, Serialize};
 use slint::{Image, ModelRc, VecModel};
-use std::{cell::RefCell, path::Path, rc::Rc};
 use std::{collections::HashMap, fs};
+use std::{path::Path, rc::Rc};
 
 lazy_static::lazy_static! {
     pub(crate) static ref CG_CONFIG: CgConfig = load_cg();
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct CgMap {
-    cg: Vec<u64>,
-}
-
-impl CgMap {
-    pub(crate) fn new(cg: Vec<u64>) -> Self {
-        Self { cg }
-    }
-
-    pub(crate) fn cg(self) -> Vec<u64> {
-        self.cg
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct Length {
-    name: String,
+#[derive(Debug, Deserialize)]
+struct CgEntry {
     index: usize,
     length: u64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 struct LengthWrapper {
-    cast: Vec<Length>,
+    cast: HashMap<String, CgEntry>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -59,27 +43,23 @@ impl CgConfig {
 }
 
 fn load_cg() -> CgConfig {
-    let content = fs::read_to_string(format!("{}length.toml", ENGINE_CONFIG.cg_path(),)).unwrap();
-    let name_item: LengthWrapper = toml::from_str(&content).unwrap();
-    let index_item = name_item.cast.clone();
-    let length = index_item.len();
+    let content = fs::read_to_string(format!("{}length.toml", ENGINE_CONFIG.cg_path())).unwrap();
+    let item: LengthWrapper = toml::from_str(&content).unwrap();
+    let length = item.cast.len();
+    let mut cg_by_name = HashMap::new();
+    let mut cg_by_id = HashMap::new();
+    for (name, entry) in item.cast {
+        cg_by_name.insert(name.clone(), (entry.index, entry.length));
+        cg_by_id.insert(entry.index, (name, entry.length));
+    }
     CgConfig {
-        cg_by_name: name_item
-            .cast
-            .into_iter()
-            .map(|length| (length.name, (length.index, length.length)))
-            .collect(),
-        cg_by_id: index_item
-            .into_iter()
-            .map(|length| (length.index, (length.name, length.length)))
-            .collect(),
+        cg_by_name,
+        cg_by_id,
         length,
     }
 }
 
-pub(crate) fn get_cg(cg: Rc<RefCell<Vec<u64>>>) -> Result<ModelRc<ModelRc<ExItem>>, EngineError> {
-    let cg_map = cg.borrow();
-
+pub(crate) fn get_cg(cg_map: &[u64]) -> Result<ModelRc<ModelRc<ExItem>>, EngineError> {
     let mut ex_items: Vec<ModelRc<ExItem>> = Vec::with_capacity(10);
     let mut i = 1;
     let mut ex_page: Vec<ExItem> = Vec::new();

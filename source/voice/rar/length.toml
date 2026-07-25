@@ -1,4 +1,3 @@
-cast = [
-    {name = "fem_rar_50055", length = 4},
-    {name = "fem_rar_50056", length = 6},
-]
+[cast]
+fem_rar_50055 = 4
+fem_rar_50056 = 6

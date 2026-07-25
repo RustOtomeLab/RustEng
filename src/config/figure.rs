@@ -6,38 +6,15 @@ lazy_static::lazy_static! {
     pub(crate) static ref FIGURE_CONFIG: FigureConfig = load_figure();
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Face {
-    name: String,
-    x: f32,
-    y: f32,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct FaceWrapper {
-    cast: Vec<Face>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct Body {
-    name: String,
-    rate: f32,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct BodyWrapper {
-    cast: Vec<Body>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 struct Offset {
     offset: f32,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 struct FigureRead {
-    body: BodyWrapper,
-    face: FaceWrapper,
+    body: HashMap<String, f32>,
+    face: HashMap<String, (f32, f32)>,
     offset: Offset,
 }
 
@@ -77,22 +54,8 @@ fn load_figure() -> FigureConfig {
         ))
         .unwrap();
         let item: FigureRead = toml::from_str(&content).unwrap();
-        face_list.insert(
-            char.to_string(),
-            item.face
-                .cast
-                .into_iter()
-                .map(|face| (face.name, (face.x, face.y)))
-                .collect(),
-        );
-        body_list.insert(
-            char.to_string(),
-            item.body
-                .cast
-                .into_iter()
-                .map(|body| (body.name, body.rate))
-                .collect(),
-        );
+        face_list.insert(char.to_string(), item.face);
+        body_list.insert(char.to_string(), item.body);
         offset_list.insert(char.to_string(), item.offset.offset);
     }
 
