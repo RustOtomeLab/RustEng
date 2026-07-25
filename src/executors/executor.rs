@@ -89,7 +89,6 @@ impl Executor {
     pub(crate) fn new(weak: Weak<MainWindow>) -> Result<Executor, EngineError> {
         let mut script = Parser::load("ky01")?;
 
-        // 加载用户存档，并把启动剧本的已读进度注入 Script
         let user_data = UserData::load();
         let read_block = user_data.read.get(script.name()).copied().unwrap_or(0);
         script.set_read_block(read_block);
@@ -167,6 +166,11 @@ impl Executor {
             return Some((auto_tx.clone(), skip_tx.clone()))
         }
         None
+    }
+
+    pub(crate) fn can_skip(&self) -> bool {
+        let scr = self.script.borrow();
+        scr.read_block() > scr.index()
     }
 
     pub(crate) fn unlock(&mut self, index: usize) {
@@ -386,6 +390,10 @@ impl Executor {
                     auto_tx.try_send(())?;
                 }
                 Status::Skip => {
+                    if !self.can_skip() {
+                        return Ok(())
+                    }
+
                     if symbol {
                         window.set_is_skip(false);
                     } else {

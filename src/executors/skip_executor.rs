@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::mpsc::{channel, Sender};
+use crate::executors::Status;
 
 pub(crate) struct SkipExecutor {
     timer: slint::Timer,
@@ -32,7 +33,7 @@ impl SkipExecutor {
         let is_skip_clone = is_skip.clone();
         tokio::spawn(async move {
             let mut start = true;
-            while (rx.recv().await).is_some() {
+            while rx.recv().await.is_some() {
                 if start {
                     is_skip_clone.store(true, Ordering::Relaxed);
                     start = false;
@@ -56,12 +57,16 @@ impl SkipExecutor {
             move || {
                 if is_skip.load(Ordering::Relaxed) {
                     let mut executor = executor.clone();
-                    slint::spawn_local(async move {
-                        if let Err(e) = executor.execute_script() {
-                            eprintln!("skip execute_script failed: {e}");
-                        }
-                    })
-                    .expect("skip-play timer: no slint event loop");
+                    if executor.can_skip() {
+                        slint::spawn_local(async move {
+                            if let Err(e) = executor.execute_script() {
+                                eprintln!("skip execute_script failed: {e}");
+                            }
+                        })
+                            .expect("skip-play timer: no slint event loop");
+                    } else {
+                        executor.execute_status(Status::Skip, true).expect("skip-play execute_status failed");
+                    }
                 }
             },
         );

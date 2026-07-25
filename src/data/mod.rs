@@ -29,7 +29,6 @@ impl UserData {
             .ok()
             .and_then(|content| toml::from_str::<Self>(&content).ok())
             .unwrap_or_default();
-        // 防御：cg 长度不足时补齐，避免解锁时越界
         let num = CG_CONFIG.length() / 64 + 1;
         if data.cg.len() < num {
             data.cg.resize(num, 0);
