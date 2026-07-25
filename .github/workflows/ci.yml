@@ -1,9 +1,7 @@
 name: CI
 
-# 触发条件：push 到主分支，或者向主分支发起 PR 时运行
+# 触发条件：向主分支发起 PR 时运行
 on:
-  push:
-    branches: ["main", "master"]
   pull_request:
 
 # 取消同一分支上正在进行的旧任务，节省 CI 资源
