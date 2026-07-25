@@ -65,6 +65,8 @@ export component MainWindow inherits Window {
         width: parent.width;
         height: parent.height;
 
+        init => { self.focus(); }
+
         key-pressed(event) => {
             if (event.text == Key.F11) {
                 root.toggle-fullscreen();

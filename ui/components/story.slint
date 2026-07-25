@@ -59,23 +59,6 @@ export component StoryView {
     callback load-game();
     callback stop-video();
 
-    TouchArea {
-        width: parent.width;
-        height: parent.height;
-
-        scroll-event(event) => {
-            if (root.is-video) {
-                accept
-            } else if (event.delta-y > 0) {
-                root.backlog();
-                is_backlog = true;
-                accept
-            } else {
-                reject
-            }
-        }
-    }
-
     Rectangle {
         width: container-width;
         height: container-height;
@@ -89,6 +72,18 @@ export component StoryView {
                     root.stop-video();
                 } else if (!is_backlog) {
                     root.clicked();
+                }
+            }
+
+            scroll-event(event) => {
+                if (root.is-video) {
+                    accept
+                } else if (event.delta-y > 0) {
+                    root.backlog();
+                    is_backlog = true;
+                    accept
+                } else {
+                    reject
                 }
             }
         }
