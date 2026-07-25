@@ -40,6 +40,7 @@ export component StoryView {
     in property <bool> is-bold;
     in property <bool> show-shadow;
     in property <string> dialogue-font;
+    in property <bool> is-read;
 
     in-out property <bool> is-video: false;
     in property <image> video-frame;
@@ -172,7 +173,7 @@ export component StoryView {
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
                 font-family: root.dialogue-font;
-                color: Colors.text-light;
+                color: root.is-read ? Colors.read-color : Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
             }
@@ -195,7 +196,7 @@ export component StoryView {
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
                 font-family: root.dialogue-font;
-                color: Colors.text-light;
+                color: root.is-read ? Colors.read-color : Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
             }
@@ -218,7 +219,7 @@ export component StoryView {
                 font-size: parent.height * 2 / 15;
                 font-weight: root.is-bold ? 700 : 400;
                 font-family: root.dialogue-font;
-                color: Colors.text-light;
+                color: root.is-read ? Colors.read-color : Colors.text-light;
                 wrap: word-wrap;
                 width: parent.width * 31 / 32;
             }

@@ -3,6 +3,7 @@ import { SwitchToggle } from "../common/switch_toggle.slint";
 
 export component SystemConfig {
     in-out property <bool> is-wait;
+    in-out property <bool> skip-conf;
     in-out property <float> delay;
 
     Rectangle {
@@ -29,6 +30,16 @@ export component SystemConfig {
             volume-changed(value) => {
                 root.delay = value;
             }
+        }
+
+        SwitchToggle {
+            x: parent.width * 0.02;
+            y: parent.height * 0.16;
+            width: parent.width * 0.35;
+            height: parent.height * 0.035;
+            label: "跳过未读文本";
+            texts: 6;
+            checked <=> root.skip-conf;
         }
     }
 }

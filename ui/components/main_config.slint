@@ -18,6 +18,7 @@ export component SettingsView {
     in-out property <float> voice-volume;
     in-out property <[CharacterVolume]> character_volumes: [];
     in-out property <bool> is-wait;
+    in-out property <bool> skip-conf;
     in-out property <float> delay;
     in-out property <float> text-speed;
     in-out property <float> dialogue-opacity;
@@ -134,6 +135,7 @@ export component SettingsView {
                 width: parent.width;
                 
                 is-wait <=> root.is-wait;
+                skip-conf <=> root.skip-conf;
                 delay <=> root.delay;
             }
             

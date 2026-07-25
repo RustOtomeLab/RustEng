@@ -170,6 +170,11 @@ impl Executor {
 
     pub(crate) fn can_skip(&self) -> bool {
         let scr = self.script.borrow();
+        if let Some(window) = self.weak.upgrade() {
+            if window.get_skip_conf() {
+                return true;
+            }
+        }
         scr.read_block() > scr.index()
     }
 
@@ -580,6 +585,7 @@ impl Executor {
                             text.replace("{nns}", "").to_shared_string(),
                             voice,
                         );
+                        window.set_is_read(script.read_block() > script.index());
                     }
                     window.set_speaker(SharedString::from(speaker));
                     {
