@@ -19,6 +19,7 @@ pub(crate) struct Timeline {
     bgm: BTreeMap<usize, String>,
     backgrounds: BTreeMap<usize, Command>,
     figures: BTreeMap<usize, Figure>,
+    choices: BTreeMap<usize, HashMap<String, Label>>,
 }
 
 impl Timeline {
@@ -28,6 +29,22 @@ impl Timeline {
 
     fn insert_background(&mut self, index: usize, command: Command) {
         self.backgrounds.insert(index, command);
+    }
+
+    fn insert_choices(&mut self, index: usize, choices: HashMap<String, Label>) {
+        self.choices.insert(index, choices);
+    }
+
+    fn get_choice_label(&self, index: usize, choice: &str) -> Option<&Label> {
+        if let Some(choices) = self.choices.get(&index) {
+            choices.get(choice)
+        } else {
+            None
+        }
+    }
+
+    fn find_next_choice(&self, index: usize) -> Option<&usize> {
+        self.choices.range(index..).next().map(|(i, _)| i)
     }
 
     fn update_figures(&mut self, index: usize, distance: &str, position: &str, command: Command) {
@@ -96,7 +113,6 @@ pub(crate) struct Script {
     pre_voice: Option<(SharedString, SharedString)>,
     timeline: Timeline,
     clear: HashSet<usize>,
-    choices: HashMap<String, Label>,
     labels: HashMap<String, usize>,
     pre_items: PreItems,
 }
@@ -115,7 +131,6 @@ impl Script {
             pre_voice: None,
             timeline: Timeline::default(),
             clear: HashSet::new(),
-            choices: HashMap::new(),
             labels: HashMap::new(),
             pre_items: PreItems::default(),
         }
@@ -199,8 +214,8 @@ impl Script {
         self.timeline.insert_bgm(index, bgm);
     }
 
-    pub(crate) fn insert_choice(&mut self, choice: String, label: Label) {
-        self.choices.insert(choice, label);
+    pub(crate) fn insert_choice(&mut self, index: usize, choices: HashMap<String, Label>) {
+        self.timeline.insert_choices(index, choices);
     }
 
     pub(crate) fn insert_clear(&mut self, index: usize) {
@@ -281,12 +296,20 @@ impl Script {
         (pre_items.pre_bg, pre_items.pre_bgm, pre_items.pre_figures)
     }
 
+    pub(crate) fn find_next_choice(&self) -> Option<(String, i32)> {
+        if let Some(&index) = self.timeline.find_next_choice(self.current_block) {
+            Some((self.name.to_string(), index as i32))
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn find_label(&self, name: &str) -> Option<&usize> {
         self.labels.get(name)
     }
 
     pub(crate) fn get_choice_label(&self, name: &str) -> Option<&Label> {
-        self.choices.get(name)
+        self.timeline.get_choice_label(self.current_block - 1, name)
     }
 
     pub(crate) fn change_figure(

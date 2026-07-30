@@ -128,12 +128,10 @@ impl Executor {
         self.save_tx = Some(save_tx);
     }
 
-    /// 读取某剧本已记录的已读进度（不存在则为 0）
     fn read_of(&self, name: &str) -> usize {
         self.user_data.borrow().read.get(name).copied().unwrap_or(0)
     }
 
-    /// 向异步保存 task 推送最新快照（非阻塞）
     fn request_save(&self) {
         if let Some(tx) = &self.save_tx {
             let _ = tx.send(Some(self.user_data.borrow().clone()));
@@ -265,6 +263,7 @@ impl Executor {
     pub(crate) fn execute_load(&mut self, name: String, index: i32) -> Result<(), EngineError> {
         if !name.is_empty() {
             let weak = self.weak.clone();
+            *self.choose_lock.borrow_mut() = false;
             if let Some(window) = weak.upgrade() {
                 window.set_current_screen(2);
                 window.set_current_choose(0);
@@ -346,32 +345,29 @@ impl Executor {
     }
 
     pub(crate) fn execute_jump(&mut self, label: Jump) -> Result<(), EngineError> {
-        {
-            let mut script = self.script.borrow_mut();
-            let backlog = script.to_owned().take_backlog();
-            let jump_index = match label {
-                Jump::Label((name, label)) => {
-                    if name != script.name() {
-                        let mut scr = Parser::load(&name)?;
-                        scr.set_backlog(backlog);
-                        scr.set_read_block(self.read_of(&name));
-                        *script = scr;
-                    }
-                    script.find_label(&label).copied()
+        let mut script = self.script.borrow_mut();
+        let backlog = script.to_owned().take_backlog();
+        let jump_index = match label {
+            Jump::Label((name, label)) => {
+                if name != script.name() {
+                    let mut scr = Parser::load(&name)?;
+                    scr.set_backlog(backlog);
+                    scr.set_read_block(self.read_of(&name));
+                    *script = scr;
                 }
-                Jump::Index((name, index)) => {
-                    if name != script.name() {
-                        let mut scr = Parser::load(&name)?;
-                        scr.set_backlog(backlog);
-                        scr.set_read_block(self.read_of(&name));
-                        *script = scr;
-                    }
-                    Some(index as usize)
+                script.find_label(&label).copied()
+            }
+            Jump::Index((name, index)) => {
+                if name != script.name() {
+                    let mut scr = Parser::load(&name)?;
+                    scr.set_backlog(backlog);
+                    scr.set_read_block(self.read_of(&name));
+                    *script = scr;
                 }
-            };
-
-            script.set_pre_items(jump_index);
-        }
+                Some(index as usize)
+            }
+        };
+        script.set_pre_items(jump_index);
         self.clean_fg("All")?;
 
         Ok(())
@@ -434,15 +430,22 @@ impl Executor {
         Ok(())
     }
 
+    pub(crate) fn execute_skip_choice(&mut self) -> Result<(), EngineError> {
+        let choice = self.script.borrow().find_next_choice();
+
+        if let Some(choice) = choice {
+            self.execute_jump(Jump::Index(choice))?;
+            self.execute_script()
+        } else {
+            Ok(())
+        }
+    }
+
     pub(crate) fn execute_script(&mut self) -> Result<(), EngineError> {
-        {
-            let scr = self.script.clone();
-            let scr = scr.borrow();
-            if scr.in_clear() {
-                self.delay_channels.as_ref().unwrap().clear_all();
-            } else {
-                self.delay_channels.as_ref().unwrap().skip_all();
-            }
+        if self.script.borrow().in_clear() {
+            self.delay_channels.as_ref().unwrap().clear_all();
+        } else {
+            self.delay_channels.as_ref().unwrap().skip_all();
         }
 
         let res = {
@@ -466,14 +469,14 @@ impl Executor {
             return Ok(());
         }
 
-        let mut duration = Duration::default();
-        let mut is_wait = true;
-        let mut is_auto = false;
-        if let Some(window) = self.weak.upgrade() {
-            duration += Duration::from_millis((window.get_delay() * 1000.0) as u64);
-            is_wait = window.get_is_wait();
-            is_auto = window.get_is_auto();
-        }
+        let (is_wait, is_auto, mut duration) = match self.weak.upgrade() {
+            Some(window) => (
+                window.get_is_wait(),
+                window.get_is_auto(),
+                Duration::from_millis((window.get_delay() * 1000.0) as u64),
+            ),
+            None => (true, false, Duration::default()),
+        };
 
         if *self.choose_lock.borrow() {
             return Ok(());
@@ -483,14 +486,15 @@ impl Executor {
             return Ok(());
         }
 
-        let mut commands = Commands::EmptyCmd;
-        {
+        let commands = {
             let scr = self.script.clone();
             let mut scr = scr.borrow_mut();
             if let Some(cmds) = scr.next_command() {
-                commands = cmds.clone();
+                cmds.clone()
+            } else {
+                Commands::EmptyCmd
             }
-        }
+        };
         let delay = match commands {
             Commands::EmptyCmd => unreachable!(),
             Commands::OneCmd(command) => self.apply_command(command)?,

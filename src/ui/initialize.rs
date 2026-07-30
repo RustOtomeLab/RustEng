@@ -147,7 +147,7 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
         move |symbol| {
             executor
                 .execute_status(Status::Auto, symbol)
-                .expect("TODO: panic message");
+                .expect("Auto play panicked");
         }
     });
 
@@ -156,7 +156,16 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
         move |symbol| {
             executor
                 .execute_status(Status::Skip, symbol)
-                .expect("TODO: panic message");
+                .expect("Skip play panicked");
+        }
+    });
+
+    window.on_skip_choice({
+        let mut executor = executor.clone();
+        move || {
+            executor
+                .execute_skip_choice()
+                .expect("Skip choice panicked");
         }
     });
 
@@ -165,7 +174,7 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
         move || {
             executor
                 .execute_status(Status::Normal, false)
-                .expect("TODO: panic message");
+                .expect("Normal play panicked");
         }
     });
 

@@ -47,6 +47,7 @@ export component StoryView {
 
     callback auto-play(bool);
     callback skip-play(bool);
+    callback skip-choice();
     callback backlog();
     callback backlog-change(int);
     callback backlog-jump(string, int);
@@ -251,7 +252,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.61 - self.width;
+                x: parent.width * 0.55 - self.width;
                 y: 0;
                 text: "语音";
                 clicked => { root.replay-voice(); }
@@ -260,7 +261,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.67 - self.width;
+                x: parent.width * 0.61 - self.width;
                 y: 0;
                 text: "存档";
                 clicked => { root.save-game(); }
@@ -269,7 +270,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.73 - self.width;
+                x: parent.width * 0.67 - self.width;
                 y: 0;
                 text: "读档";
                 clicked => { root.load-game(); }
@@ -278,7 +279,7 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.79 - self.width;
+                x: parent.width * 0.73 - self.width;
                 y: 0;
                 text: "自动";
                 is-on: is-auto;
@@ -288,11 +289,21 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.85 - self.width;
+                x: parent.width * 0.79 - self.width;
                 y: 0;
                 text: "快进";
                 is-on: is-skip;
                 clicked => { root.skip-play(is-skip); }
+            }
+
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.85 - self.width;
+                y: 0;
+                text: "选择";
+                is-on: is-skip;
+                clicked => { root.skip-choice(); }
             }
 
             CustomRoundButton {
