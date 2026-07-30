@@ -161,10 +161,12 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
     });
 
     window.on_skip_choice({
-       let mut executor = executor.clone();
-       move || {
-           executor.execute_skip_choice().expect("Skip choice panicked");
-       }
+        let mut executor = executor.clone();
+        move || {
+            executor
+                .execute_skip_choice()
+                .expect("Skip choice panicked");
+        }
     });
 
     window.on_normal_play({

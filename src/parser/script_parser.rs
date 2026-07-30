@@ -206,7 +206,8 @@ impl Parser {
                                     ))));
                                 }
                             }
-                            self.script.insert_choice(self.block_index, choices_branch.clone());
+                            self.script
+                                .insert_choice(self.block_index, choices_branch.clone());
                             block_commands.push(Choice((explain, choices_branch)));
                             break;
                         }

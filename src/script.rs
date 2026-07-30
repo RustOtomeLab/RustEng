@@ -19,7 +19,7 @@ pub(crate) struct Timeline {
     bgm: BTreeMap<usize, String>,
     backgrounds: BTreeMap<usize, Command>,
     figures: BTreeMap<usize, Figure>,
-    choices: BTreeMap<usize, HashMap<String, Label>>
+    choices: BTreeMap<usize, HashMap<String, Label>>,
 }
 
 impl Timeline {

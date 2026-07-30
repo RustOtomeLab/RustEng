@@ -469,8 +469,12 @@ impl Executor {
             return Ok(());
         }
 
-        let (is_wait, is_auto,  mut duration) = match self.weak.upgrade() {
-            Some(window) => (window.get_is_wait(), window.get_is_auto(), Duration::from_millis((window.get_delay() * 1000.0) as u64)),
+        let (is_wait, is_auto, mut duration) = match self.weak.upgrade() {
+            Some(window) => (
+                window.get_is_wait(),
+                window.get_is_auto(),
+                Duration::from_millis((window.get_delay() * 1000.0) as u64),
+            ),
             None => (true, false, Duration::default()),
         };
 
