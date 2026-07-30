@@ -171,7 +171,7 @@ impl Parser {
                         }
                         "choose" => {
                             let num = arg.parse::<usize>().map_err(ScriptError::from)?;
-                            let mut choose_branch = HashMap::with_capacity(num);
+                            let mut choices_branch = HashMap::with_capacity(num);
                             let explain = lines[index + 1].1.clone();
                             for (i, line) in lines.iter().take(index + num + 1 + 1).skip(index + 2)
                             {
@@ -199,15 +199,15 @@ impl Parser {
                                         ),
                                         _ => unreachable!(),
                                     };
-                                    choose_branch.insert(choice.clone(), label.clone());
-                                    self.script.insert_choice(choice, label);
+                                    choices_branch.insert(choice.clone(), label.clone());
                                 } else {
                                     return Err(EngineError::from(ScriptError::Choice(format!(
                                         "Invalid choice at line {i}: {line}"
                                     ))));
                                 }
                             }
-                            block_commands.push(Choice((explain, choose_branch)));
+                            self.script.insert_choice(self.block_index, choices_branch.clone());
+                            block_commands.push(Choice((explain, choices_branch)));
                             break;
                         }
                         "voice" => {

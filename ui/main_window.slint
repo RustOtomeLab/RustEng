@@ -188,6 +188,7 @@ export component MainWindow inherits Window {
 
             auto-play(b) => { root.auto-play(b); }
             skip-play(b) => { root.skip-play(b); }
+            skip-choice => { root.skip-choice(); }
             backlog => { root.backlog(); }
             backlog-change(i) => { root.backlog-change(i); }
             backlog-jump(s, i) => { root.backlog-jump(s, i); }
@@ -240,6 +241,7 @@ export component MainWindow inherits Window {
 
     callback auto-play(bool);
     callback skip-play(bool);
+    callback skip-choice();
     callback normal-play();
     callback clicked();
     callback toggle-fullscreen();
