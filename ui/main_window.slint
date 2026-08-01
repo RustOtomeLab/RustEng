@@ -12,7 +12,7 @@ export component MainWindow inherits Window {
     min-height: 720px;
     title: "RustEng";
 
-    // 所有原有的属性保持不变
+    // Story
     in property <string> dialogue-1;
     in property <string> dialogue-2;
     in property <string> dialogue-3;
@@ -21,18 +21,23 @@ export component MainWindow inherits Window {
     in property<[{ index: int, text: string }]> choose-branch;
     in property <{ img: image, x_offset: float, y_offset: float, zoom: float }> bg;
     in property <[FigureItem]> figure-items;
+    in property<int> current-choose: 0;
+    in property <image> video-frame;
+
+    // Story states
     in property<bool> is-fullscreen: false;
     in-out property <bool> is_backlog: false;
     in-out property <bool> is-auto;
+    in-out property <bool> is-skip;
+    in-out property <bool> is-video: false;
+
+    // System
+    in-out property <float> delay;
     in-out property <bool> is-wait;
     in-out property <bool> skip-conf;
-    in-out property <float> delay;
-    in-out property <float> text-speed;
-    in-out property <bool> is-skip;
-    in property<int> current-choose: 0;
-    in-out property <bool> is-video: false;
-    in property <image> video-frame;
 
+    // Text
+    in-out property <float> text-speed;
     in-out property <float> dialogue-opacity;
     in-out property <bool> is-bold;
     in-out property <bool> show-shadow;
@@ -40,12 +45,15 @@ export component MainWindow inherits Window {
     in-out property <bool> is-read;
     in property <[string]> font-list;
 
+    // Screen
     in-out property <int> current-screen: 0;
     in-out property <int> last-screen: 0;
 
+    // Save & Load
     in property <[[SaveItem]]> save-items;
     in property <[[ExItem]]> ex-items;
 
+    // Volume
     in-out property <float> main-volume;
     in-out property <float> bgm-volume;
     in-out property <float> voice-volume;
@@ -136,13 +144,19 @@ export component MainWindow inherits Window {
             container-width: parent.width;
             container-height: parent.height;
             is-fullscreen: root.is-fullscreen;
+
+            // Volume
             main-volume <=> root.main-volume;
             bgm-volume <=> root.bgm-volume;
             voice-volume <=> root.voice-volume;
             character_volumes <=> root.character_volumes;
+
+            // System
             is-wait <=> root.is-wait;
             skip-conf <=> root.skip-conf;
             delay <=> root.delay;
+
+            // Text
             dialogue-opacity <=> root.dialogue-opacity;
             is-bold <=> root.is-bold;
             show-shadow <=> root.show-shadow;
@@ -171,6 +185,8 @@ export component MainWindow inherits Window {
             bg: root.bg;
             current-choose: root.current-choose;
             figure-items: root.figure-items;
+
+            // Text
             dialogue-opacity: root.dialogue-opacity;
             is-bold: root.is-bold;
             show-shadow: root.show-shadow;

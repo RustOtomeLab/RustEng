@@ -194,16 +194,10 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
     window.on_exit({
         let weak = executor.get_weak();
         move || {
-            slint::spawn_local({
-                let weak = weak.clone();
-                async move {
-                    if let Some(window) = weak.upgrade() {
-                        let _ = window.hide();
-                    }
-                    let _ = slint::quit_event_loop();
-                }
-            })
-            .expect("Exit panicked");
+            if let Some(window) = weak.upgrade() {
+                let _ = window.hide();
+            }
+            let _ = slint::quit_event_loop();
         }
     });
 

@@ -536,9 +536,7 @@ impl Executor {
         let mut duration = Duration::from_secs(0);
 
         if let Some(window) = self.weak.upgrade() {
-            let mut scr = self.script.borrow_mut();
-            let (pre_bg, pre_bgm, pre_figures) = scr.pre_items();
-            drop(scr);
+            let (pre_bg, pre_bgm, pre_figures) = self.script.borrow_mut().pre_items();
 
             if let Some(bg) = pre_bg {
                 self.show_bg(&bg)?;
