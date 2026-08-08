@@ -171,12 +171,12 @@ impl Executor {
     }
 
     pub(crate) fn can_skip(&self) -> bool {
-        let scr = self.script.borrow();
         if let Some(window) = self.weak.upgrade() {
             if window.get_skip_conf() {
                 return true;
             }
         }
+        let scr = self.script.borrow();
         scr.read_block() > scr.index()
     }
 
