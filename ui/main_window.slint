@@ -212,6 +212,8 @@ export component MainWindow inherits Window {
             clicked => { root.clicked(); }
             choose(text) => { root.choose(text); }
             replay-voice => { root.replay-voice(); }
+            quick-save() => { root.quick-save(); }
+            quick-load() => { root.quick-load(); }
             save-game => {
                 esc_story(3);
                 root.normal-play();
@@ -273,6 +275,8 @@ export component MainWindow inherits Window {
     callback replay-voice();
     callback save(int, int);
     callback load(string, int);
+    callback quick-save();
+    callback quick-load();
     callback get-ex();
     callback exit();
     callback stop-video();

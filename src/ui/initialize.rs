@@ -25,6 +25,20 @@ pub(crate) async fn ui() -> Result<(), EngineError> {
         }
     });
 
+    window.on_quick_save({
+        let mut executor = executor.clone();
+        move || {
+            executor.execute_save(15, 9).expect("Quick save panicked");
+        }
+    });
+
+    window.on_quick_load({
+        let mut executor = executor.clone();
+        move || {
+            executor.execute_quick_load().expect("Quick load panicked");
+        }
+    });
+
     window.on_save({
         let mut executor = executor.clone();
         move |index, page_num| {

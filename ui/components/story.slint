@@ -56,6 +56,9 @@ export component StoryView {
     callback choose(string);
     callback settings();
     callback replay_voice();
+    
+    callback quick-save();
+    callback quick-load();
     callback save-game();
     callback load-game();
     callback stop-video();
@@ -252,10 +255,28 @@ export component StoryView {
             CustomRoundButton {
                 width: parent.height;
                 height: parent.height;
-                x: parent.width * 0.55 - self.width;
+                x: parent.width * 0.43 - self.width;
                 y: 0;
                 text: "语音";
                 clicked => { root.replay-voice(); }
+            }
+
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.49 - self.width;
+                y: 0;
+                text: "快存";
+                clicked => { root.quick-save(); }
+            }
+
+            CustomRoundButton {
+                width: parent.height;
+                height: parent.height;
+                x: parent.width * 0.55 - self.width;
+                y: 0;
+                text: "快读";
+                clicked => { root.quick-load(); }
             }
 
             CustomRoundButton {
