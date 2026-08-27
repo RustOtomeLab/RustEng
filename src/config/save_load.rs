@@ -15,8 +15,14 @@ pub(crate) struct SaveData {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct SaveDataWrapper {
+pub(crate) struct SaveDataWrapper {
     save_data: Vec<SaveData>,
+}
+
+impl SaveDataWrapper {
+    pub(crate) fn new(save_data: Vec<SaveData>) -> SaveDataWrapper {
+        SaveDataWrapper { save_data }
+    }
 }
 
 impl SaveData {

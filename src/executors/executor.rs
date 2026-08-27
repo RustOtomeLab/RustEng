@@ -1,7 +1,7 @@
 use crate::config::cg::get_cg;
 use crate::config::{
-    cg::CG_CONFIG, figure::FIGURE_CONFIG, save_load::SaveData, user::save_user_config,
-    voice::VOICE_LENGTH, ENGINE_CONFIG,
+    cg::CG_CONFIG, figure::FIGURE_CONFIG, save_load::SaveData, save_load::SaveDataWrapper,
+    user::save_user_config, voice::VOICE_LENGTH, ENGINE_CONFIG,
 };
 use crate::data::UserData;
 use crate::error::{EngineError, SaveError};
@@ -171,12 +171,12 @@ impl Executor {
     }
 
     pub(crate) fn can_skip(&self) -> bool {
-        let scr = self.script.borrow();
         if let Some(window) = self.weak.upgrade() {
             if window.get_skip_conf() {
                 return true;
             }
         }
+        let scr = self.script.borrow();
         scr.read_block() > scr.index()
     }
 
@@ -224,6 +224,19 @@ impl Executor {
         Ok(())
     }
 
+    pub(crate) fn execute_quick_load(&mut self) -> Result<(), EngineError> {
+        let load_data = match self.weak.upgrade() {
+            Some(window) => window.get_save_items().row_data(9).unwrap().row_data(15),
+            None => None,
+        };
+
+        if let Some(data) = load_data {
+            self.execute_load(data.name.to_string(), data.index)?
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn execute_save(&mut self, index: i32, page_num: i32) -> Result<(), EngineError> {
         if let Some(window) = self.weak.upgrade() {
             let script = self.script.borrow();
@@ -239,19 +252,29 @@ impl Executor {
                     name: SharedString::from(script.name()),
                 },
             );
-            exists_save_items.set_row_data(page_num as usize, save_page);
+            exists_save_items.set_row_data(page_num as usize, save_page.clone());
+            let save_data = save_page
+                .iter()
+                .map(|item| {
+                    SaveData::new(
+                        item.name.to_string(),
+                        item.index as usize,
+                        item.explain.to_string(),
+                        item.bg
+                            .path()
+                            .and_then(|p| p.to_str().map(|s| s.to_string()))
+                            .unwrap_or_default(),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let path = format!("{}{}.toml", ENGINE_CONFIG.save_path(), page_num);
             fs::write(
-                format!("{}{}.toml", ENGINE_CONFIG.save_path(), index),
-                toml::to_string_pretty(&SaveData::new(
-                    script.name().to_string(),
-                    script.index(),
-                    script.explain().to_string(),
-                    bg.0.path().unwrap().to_str().unwrap().to_string(),
-                ))
-                .map_err(SaveError::from)?,
+                &path,
+                toml::to_string_pretty(&SaveDataWrapper::new(save_data))
+                    .map_err(SaveError::from)?,
             )
             .map_err(|e| SaveError::Write {
-                path: format!("{}{}.toml", ENGINE_CONFIG.save_path(), index),
+                path: path.clone(),
                 source: e,
             })?;
             window.set_save_items(exists_save_items);
@@ -536,9 +559,7 @@ impl Executor {
         let mut duration = Duration::from_secs(0);
 
         if let Some(window) = self.weak.upgrade() {
-            let mut scr = self.script.borrow_mut();
-            let (pre_bg, pre_bgm, pre_figures) = scr.pre_items();
-            drop(scr);
+            let (pre_bg, pre_bgm, pre_figures) = self.script.borrow_mut().pre_items();
 
             if let Some(bg) = pre_bg {
                 self.show_bg(&bg)?;
